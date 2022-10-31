@@ -5,12 +5,73 @@
 #include "devices/blepsynth/laddervcf.hh"
 #include "devices/blepsynth/linearsmooth.hh"
 #include "ase/internal.hh"
+#define PANDA_RESAMPLER_HEADER_ONLY
+#include "devices/blepsynth/pandaresampler/pandaresampler.hh"
 
 // based on liquidsfz envelope.hh
 
 namespace {
 
 using namespace Ase;
+
+class SVF
+{
+  typedef float F;
+  F A, D, O;
+  F s1 = 0, s2 = 0;
+  F g;
+  int out;
+public:
+  void
+  reset ()
+  {
+    s1 = 0;
+    s2 = 0;
+  }
+  void
+  set_params (float c, int over, int i, double res, double gg)
+  {
+    O = c / 2 * M_PI;
+    D = res;
+    g = gg;
+    A = 1/(1 + D*O + O*O);          // Scaling factor
+    out = i;
+  }
+  float tick (float x)
+  {
+    // O is the radian frequency and D is the damping factor
+    F yhp = (x - (D + O)*s1 - s2)*A;  // High-pass output
+    F w = O*tanh(yhp*g)/g;            // First nonlinear mapping
+    F ybp = w + s1;                   // Band-pass output
+    s1 = ybp + w;                   // Update state
+    w = O*tanh(ybp*g)/g;            // Second nonlinear mapping
+    F ylp = w + s2;                   // Low-pass output
+    s2= ylp+w;                      // Update state
+    if (out == 0)
+      {
+        return ylp;
+      }
+    if (out == 1)
+      return ybp;
+    if (out == 2)
+      return yhp;
+    assert (false);
+    return 0;
+  }
+};
+
+class SVFR
+{
+public:
+  PandaResampler::Resampler2 res_up   { PandaResampler::Resampler2::UP,   8, PandaResampler::Resampler2::PREC_72DB, false };
+  PandaResampler::Resampler2 res_down { PandaResampler::Resampler2::DOWN, 8, PandaResampler::Resampler2::PREC_72DB, false };
+  void
+  reset()
+  {
+    res_up.reset();
+    res_down.reset();
+  }
+};
 
 class Envelope
 {
@@ -219,6 +280,7 @@ class BlepSynth : public AudioProcessor {
   ParamId pid_drive_;
   ParamId pid_key_track_;
   ParamId pid_mode_;
+  ParamId pid_tanh_;
 
   ParamId pid_attack_;
   ParamId pid_decay_;
@@ -259,6 +321,10 @@ class BlepSynth : public AudioProcessor {
     BlepUtils::OscImpl osc1_;
     BlepUtils::OscImpl osc2_;
     LadderVCFNonLinear vcf_;
+    SVF                svf1_;
+    SVF                svf2_;
+    SVFR               svfr1_;
+    SVFR               svfr2_;
   };
   std::vector<Voice>    voices_;
   std::vector<Voice *>  active_voices_;
@@ -304,7 +370,16 @@ class BlepSynth : public AudioProcessor {
     choices += { "L2"_uc, "2 Pole Lowpass, 12dB/Octave" };
     choices += { "L3"_uc, "3 Pole Lowpass, 18dB/Octave" };
     choices += { "L4"_uc, "4 Pole Lowpass, 24dB/Octave" };
+    choices += { "SVFL2"_uc, "SVF Lowpass, 12dB/Octave" };
+    choices += { "SVFB2"_uc, "SVF Bandpass, 6dB/Octave" };
+    choices += { "SVFH2"_uc, "SVF Highpass, 12dB/Octave" };
     pid_mode_ = add_param ("Filter Mode", "Mode", std::move (choices), 2, "", "Ladder Filter Mode to be used");
+
+    ChoiceS nl;
+    nl += { "0"_uc,  "Linear+Clip" };
+    nl += { "C"_uc,  "Cubic" };
+    nl += { "TH"_uc, "tanh" };
+    pid_tanh_ = add_param ("Use TANH", "TH", std::move (nl), 1, "", "Non-Linearity");
 
     oscparams (1);
 
@@ -473,6 +548,10 @@ class BlepSynth : public AudioProcessor {
         voice->osc2_.reset();
         voice->vcf_.reset();
         voice->vcf_.set_rate (sample_rate());
+        voice->svf1_.reset();
+        voice->svf2_.reset();
+        voice->svfr1_.reset();
+        voice->svfr2_.reset();
 
         voice->cutoff_smooth_.reset (sample_rate(), 0.020);
         voice->last_cutoff_ = -5000; // force reset
@@ -527,6 +606,7 @@ class BlepSynth : public AudioProcessor {
           note_off (ev.channel, ev.key);
           break;
         case MidiMessage::NOTE_ON:
+          printf ("g=%f\n", db2voltage (get_param (pid_drive_)));
           note_on (ev.channel, ev.key, ev.velocity);
           break;
         case MidiMessage::ALL_NOTES_OFF:
@@ -569,8 +649,15 @@ class BlepSynth : public AudioProcessor {
             mix_right_out[i] = osc1_right_out[i] * v1 + osc2_right_out[i] * v2;
           }
         bool run_filter = true;
+        int  svf_mode = -1;
         switch (irintf (get_param (pid_mode_)))
           {
+          case 7: svf_mode = 2;
+            break;
+          case 6: svf_mode = 1;
+            break;
+          case 5: svf_mode = 0;
+            break;
           case 4: voice->vcf_.set_mode (LadderVCFMode::LP4);
             break;
           case 3: voice->vcf_.set_mode (LadderVCFMode::LP3);
@@ -582,6 +669,7 @@ class BlepSynth : public AudioProcessor {
           default: run_filter = false;
             break;
           }
+        voice->vcf_.set_nl (irintf (get_param (pid_tanh_)));
         /* --------- run ladder filter - processing in place is ok --------- */
 
         /* TODO: under some conditions we could enable SSE in LadderVCF (alignment and block_size) */
@@ -627,7 +715,27 @@ class BlepSynth : public AudioProcessor {
             outputs[0] = no_out;
             outputs[1] = no_out;
           }
-        voice->vcf_.run_block (n_frames, cutoff, resonance, inputs, outputs, true, true, freq_in, nullptr, nullptr, nullptr);
+        if (svf_mode >= 0)
+          {
+            float over_samples1[n_frames * 8];
+            float over_samples2[n_frames * 8];
+            printf ("freq=%f\n", freq_in[0]);
+            voice->svfr1_.res_up.process_block (inputs[0], n_frames, over_samples1);
+            voice->svfr2_.res_up.process_block (inputs[1], n_frames, over_samples2);
+            for (uint i = 0; i < n_frames * 8; i++)
+              {
+                voice->svf1_.set_params (freq_in[i / 8], 8, svf_mode, std::clamp (1 - resonance, 0.0, 0.95), db2voltage (get_param (pid_drive_)));
+                voice->svf2_.set_params (freq_in[i / 8], 8, svf_mode, std::clamp (1 - resonance, 0.0, 0.95), db2voltage (get_param (pid_drive_)));
+                over_samples1[i] = voice->svf1_.tick (over_samples1[i]);
+                over_samples2[i] = voice->svf2_.tick (over_samples2[i]);
+              }
+            voice->svfr1_.res_down.process_block (over_samples1, n_frames * 8, outputs[0]);
+            voice->svfr2_.res_down.process_block (over_samples2, n_frames * 8, outputs[1]);
+          }
+        else
+          {
+            voice->vcf_.run_block (n_frames, cutoff, resonance, inputs, outputs, true, true, freq_in, nullptr, nullptr, nullptr);
+          }
 
         // apply volume envelope
         for (uint i = 0; i < n_frames; i++)

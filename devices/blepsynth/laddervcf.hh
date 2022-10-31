@@ -29,6 +29,7 @@ class LadderVCF
 
   double last_key_tracking_factor;
   float  last_key_freq;
+  int    use_nl = 0;
 
 public:
   LadderVCF()
@@ -47,9 +48,14 @@ public:
     mode = new_mode;
   }
   void
+  set_nl (int nl)
+  {
+    use_nl = nl;
+  }
+  void
   set_drive (double drive_db)
   {
-    const double drive_delta_db = 36;
+    const double drive_delta_db = 24;
 
     pre_scale = db2voltage (drive_db - drive_delta_db);
     post_scale = std::max (1 / pre_scale, 1.0);
@@ -97,10 +103,22 @@ public:
   {
     if (NON_LINEAR)
       {
-        /* shaped somewhat similar to tanh() and others, but faster */
-        x = std::clamp (x, -1.0, 1.0);
+        if (use_nl == 2)
+          {
+            return tanh (x);
+          }
+        else if (use_nl == 1)
+          {
+            /* shaped somewhat similar to tanh() and others, but faster */
+            x = std::clamp (x, -1.0, 1.0);
 
-        return x - x * x * x * (1.0 / 3);
+            return x - x * x * x * (1.0 / 3);
+          }
+        else
+          {
+            x = std::clamp (x, -1.0, 1.0);
+            return x;
+          }
       }
     else
       {
