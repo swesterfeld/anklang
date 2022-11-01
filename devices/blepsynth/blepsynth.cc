@@ -14,6 +14,116 @@ namespace {
 
 using namespace Ase;
 
+class HP
+{
+  float y_ = 0;
+  float x_ = 0;
+  float cutoff_ = 0;
+  int over_ = 1;
+  int interp_ = 0;
+  bool lp_ = true;
+public:
+  void
+  set_params (float c, int over, int i)
+  {
+    cutoff_ = c * M_PI;
+    over_ = over;
+    interp_ = i;
+  }
+  void
+  set_lp (bool lp)
+  {
+    lp_ = lp;
+  }
+  void
+  reset()
+  {
+    y_ = 0;
+    // FIXME: x_
+  }
+  float
+  tick (float x)
+  {
+    float hp;
+    if (interp_ == 0)
+      {
+        hp = (x - y_);
+        y_ += (x - y_) * cutoff_;
+        // y_ = tanh (y_ + (x - y_) * cutoff_);
+      }
+    else
+      {
+        assert (false);
+        y_ += ((x_ + x) / 2 - y_) * cutoff_;
+        x_ = x;
+      }
+    return lp_ ? y_ : hp;
+  }
+};
+
+class SKF
+{
+  HP lp1;
+  HP lp2;
+  float feedback_ = 0;
+  float k_ = 1;
+  bool bp_ = false;
+  float pre_scale_ = 1;
+  float post_scale_ = 1;
+public:
+  void
+  set_drive (double drive_db)
+  {
+    const double drive_delta_db = 24;
+
+    pre_scale_ = db2voltage (drive_db - drive_delta_db);
+    post_scale_ = std::max (1 / pre_scale_, 1.f);
+  }
+  void
+  set_params (float c, int over, int i, float res)
+  {
+    k_ = 1 + res;
+    bp_ = (i == 1);
+    if (i == 0)
+      {
+        lp1.set_lp (true);
+        lp2.set_lp (true);
+      }
+    if (i == 1)
+      {
+        lp1.set_lp (true);
+        lp2.set_lp (false);
+      }
+    if (i == 2)
+      {
+        lp1.set_lp (false);
+        lp2.set_lp (false);
+      }
+    lp1.set_params (c, over, 0);
+    lp2.set_params (c, over, 0);
+  }
+  void
+  reset ()
+  {
+    feedback_ = 0;
+    lp1.reset();
+    lp2.reset();
+  }
+  float
+  tick (float x)
+  {
+    x *= pre_scale_;
+    float sx = tanh (x - feedback_);
+    float l1 = lp1.tick (sx);
+    float l2 = lp2.tick (l1);
+    if (bp_)
+      feedback_ = -l2 * k_;
+    else
+      feedback_ = (l2 - l1) * k_;
+    return l2 * post_scale_;
+  }
+};
+
 class SVF
 {
   typedef float F;
@@ -321,8 +431,10 @@ class BlepSynth : public AudioProcessor {
     BlepUtils::OscImpl osc1_;
     BlepUtils::OscImpl osc2_;
     LadderVCFNonLinear vcf_;
-    SVF                svf1_;
-    SVF                svf2_;
+    //SVF                svf1_;
+    //SVF                svf2_;
+    SKF                svf1_;
+    SKF                svf2_;
     SVFR               svfr1_;
     SVFR               svfr2_;
   };
@@ -722,10 +834,12 @@ class BlepSynth : public AudioProcessor {
             printf ("freq=%f\n", freq_in[0]);
             voice->svfr1_.res_up.process_block (inputs[0], n_frames, over_samples1);
             voice->svfr2_.res_up.process_block (inputs[1], n_frames, over_samples2);
+            voice->svf1_.set_drive (get_param (pid_drive_));
+            voice->svf2_.set_drive (get_param (pid_drive_));
             for (uint i = 0; i < n_frames * 8; i++)
               {
-                voice->svf1_.set_params (freq_in[i / 8], 8, svf_mode, std::clamp (1 - resonance, 0.0, 0.95), db2voltage (get_param (pid_drive_)));
-                voice->svf2_.set_params (freq_in[i / 8], 8, svf_mode, std::clamp (1 - resonance, 0.0, 0.95), db2voltage (get_param (pid_drive_)));
+                voice->svf1_.set_params (freq_in[i / 8] / 8, 8, svf_mode, std::clamp (resonance, 0.0, 0.95));
+                voice->svf2_.set_params (freq_in[i / 8] / 8, 8, svf_mode, std::clamp (resonance, 0.0, 0.95));
                 over_samples1[i] = voice->svf1_.tick (over_samples1[i]);
                 over_samples2[i] = voice->svf2_.tick (over_samples2[i]);
               }
