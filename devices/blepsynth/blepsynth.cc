@@ -26,7 +26,7 @@ public:
   void
   set_params (float c, int over, int i)
   {
-    cutoff_ = c * M_PI;
+    cutoff_ = 2 * c / (48000 * over) * M_PI;
     over_ = over;
     interp_ = i;
   }
@@ -39,7 +39,7 @@ public:
   reset()
   {
     y_ = 0;
-    // FIXME: x_
+    x_ = 0;
   }
   float
   tick (float x)
@@ -53,7 +53,7 @@ public:
       }
     else
       {
-        assert (false);
+        hp = (x_ + x) / 2 - y_;
         y_ += ((x_ + x) / 2 - y_) * cutoff_;
         x_ = x;
       }
@@ -99,8 +99,8 @@ public:
         lp1.set_lp (false);
         lp2.set_lp (false);
       }
-    lp1.set_params (c, over, 0);
-    lp2.set_params (c, over, 0);
+    lp1.set_params (c, over, 1);
+    lp2.set_params (c, over, 1);
   }
   void
   reset ()
@@ -831,15 +831,18 @@ class BlepSynth : public AudioProcessor {
           {
             float over_samples1[n_frames * 8];
             float over_samples2[n_frames * 8];
-            printf ("freq=%f\n", freq_in[0]);
+            // FIXME: this is what LadderVCF appears to do, but still: buggy (not log-freq sweep)
+            printf ("freq=%f\n", fast_voltage2hz (freq_in[0]));
+            float freq_scale = sample_rate() / 8;
             voice->svfr1_.res_up.process_block (inputs[0], n_frames, over_samples1);
             voice->svfr2_.res_up.process_block (inputs[1], n_frames, over_samples2);
             voice->svf1_.set_drive (get_param (pid_drive_));
             voice->svf2_.set_drive (get_param (pid_drive_));
             for (uint i = 0; i < n_frames * 8; i++)
               {
-                voice->svf1_.set_params (freq_in[i / 8] / 8, 8, svf_mode, std::clamp (resonance, 0.0, 0.95));
-                voice->svf2_.set_params (freq_in[i / 8] / 8, 8, svf_mode, std::clamp (resonance, 0.0, 0.95));
+                float freq = std::clamp (fast_voltage2hz (freq_in[i / 8]), 20.f, 30000.f);
+                voice->svf1_.set_params (freq, 8, svf_mode, std::clamp (resonance, 0.0, 0.95));
+                voice->svf2_.set_params (freq, 8, svf_mode, std::clamp (resonance, 0.0, 0.95));
                 over_samples1[i] = voice->svf1_.tick (over_samples1[i]);
                 over_samples2[i] = voice->svf2_.tick (over_samples2[i]);
               }
