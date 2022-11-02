@@ -14,6 +14,8 @@ namespace {
 
 using namespace Ase;
 
+static constexpr int OVER = 2;
+
 class HP
 {
   float y_ = 0;
@@ -173,8 +175,8 @@ public:
 class SVFR
 {
 public:
-  PandaResampler::Resampler2 res_up   { PandaResampler::Resampler2::UP,   8, PandaResampler::Resampler2::PREC_72DB, false };
-  PandaResampler::Resampler2 res_down { PandaResampler::Resampler2::DOWN, 8, PandaResampler::Resampler2::PREC_72DB, false };
+  PandaResampler::Resampler2 res_up   { PandaResampler::Resampler2::UP,   OVER, PandaResampler::Resampler2::PREC_72DB, false };
+  PandaResampler::Resampler2 res_down { PandaResampler::Resampler2::DOWN, OVER, PandaResampler::Resampler2::PREC_72DB, false };
   void
   reset()
   {
@@ -829,25 +831,24 @@ class BlepSynth : public AudioProcessor {
           }
         if (svf_mode >= 0)
           {
-            float over_samples1[n_frames * 8];
-            float over_samples2[n_frames * 8];
+            float over_samples1[n_frames * OVER];
+            float over_samples2[n_frames * OVER];
             // FIXME: this is what LadderVCF appears to do, but still: buggy (not log-freq sweep)
             printf ("freq=%f\n", fast_voltage2hz (freq_in[0]));
-            float freq_scale = sample_rate() / 8;
             voice->svfr1_.res_up.process_block (inputs[0], n_frames, over_samples1);
             voice->svfr2_.res_up.process_block (inputs[1], n_frames, over_samples2);
             voice->svf1_.set_drive (get_param (pid_drive_));
             voice->svf2_.set_drive (get_param (pid_drive_));
-            for (uint i = 0; i < n_frames * 8; i++)
+            for (uint i = 0; i < n_frames * OVER; i++)
               {
-                float freq = std::clamp (fast_voltage2hz (freq_in[i / 8]), 20.f, 30000.f);
-                voice->svf1_.set_params (freq, 8, svf_mode, std::clamp (resonance, 0.0, 0.95));
-                voice->svf2_.set_params (freq, 8, svf_mode, std::clamp (resonance, 0.0, 0.95));
+                float freq = std::clamp (fast_voltage2hz (freq_in[i / OVER]), 20.f, 30000.f);
+                voice->svf1_.set_params (freq, OVER, svf_mode, std::clamp (resonance, 0.0, 0.95));
+                voice->svf2_.set_params (freq, OVER, svf_mode, std::clamp (resonance, 0.0, 0.95));
                 over_samples1[i] = voice->svf1_.tick (over_samples1[i]);
                 over_samples2[i] = voice->svf2_.tick (over_samples2[i]);
               }
-            voice->svfr1_.res_down.process_block (over_samples1, n_frames * 8, outputs[0]);
-            voice->svfr2_.res_down.process_block (over_samples2, n_frames * 8, outputs[1]);
+            voice->svfr1_.res_down.process_block (over_samples1, n_frames * OVER, outputs[0]);
+            voice->svfr2_.res_down.process_block (over_samples2, n_frames * OVER, outputs[1]);
           }
         else
           {
