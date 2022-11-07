@@ -655,6 +655,15 @@ class BlepSynth : public AudioProcessor {
         voice->fil_envelope_.set_shape (Envelope::Shape::LINEAR);
         voice->fil_envelope_.start (sample_rate());
 
+        printout ("AEnv A=%s D=%s S=%.1f%% R=%s\n", perc_to_str (get_param (pid_attack_)),
+                                                    perc_to_str (get_param (pid_decay_)),
+                                                    get_param (pid_sustain_),
+                                                    perc_to_str (get_param (pid_release_)));
+        printout ("Filter A=%s D=%s S=%.1f%% R=%s\n", perc_to_str (get_param (pid_fil_attack_)),
+                                                      perc_to_str (get_param (pid_fil_decay_)),
+                                                      get_param (pid_fil_sustain_),
+                                                      perc_to_str (get_param (pid_fil_release_)));
+
         init_osc (voice->osc1_, voice->freq_);
         init_osc (voice->osc2_, voice->freq_);
 
