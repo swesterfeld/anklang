@@ -16,62 +16,15 @@ using namespace Ase;
 
 static constexpr int OVER = 2;
 
-class HP
-{
-  float y_ = 0;
-  float x_ = 0;
-  float cutoff_ = 0;
-  int over_ = 1;
-  int interp_ = 0;
-  bool lp_ = true;
-public:
-  void
-  set_params (float c, int over, int i)
-  {
-    cutoff_ = 2 * c / (48000 * over) * M_PI; /* FIXME: use actual sampling rate */
-    over_ = over;
-    interp_ = i;
-  }
-  void
-  set_lp (bool lp)
-  {
-    lp_ = lp;
-  }
-  void
-  reset()
-  {
-    y_ = 0;
-    x_ = 0;
-  }
-  float
-  tick (float x)
-  {
-    float hp;
-    if (interp_ == 0)
-      {
-        hp = (x - y_);
-        y_ += (x - y_) * cutoff_;
-        // y_ = tanh (y_ + (x - y_) * cutoff_);
-      }
-    else
-      {
-        hp = (x_ + x) / 2 - y_;
-        y_ += ((x_ + x) / 2 - y_) * cutoff_;
-        x_ = x;
-      }
-    return lp_ ? y_ : hp;
-  }
-};
-
 class SKF
 {
-  HP lp1;
-  HP lp2;
-  float feedback_ = 0;
   float k_ = 1;
-  bool bp_ = false;
   float pre_scale_ = 1;
   float post_scale_ = 1;
+  float cutoff_ = 0;
+  float s1_ = 0;
+  float s2_ = 0;
+  int mode_ = 0;
 public:
   void
   set_drive (double drive_db)
@@ -84,90 +37,40 @@ public:
   void
   set_params (float c, int over, int i, float res)
   {
-    k_ = 1 + res;
-    bp_ = (i == 1);
-    if (i == 0)
-      {
-        lp1.set_lp (true);
-        lp2.set_lp (true);
-      }
-    if (i == 1)
-      {
-        lp1.set_lp (true);
-        lp2.set_lp (false);
-      }
-    if (i == 2)
-      {
-        lp1.set_lp (false);
-        lp2.set_lp (false);
-      }
-    lp1.set_params (c, over, 1);
-    lp2.set_params (c, over, 1);
+    k_ = res * 2;
+    mode_ = i;
+    cutoff_ = 2 * c / (48000 * over) * M_PI;
   }
   void
   reset ()
   {
-    feedback_ = 0;
-    lp1.reset();
-    lp2.reset();
+    s1_ = s2_ = 0;
   }
   float
   tick (float x)
   {
     x *= pre_scale_;
-    float sx = tanh (x - feedback_);
-    float l1 = lp1.tick (sx);
-    float l2 = lp2.tick (l1);
-    if (bp_)
-      feedback_ = -l2 * k_;
-    else
-      feedback_ = (l2 - l1) * k_;
-    return l2 * post_scale_;
-  }
-};
+    float g = cutoff_ / 2; // FIXME: warping
+    float G = g / (1 + g);
+    float S1 = s1_ / (1 + g);
+    float S2 = s2_ / (1 + g);
+    float y0 = tanh ((x - k_ * (G * S1 + S2 - S1)) / (1 - k_ * G + k_ * G * G));
+    float v1 = G * (y0 - s1_);
+    float y1 = v1 + s1_;
+    s1_ = y1 + v1;
+    float v2 = G * (y1 - s2_);
+    float y2 = v2 + s2_;
+    s2_ = y2 + v2;
 
-class SVF
-{
-  typedef float F;
-  F A, D, O;
-  F s1 = 0, s2 = 0;
-  F g;
-  int out;
-public:
-  void
-  reset ()
-  {
-    s1 = 0;
-    s2 = 0;
-  }
-  void
-  set_params (float c, int over, int i, double res, double gg)
-  {
-    O = c / 2 * M_PI;
-    D = res;
-    g = gg;
-    A = 1/(1 + D*O + O*O);          // Scaling factor
-    out = i;
-  }
-  float tick (float x)
-  {
-    // O is the radian frequency and D is the damping factor
-    F yhp = (x - (D + O)*s1 - s2)*A;  // High-pass output
-    F w = O*tanh(yhp*g)/g;            // First nonlinear mapping
-    F ybp = w + s1;                   // Band-pass output
-    s1 = ybp + w;                   // Update state
-    w = O*tanh(ybp*g)/g;            // Second nonlinear mapping
-    F ylp = w + s2;                   // Low-pass output
-    s2= ylp+w;                      // Update state
-    if (out == 0)
-      {
-        return ylp;
-      }
-    if (out == 1)
-      return ybp;
-    if (out == 2)
-      return yhp;
-    assert (false);
+    float y0hp = y0 - y1;
+    float y1hp = y1 - y2;
+
+    if (mode_ == 0)
+      return y2 * post_scale_;
+    if (mode_ == 1)
+      return y1hp * post_scale_;
+    if (mode_ == 2)
+      return (y0hp - y1hp) * post_scale_;
     return 0;
   }
 };
