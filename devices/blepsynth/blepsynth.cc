@@ -14,17 +14,25 @@ namespace {
 
 using namespace Ase;
 
-static constexpr int OVER = 2;
+static constexpr int OVER = 4;
 
 class SKF
 {
   float k_ = 1;
   float pre_scale_ = 1;
   float post_scale_ = 1;
-  float cutoff_ = 0;
   float s1_ = 0;
   float s2_ = 0;
   int mode_ = 0;
+
+  float
+  distort (float x)
+  {
+    /* shaped somewhat similar to tanh() and others, but faster */
+    x = std::clamp (x, -1.0f, 1.0f);
+
+    return x - x * x * x * (1.0f / 3);
+  }
 public:
   void
   set_drive (double drive_db)
@@ -35,45 +43,96 @@ public:
     post_scale_ = std::max (1 / pre_scale_, 1.f);
   }
   void
-  set_params (float c, int over, int i, float res)
+  set_params (int i, float res)
   {
     k_ = res * 2;
     mode_ = i;
-    cutoff_ = 2 * c / (48000 * over) * M_PI;
   }
   void
   reset ()
   {
     s1_ = s2_ = 0;
   }
-  float
-  tick (float x)
+  template<int MODE>
+  void
+  process (float *samples, int over, float freq)
   {
-    x *= pre_scale_;
-    float g = cutoff_ / 2; // FIXME: warping
+    float g = freq / (48000 * over) * M_PI; // FIXME: warping, clamp
     float G = g / (1 + g);
-    float S1 = s1_ / (1 + g);
-    float S2 = s2_ / (1 + g);
-    float y0 = tanh ((x - k_ * (G * S1 + S2 - S1)) / (1 - k_ * G + k_ * G * G));
-    float v1 = G * (y0 - s1_);
-    float y1 = v1 + s1_;
-    s1_ = y1 + v1;
-    float v2 = G * (y1 - s2_);
-    float y2 = v2 + s2_;
-    s2_ = y2 + v2;
+    float s1 = s1_;
+    float s2 = s2_;
 
-    float y0hp = y0 - y1;
-    float y1hp = y1 - y2;
+    float xnorm = 1.f / (1 - k_ * G + k_ * G * G);
+    float s1feedback = -xnorm * k_ * (G - 1) / (1 + g);
+    float s2feedback = -xnorm * k_ / (1 + g);
 
-    if (mode_ == 0)
-      return y2 * post_scale_;
-    if (mode_ == 1)
-      return y1hp * post_scale_;
-    if (mode_ == 2)
-      return (y0hp - y1hp) * post_scale_;
-    return 0;
+    for (int i = 0; i < over; i++)
+      {
+        float x = samples[i] * pre_scale_;
+
+        float y0 = distort (x * xnorm + s1 * s1feedback + s2 * s2feedback);
+
+        // lowpass
+        float v1 = G * (y0 - s1);
+        float y1 = v1 + s1;
+        s1 = y1 + v1;
+
+        // lowpass
+        float v2 = G * (y1 - s2);
+        float y2 = v2 + s2;
+        s2 = y2 + v2;
+
+        float y1hp = y0 - y1;
+        float y2hp = y1 - y2;
+
+        switch (MODE)
+          {
+            case 0: samples[i] = y2 * post_scale_;
+                    break;
+            case 1: samples[i] = y2hp * post_scale_;
+                    break;
+            case 2: samples[i] = (y1hp - y2hp) * post_scale_;
+                    break;
+            case 3: samples[i] = y1 * post_scale_;
+                    break;
+            case 4: samples[i] = y1hp * post_scale_;
+                    break;
+            default:
+              break;
+          }
+      }
+    s1_ = s1;
+    s2_ = s2;
+  }
+  template<int MODE>
+  void
+  process_block_mode (uint n_samples, float *samples, int over, const float *freq_in)
+  {
+    uint j = 0;
+    for (uint i = 0; i < n_samples; i += over)
+      {
+        process<MODE> (&samples[i], over, freq_in[j++]);
+      }
+  }
+  void
+  process_block (uint n_samples, float *samples, int over, float *freq_in)
+  {
+    switch (mode_)
+      {
+        case 0: process_block_mode<0> (n_samples, samples, over, freq_in);
+                break;
+        case 1: process_block_mode<1> (n_samples, samples, over, freq_in);
+                break;
+        case 2: process_block_mode<2> (n_samples, samples, over, freq_in);
+                break;
+        case 3: process_block_mode<3> (n_samples, samples, over, freq_in);
+                break;
+        case 4: process_block_mode<4> (n_samples, samples, over, freq_in);
+                break;
+      }
   }
 };
+
 
 class SVFR
 {
@@ -749,14 +808,10 @@ class BlepSynth : public AudioProcessor {
             voice->svfr2_.res_up.process_block (inputs[1], n_frames, over_samples2);
             voice->svf1_.set_drive (get_param (pid_drive_));
             voice->svf2_.set_drive (get_param (pid_drive_));
-            for (uint i = 0; i < n_frames * OVER; i++)
-              {
-                float freq = std::clamp (freq_in[i / OVER], 20.f, 30000.f);
-                voice->svf1_.set_params (freq, OVER, svf_mode, std::clamp (resonance, 0.0, 0.95));
-                voice->svf2_.set_params (freq, OVER, svf_mode, std::clamp (resonance, 0.0, 0.95));
-                over_samples1[i] = voice->svf1_.tick (over_samples1[i]);
-                over_samples2[i] = voice->svf2_.tick (over_samples2[i]);
-              }
+            voice->svf1_.set_params (svf_mode, std::clamp (resonance, 0.0, 0.95));
+            voice->svf2_.set_params (svf_mode, std::clamp (resonance, 0.0, 0.95));
+            voice->svf1_.process_block (n_frames * OVER, over_samples1, OVER, freq_in);
+            voice->svf2_.process_block (n_frames * OVER, over_samples2, OVER, freq_in);
             voice->svfr1_.res_down.process_block (over_samples1, n_frames * OVER, outputs[0]);
             voice->svfr2_.res_down.process_block (over_samples2, n_frames * OVER, outputs[1]);
           }
