@@ -14,26 +14,38 @@ namespace {
 
 using namespace Ase;
 
-static constexpr int OVER = 4;
+using PandaResampler::Resampler2;
+
+static constexpr int SKF_OVER = 4;
 
 class SKF
 {
   float k_ = 1;
   float pre_scale_ = 1;
   float post_scale_ = 1;
-  float s1_ = 0;
-  float s2_ = 0;
   int mode_ = 0;
+  int over_ = 1;
 
-  float
-  distort (float x)
+  struct Channel
   {
-    /* shaped somewhat similar to tanh() and others, but faster */
-    x = std::clamp (x, -1.0f, 1.0f);
+    std::unique_ptr<Resampler2> res_up;
+    std::unique_ptr<Resampler2> res_down;
 
-    return x - x * x * x * (1.0f / 3);
-  }
+    float s1 = 0;
+    float s2 = 0;
+  };
+  std::array<Channel, 2> channels_;
+
 public:
+  SKF (int over) :
+    over_ (over)
+  {
+    for (auto& channel : channels_)
+      {
+        channel.res_up   = std::make_unique<Resampler2> (Resampler2::UP, over_, Resampler2::PREC_72DB, false, Resampler2::FILTER_FIR);
+        channel.res_down = std::make_unique<Resampler2> (Resampler2::DOWN, over_, Resampler2::PREC_72DB, false, Resampler2::FILTER_FIR);
+      }
+  }
   void
   set_drive (double drive_db)
   {
@@ -51,99 +63,125 @@ public:
   void
   reset ()
   {
-    s1_ = s2_ = 0;
+    for (auto& channel : channels_)
+      {
+        channel.res_up->reset();
+        channel.res_down->reset();
+        channel.s1 = 0;
+        channel.s2 = 0;
+      }
   }
-  template<int MODE>
+  template<int MODE, int CHANNELS>
   void
-  process (float *samples, int over, float freq)
+  process (float *left, float *right, float freq)
   {
-    float g = freq / (48000 * over) * M_PI; // FIXME: warping, clamp
+    float g = freq / (48000 * over_) * M_PI; // FIXME: warping, clamp
     float G = g / (1 + g);
-    float s1 = s1_;
-    float s2 = s2_;
 
     float xnorm = 1.f / (1 - k_ * G + k_ * G * G);
     float s1feedback = -xnorm * k_ * (G - 1) / (1 + g);
     float s2feedback = -xnorm * k_ / (1 + g);
 
-    for (int i = 0; i < over; i++)
+    auto lowpass = [G] (float in, float& state)
       {
-        float x = samples[i] * pre_scale_;
+        float v = G * (in - state);
+        float y = v + state;
+        state = y + v;
+        return y;
+      };
 
-        float y0 = distort (x * xnorm + s1 * s1feedback + s2 * s2feedback);
-
-        // lowpass
-        float v1 = G * (y0 - s1);
-        float y1 = v1 + s1;
-        s1 = y1 + v1;
-
-        // lowpass
-        float v2 = G * (y1 - s2);
-        float y2 = v2 + s2;
-        s2 = y2 + v2;
-
+    auto mode_out = [] (float y0, float y1, float y2) -> float
+      {
         float y1hp = y0 - y1;
         float y2hp = y1 - y2;
 
         switch (MODE)
           {
-            case 0: samples[i] = y2 * post_scale_;
-                    break;
-            case 1: samples[i] = y2hp * post_scale_;
-                    break;
-            case 2: samples[i] = (y1hp - y2hp) * post_scale_;
-                    break;
-            case 3: samples[i] = y1 * post_scale_;
-                    break;
-            case 4: samples[i] = y1hp * post_scale_;
-                    break;
-            default:
-              break;
+            case 0: return y2;
+            case 1: return y2hp;
+            case 2: return (y1hp - y2hp);
+            case 3: return y1;
+            case 4: return y1hp;
+            default: return 0;
           }
+      };
+
+    auto distort = [] (float x)
+      {
+        /* shaped somewhat similar to tanh() and others, but faster */
+        x = std::clamp (x, -1.0f, 1.0f);
+
+        return x - x * x * x * (1.0f / 3);
+      };
+
+    static_assert (CHANNELS == 1 || CHANNELS == 2);
+
+    for (int c = 0; c < CHANNELS; c++)
+      {
+        float s1 = channels_[c].s1;
+        float s2 = channels_[c].s2;
+        float *samples = (c == 0) ? left : right;
+
+        for (int i = 0; i < over_; i++)
+          {
+            float x = samples[i] * pre_scale_;
+
+            float y0 = distort (x * xnorm + s1 * s1feedback + s2 * s2feedback);
+            float y1 = lowpass (y0, s1);
+            float y2 = lowpass (y1, s2);
+
+            samples[i] = mode_out (y0, y1, y2) * post_scale_;
+          }
+        channels_[c].s1 = s1;
+        channels_[c].s2 = s2;
       }
-    s1_ = s1;
-    s2_ = s2;
   }
   template<int MODE>
   void
-  process_block_mode (uint n_samples, float *samples, int over, const float *freq_in)
+  process_block_mode (uint n_samples, float *left, float *right, const float *freq_in)
   {
+    float over_samples_left[n_samples * over_];
+    float over_samples_right[n_samples * over_];
+
+    if (left)
+      channels_[0].res_up->process_block (left, n_samples, over_samples_left);
+
+    if (right)
+      channels_[1].res_up->process_block (right, n_samples, over_samples_right);
+
     uint j = 0;
-    for (uint i = 0; i < n_samples; i += over)
+    for (uint i = 0; i < n_samples * over_; i += over_)
       {
-        process<MODE> (&samples[i], over, freq_in[j++]);
+        /* we only support stereo (left != 0, right != 0) and mono (left != 0, right == 0) */
+
+        if (left && right)
+          process<MODE, 2> (over_samples_left + i, over_samples_right + i, freq_in[j++]);
+        else if (left)
+          process<MODE, 1> (over_samples_left + i, nullptr, freq_in[j++]);
       }
+
+    if (left)
+      channels_[0].res_down->process_block (over_samples_left, n_samples * over_, left);
+
+    if (right)
+      channels_[1].res_down->process_block (over_samples_right, n_samples * over_, right);
   }
   void
-  process_block (uint n_samples, float *samples, int over, float *freq_in)
+  process_block (uint n_samples, float *left, float *right, float *freq_in)
   {
     switch (mode_)
       {
-        case 0: process_block_mode<0> (n_samples, samples, over, freq_in);
+        case 0: process_block_mode<0> (n_samples, left, right, freq_in);
                 break;
-        case 1: process_block_mode<1> (n_samples, samples, over, freq_in);
+        case 1: process_block_mode<1> (n_samples, left, right, freq_in);
                 break;
-        case 2: process_block_mode<2> (n_samples, samples, over, freq_in);
+        case 2: process_block_mode<2> (n_samples, left, right, freq_in);
                 break;
-        case 3: process_block_mode<3> (n_samples, samples, over, freq_in);
+        case 3: process_block_mode<3> (n_samples, left, right, freq_in);
                 break;
-        case 4: process_block_mode<4> (n_samples, samples, over, freq_in);
+        case 4: process_block_mode<4> (n_samples, left, right, freq_in);
                 break;
       }
-  }
-};
-
-
-class SVFR
-{
-public:
-  PandaResampler::Resampler2 res_up   { PandaResampler::Resampler2::UP,   OVER, PandaResampler::Resampler2::PREC_72DB, false };
-  PandaResampler::Resampler2 res_down { PandaResampler::Resampler2::DOWN, OVER, PandaResampler::Resampler2::PREC_72DB, false };
-  void
-  reset()
-  {
-    res_up.reset();
-    res_down.reset();
   }
 };
 
@@ -395,12 +433,7 @@ class BlepSynth : public AudioProcessor {
     BlepUtils::OscImpl osc1_;
     BlepUtils::OscImpl osc2_;
     LadderVCFNonLinear vcf_;
-    //SVF                svf1_;
-    //SVF                svf2_;
-    SKF                svf1_;
-    SKF                svf2_;
-    SVFR               svfr1_;
-    SVFR               svfr2_;
+    SKF                skf_ { SKF_OVER };
   };
   std::vector<Voice>    voices_;
   std::vector<Voice *>  active_voices_;
@@ -633,10 +666,7 @@ class BlepSynth : public AudioProcessor {
         voice->osc2_.reset();
         voice->vcf_.reset();
         voice->vcf_.set_rate (sample_rate());
-        voice->svf1_.reset();
-        voice->svf2_.reset();
-        voice->svfr1_.reset();
-        voice->svfr2_.reset();
+        voice->skf_.reset();
 
         voice->cutoff_smooth_.reset (sample_rate(), 0.020);
         voice->last_cutoff_ = -5000; // force reset
@@ -734,14 +764,14 @@ class BlepSynth : public AudioProcessor {
             mix_right_out[i] = osc1_right_out[i] * v1 + osc2_right_out[i] * v2;
           }
         bool run_filter = true;
-        int  svf_mode = -1;
+        int  skf_mode = -1;
         switch (irintf (get_param (pid_mode_)))
           {
-          case 7: svf_mode = 2;
+          case 7: skf_mode = 2;
             break;
-          case 6: svf_mode = 1;
+          case 6: skf_mode = 1;
             break;
-          case 5: svf_mode = 0;
+          case 5: skf_mode = 0;
             break;
           case 4: voice->vcf_.set_mode (LadderVCFMode::LP4);
             break;
@@ -800,20 +830,11 @@ class BlepSynth : public AudioProcessor {
             outputs[0] = no_out;
             outputs[1] = no_out;
           }
-        if (svf_mode >= 0)
+        if (skf_mode >= 0)
           {
-            float over_samples1[n_frames * OVER];
-            float over_samples2[n_frames * OVER];
-            voice->svfr1_.res_up.process_block (inputs[0], n_frames, over_samples1);
-            voice->svfr2_.res_up.process_block (inputs[1], n_frames, over_samples2);
-            voice->svf1_.set_drive (get_param (pid_drive_));
-            voice->svf2_.set_drive (get_param (pid_drive_));
-            voice->svf1_.set_params (svf_mode, std::clamp (resonance, 0.0, 0.95));
-            voice->svf2_.set_params (svf_mode, std::clamp (resonance, 0.0, 0.95));
-            voice->svf1_.process_block (n_frames * OVER, over_samples1, OVER, freq_in);
-            voice->svf2_.process_block (n_frames * OVER, over_samples2, OVER, freq_in);
-            voice->svfr1_.res_down.process_block (over_samples1, n_frames * OVER, outputs[0]);
-            voice->svfr2_.res_down.process_block (over_samples2, n_frames * OVER, outputs[1]);
+            voice->skf_.set_drive (get_param (pid_drive_));
+            voice->skf_.set_params (skf_mode, resonance);
+            voice->skf_.process_block (n_frames, outputs[0], outputs[1], freq_in);
           }
         else
           {
