@@ -3,10 +3,11 @@
 #include "ase/midievent.hh"
 #include "devices/blepsynth/bleposc.hh"
 #include "devices/blepsynth/laddervcf.hh"
-#include "devices/blepsynth/linearsmooth.hh"
-#include "ase/internal.hh"
 #define PANDA_RESAMPLER_HEADER_ONLY
 #include "devices/blepsynth/pandaresampler/pandaresampler.hh"
+#include "devices/blepsynth/skfilter.hh"
+#include "devices/blepsynth/linearsmooth.hh"
+#include "ase/internal.hh"
 
 // based on liquidsfz envelope.hh
 
@@ -14,176 +15,7 @@ namespace {
 
 using namespace Ase;
 
-using PandaResampler::Resampler2;
-
 static constexpr int SKF_OVER = 4;
-
-class SKF
-{
-  float k_ = 1;
-  float pre_scale_ = 1;
-  float post_scale_ = 1;
-  int mode_ = 0;
-  int over_ = 1;
-
-  struct Channel
-  {
-    std::unique_ptr<Resampler2> res_up;
-    std::unique_ptr<Resampler2> res_down;
-
-    float s1 = 0;
-    float s2 = 0;
-  };
-  std::array<Channel, 2> channels_;
-
-public:
-  SKF (int over) :
-    over_ (over)
-  {
-    for (auto& channel : channels_)
-      {
-        channel.res_up   = std::make_unique<Resampler2> (Resampler2::UP, over_, Resampler2::PREC_72DB, false, Resampler2::FILTER_FIR);
-        channel.res_down = std::make_unique<Resampler2> (Resampler2::DOWN, over_, Resampler2::PREC_72DB, false, Resampler2::FILTER_FIR);
-      }
-  }
-  void
-  set_drive (double drive_db)
-  {
-    const double drive_delta_db = 24;
-
-    pre_scale_ = db2voltage (drive_db - drive_delta_db);
-    post_scale_ = std::max (1 / pre_scale_, 1.f);
-  }
-  void
-  set_params (int i, float res)
-  {
-    k_ = res * 2;
-    mode_ = i;
-  }
-  void
-  reset ()
-  {
-    for (auto& channel : channels_)
-      {
-        channel.res_up->reset();
-        channel.res_down->reset();
-        channel.s1 = 0;
-        channel.s2 = 0;
-      }
-  }
-  template<int MODE, int CHANNELS>
-  void
-  process (float *left, float *right, float freq)
-  {
-    float g = freq / (48000 * over_) * M_PI; // FIXME: warping, clamp
-    float G = g / (1 + g);
-
-    float xnorm = 1.f / (1 - k_ * G + k_ * G * G);
-    float s1feedback = -xnorm * k_ * (G - 1) / (1 + g);
-    float s2feedback = -xnorm * k_ / (1 + g);
-
-    auto lowpass = [G] (float in, float& state)
-      {
-        float v = G * (in - state);
-        float y = v + state;
-        state = y + v;
-        return y;
-      };
-
-    auto mode_out = [] (float y0, float y1, float y2) -> float
-      {
-        float y1hp = y0 - y1;
-        float y2hp = y1 - y2;
-
-        switch (MODE)
-          {
-            case 0: return y2;
-            case 1: return y2hp;
-            case 2: return (y1hp - y2hp);
-            case 3: return y1;
-            case 4: return y1hp;
-            default: return 0;
-          }
-      };
-
-    auto distort = [] (float x)
-      {
-        /* shaped somewhat similar to tanh() and others, but faster */
-        x = std::clamp (x, -1.0f, 1.0f);
-
-        return x - x * x * x * (1.0f / 3);
-      };
-
-    static_assert (CHANNELS == 1 || CHANNELS == 2);
-
-    for (int c = 0; c < CHANNELS; c++)
-      {
-        float s1 = channels_[c].s1;
-        float s2 = channels_[c].s2;
-        float *samples = (c == 0) ? left : right;
-
-        for (int i = 0; i < over_; i++)
-          {
-            float x = samples[i] * pre_scale_;
-
-            float y0 = distort (x * xnorm + s1 * s1feedback + s2 * s2feedback);
-            float y1 = lowpass (y0, s1);
-            float y2 = lowpass (y1, s2);
-
-            samples[i] = mode_out (y0, y1, y2) * post_scale_;
-          }
-        channels_[c].s1 = s1;
-        channels_[c].s2 = s2;
-      }
-  }
-  template<int MODE>
-  void
-  process_block_mode (uint n_samples, float *left, float *right, const float *freq_in)
-  {
-    float over_samples_left[n_samples * over_];
-    float over_samples_right[n_samples * over_];
-
-    if (left)
-      channels_[0].res_up->process_block (left, n_samples, over_samples_left);
-
-    if (right)
-      channels_[1].res_up->process_block (right, n_samples, over_samples_right);
-
-    uint j = 0;
-    for (uint i = 0; i < n_samples * over_; i += over_)
-      {
-        /* we only support stereo (left != 0, right != 0) and mono (left != 0, right == 0) */
-
-        if (left && right)
-          process<MODE, 2> (over_samples_left + i, over_samples_right + i, freq_in[j++]);
-        else if (left)
-          process<MODE, 1> (over_samples_left + i, nullptr, freq_in[j++]);
-      }
-
-    if (left)
-      channels_[0].res_down->process_block (over_samples_left, n_samples * over_, left);
-
-    if (right)
-      channels_[1].res_down->process_block (over_samples_right, n_samples * over_, right);
-  }
-  void
-  process_block (uint n_samples, float *left, float *right, float *freq_in)
-  {
-    switch (mode_)
-      {
-        case 0: process_block_mode<0> (n_samples, left, right, freq_in);
-                break;
-        case 1: process_block_mode<1> (n_samples, left, right, freq_in);
-                break;
-        case 2: process_block_mode<2> (n_samples, left, right, freq_in);
-                break;
-        case 3: process_block_mode<3> (n_samples, left, right, freq_in);
-                break;
-        case 4: process_block_mode<4> (n_samples, left, right, freq_in);
-                break;
-      }
-  }
-};
 
 class Envelope
 {
@@ -433,7 +265,7 @@ class BlepSynth : public AudioProcessor {
     BlepUtils::OscImpl osc1_;
     BlepUtils::OscImpl osc2_;
     LadderVCFNonLinear vcf_;
-    SKF                skf_ { SKF_OVER };
+    SKFilter           skf_ { SKF_OVER };
   };
   std::vector<Voice>    voices_;
   std::vector<Voice *>  active_voices_;
@@ -832,7 +664,7 @@ class BlepSynth : public AudioProcessor {
           }
         if (skf_mode >= 0)
           {
-            voice->skf_.set_drive (get_param (pid_drive_));
+            voice->skf_.set_scale (db2voltage (get_param (pid_drive_)), 1);
             voice->skf_.set_params (skf_mode, resonance);
             voice->skf_.process_block (n_frames, outputs[0], outputs[1], freq_in);
           }
