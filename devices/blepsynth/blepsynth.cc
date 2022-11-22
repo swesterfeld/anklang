@@ -314,6 +314,9 @@ class BlepSynth : public AudioProcessor {
     choices += { "SVFL2"_uc, "SVF Lowpass, 12dB/Octave" };
     choices += { "SVFB2"_uc, "SVF Bandpass, 6dB/Octave" };
     choices += { "SVFH2"_uc, "SVF Highpass, 12dB/Octave" };
+    choices += { "SVFL4"_uc, "SVF Lowpass, 24dB/Octave" };
+    choices += { "SVFB4"_uc, "SVF Bandpass, 12dB/Octave" };
+    choices += { "SVFH4"_uc, "SVF Highpass, 24dB/Octave" };
     pid_mode_ = add_param ("Filter Mode", "Mode", std::move (choices), 2, "", "Ladder Filter Mode to be used");
 
     ChoiceS nl;
@@ -599,6 +602,12 @@ class BlepSynth : public AudioProcessor {
         int  skf_mode = -1;
         switch (irintf (get_param (pid_mode_)))
           {
+          case 10: skf_mode = 7;
+            break;
+          case 9: skf_mode = 6;
+            break;
+          case 8: skf_mode = 5;
+            break;
           case 7: skf_mode = 2;
             break;
           case 6: skf_mode = 1;
