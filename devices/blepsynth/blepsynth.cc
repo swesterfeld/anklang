@@ -697,8 +697,12 @@ class BlepSynth : public AudioProcessor {
           }
         if (skf_mode >= 0)
           {
-            voice->skf_.set_scale (db2voltage (get_param (pid_drive_)), 1);
-            voice->skf_.set_params (skf_mode, resonance);
+            auto rtrans = 1- (1-resonance)*(1-resonance)*(1-M_SQRT2/4);
+            auto rfact = std::min (reso_factor (rtrans), 4.0);
+            auto drive_fact = db2voltage (get_param (pid_drive_));
+            printf ("pres: %f post: %f\n", drive_fact / rfact, std::max (1.0, rfact / drive_fact));
+            voice->skf_.set_scale (drive_fact / rfact, std::max (1.0, rfact / drive_fact));
+            voice->skf_.set_params (skf_mode, rtrans);
             voice->skf_.process_block (n_frames, outputs[0], outputs[1], freq_in);
           }
         else
@@ -753,6 +757,44 @@ class BlepSynth : public AudioProcessor {
     if (paramid == pid_cutoff_)
       return cutoff_logscale_.scale (normalized);
     return AudioProcessor::value_from_normalized (paramid, normalized);
+  }
+  static double
+  reso_factor (double res)
+  {
+    /* numerically find maximum of HLP (freq, res)
+     * there is probably a direct solution to this problem as well
+     */
+    auto HLP = [] (double freq, double res) {
+      auto s = std::complex (0.0, freq);
+
+      return std::abs (1.0/(s*s + 2*(1-res)*s + 1.0));
+    };
+    double x = 0.1, dx = 0.1;
+    double best = -1;
+    while (dx > 1e-14)
+      {
+        double v;
+        v = HLP (x + dx, res);
+        if (v > best)
+          {
+            x += dx;
+            best = v;
+          }
+        else
+          {
+            v = HLP (x - dx, res);
+            if (v > best)
+              {
+                x -= dx;
+                best = v;
+              }
+            else
+              {
+                dx *= 0.5;
+              }
+          }
+      }
+    return best;
   }
 public:
   BlepSynth (AudioEngine &engine) :
