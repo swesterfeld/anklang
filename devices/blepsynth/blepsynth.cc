@@ -9,6 +9,8 @@
 #include "devices/blepsynth/linearsmooth.hh"
 #include "ase/internal.hh"
 
+#include <random>
+
 // based on liquidsfz envelope.hh
 
 namespace {
@@ -217,6 +219,7 @@ class BlepSynth : public AudioProcessor {
   };
   OscParams osc_params[2];
   ParamId pid_mix_;
+  ParamId pid_noise_;
   ParamId pid_vel_track_;
   ParamId pid_post_gain_;
 
@@ -238,6 +241,8 @@ class BlepSynth : public AudioProcessor {
   ParamId pid_fil_sustain_;
   ParamId pid_fil_release_;
   ParamId pid_fil_cut_mod_;
+
+  std::minstd_rand random_gen_;
 
   class Voice
   {
@@ -264,6 +269,12 @@ class BlepSynth : public AudioProcessor {
 
     LinearSmooth cut_mod_smooth_;
     double       last_cut_mod_;
+
+    LinearSmooth reso_smooth_;
+    double       last_reso_;
+
+    LinearSmooth drive_smooth_;
+    double       last_drive_;
 
     BlepUtils::OscImpl osc1_;
     BlepUtils::OscImpl osc2_;
@@ -345,6 +356,7 @@ class BlepSynth : public AudioProcessor {
 
     start_group ("Mix");
     pid_mix_ = add_param ("Mix", "Mix", 0, 100, 0, "%");
+    pid_noise_ = add_param ("Noise Mix", "Noise", 0, 100, 0, "%");
     pid_vel_track_ = add_param ("Veloity Tracking", "VelTr", 0, 100, 50, "%");
     pid_post_gain_ = add_param ("Post Gain", "Gain", -36, 36, -12, "dB");
 
@@ -533,6 +545,12 @@ class BlepSynth : public AudioProcessor {
         voice->cut_mod_smooth_.reset (sample_rate(), 0.020);
         voice->last_cut_mod_ = -5000; // force reset
         voice->last_key_track_ = -5000;
+
+        voice->reso_smooth_.reset (sample_rate(), 0.020);
+        voice->last_reso_ = -5000; // force reset
+                                   //
+        voice->drive_smooth_.reset (sample_rate(), 0.020);
+        voice->last_drive_ = -5000; // force reset
       }
   }
   void
@@ -615,12 +633,16 @@ class BlepSynth : public AudioProcessor {
         float mix_left_out[n_frames];
         float mix_right_out[n_frames];
         const float mix_norm = get_param (pid_mix_) * 0.01;
+        const float noise_mix = get_param (pid_noise_) * 0.01;
+        auto nlerp = [noise_mix] (float a, float b) { return (1 - noise_mix) * a + noise_mix * b; };
         const float v1 = (1 - mix_norm) * voice->vel_gain_;
         const float v2 = mix_norm * voice->vel_gain_;
         for (uint i = 0; i < n_frames; i++)
           {
-            mix_left_out[i]  = osc1_left_out[i] * v1 + osc2_left_out[i] * v2;
-            mix_right_out[i] = osc1_right_out[i] * v1 + osc2_right_out[i] * v2;
+            float lnoise = random_gen_() * (2 / float (random_gen_.max())) - 1;
+            float rnoise = random_gen_() * (2 / float (random_gen_.max())) - 1;
+            mix_left_out[i]  = nlerp (osc1_left_out[i], lnoise) * v1 + nlerp (osc2_left_out[i], lnoise) * v2;
+            mix_right_out[i] = nlerp (osc1_right_out[i], rnoise) * v1 + nlerp (osc2_right_out[i], rnoise) * v2;
           }
         bool run_filter = true;
         int  skf_mode = -1;
@@ -656,7 +678,6 @@ class BlepSynth : public AudioProcessor {
         const float *inputs[2]  = { mix_left_out, mix_right_out };
         float       *outputs[2] = { mix_left_out, mix_right_out };
         double cutoff = get_param (pid_cutoff_);
-        double resonance = get_param (pid_resonance_) * 0.01;
         double key_track = get_param (pid_key_track_) * 0.01;
 
         if (fabs (voice->last_cutoff_ - cutoff) > 1e-7 || fabs (voice->last_key_track_ - key_track) > 1e-7)
@@ -678,14 +699,33 @@ class BlepSynth : public AudioProcessor {
             voice->cut_mod_smooth_.set (cut_mod, reset);
             voice->last_cut_mod_ = cut_mod;
           }
+        double resonance = get_param (pid_resonance_) * 0.01;
+        if (fabs (voice->last_reso_ - resonance) > 1e-7)
+          {
+            const bool reset = voice->last_reso_ < -1000;
+
+            voice->reso_smooth_.set (resonance, reset);
+            voice->last_reso_ = resonance;
+          }
+        double drive = get_param (pid_drive_);
+        if (fabs (voice->last_drive_ - drive) > 1e-7)
+          {
+            const bool reset = voice->last_drive_ < -1000;
+
+            voice->drive_smooth_.set (drive, reset);
+            voice->last_drive_ = drive;
+          }
         /* TODO: possible improvements:
          *  - exponential smoothing (get rid of exp2f)
          *  - don't do anything if cutoff_smooth_->steps_ == 0 (add accessor)
          */
-        float freq_in[n_frames];
+        float freq_in[n_frames], reso_in[n_frames], drive_in[n_frames];
         for (uint i = 0; i < n_frames; i++)
-          freq_in[i] = fast_exp2 (voice->cutoff_smooth_.get_next() + voice->fil_envelope_.get_next() * voice->cut_mod_smooth_.get_next());
-        voice->vcf_.set_drive (get_param (pid_drive_));
+          {
+            freq_in[i] = fast_exp2 (voice->cutoff_smooth_.get_next() + voice->fil_envelope_.get_next() * voice->cut_mod_smooth_.get_next());
+            reso_in[i] = voice->reso_smooth_.get_next();
+            drive_in[i] = voice->drive_smooth_.get_next();
+          }
 
         float no_out[n_frames];
         if (!run_filter)
@@ -697,17 +737,13 @@ class BlepSynth : public AudioProcessor {
           }
         if (skf_mode >= 0)
           {
-            auto rtrans = 1- (1-resonance)*(1-resonance)*(1-M_SQRT2/4);
-            auto rfact = std::min (reso_factor (rtrans), 4.0);
-            auto drive_fact = db2voltage (get_param (pid_drive_));
-            printf ("pres: %f post: %f\n", drive_fact / rfact, std::max (1.0, rfact / drive_fact));
-            voice->skf_.set_scale (drive_fact / rfact, std::max (1.0, rfact / drive_fact));
-            voice->skf_.set_params (skf_mode, rtrans);
-            voice->skf_.process_block (n_frames, outputs[0], outputs[1], freq_in);
+            voice->skf_.set_mode (skf_mode);
+            voice->skf_.process_block (n_frames, outputs[0], outputs[1], freq_in, reso_in, drive_in);
           }
         else
           {
-            voice->vcf_.run_block (n_frames, cutoff, resonance, inputs, outputs, true, true, freq_in, nullptr, nullptr, nullptr);
+            voice->vcf_.set_drive (drive_in[0]);
+            voice->vcf_.run_block (n_frames, cutoff, reso_in[0], inputs, outputs, true, true, freq_in, nullptr, nullptr, nullptr);
           }
 
         float post_gain_factor = db2voltage (get_param (pid_post_gain_));
@@ -757,44 +793,6 @@ class BlepSynth : public AudioProcessor {
     if (paramid == pid_cutoff_)
       return cutoff_logscale_.scale (normalized);
     return AudioProcessor::value_from_normalized (paramid, normalized);
-  }
-  static double
-  reso_factor (double res)
-  {
-    /* numerically find maximum of HLP (freq, res)
-     * there is probably a direct solution to this problem as well
-     */
-    auto HLP = [] (double freq, double res) {
-      auto s = std::complex (0.0, freq);
-
-      return std::abs (1.0/(s*s + 2*(1-res)*s + 1.0));
-    };
-    double x = 0.1, dx = 0.1;
-    double best = -1;
-    while (dx > 1e-14)
-      {
-        double v;
-        v = HLP (x + dx, res);
-        if (v > best)
-          {
-            x += dx;
-            best = v;
-          }
-        else
-          {
-            v = HLP (x - dx, res);
-            if (v > best)
-              {
-                x -= dx;
-                best = v;
-              }
-            else
-              {
-                dx *= 0.5;
-              }
-          }
-      }
-    return best;
   }
 public:
   BlepSynth (AudioEngine &engine) :

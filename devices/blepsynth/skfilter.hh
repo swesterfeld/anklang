@@ -3,7 +3,6 @@
 //#define PANDA_RESAMPLER_HEADER_ONLY
 //#include "pandaresampler.hh"
 #include <algorithm>
-#include <complex>
 
 using PandaResampler::Resampler2;
 
@@ -12,10 +11,13 @@ class SKFilter
   float pre_scale_ = 1;
   float post_scale_ = 1;
   int mode_ = 0;
+  float reso_ = 0;
+  float drive_ = 0;
   int over_ = 1;
   float freq_warp_factor_ = 0;
 
-  static constexpr int MAX_STAGES = 2;
+  static constexpr int MAX_STAGES = 4;
+  static constexpr uint MAX_BLOCK_SIZE = 1024;
 
   struct Channel
   {
@@ -30,7 +32,11 @@ class SKFilter
   static constexpr int
   mode2stages (int mode)
   {
-    if (mode > 4)
+    if (mode > 10)
+      return 4;
+    if (mode > 7)
+      return 3;
+    else if (mode > 4)
       return 2;
     else
       return 1;
@@ -38,9 +44,87 @@ class SKFilter
 
   std::array<Channel, 2> channels_;
 
+  class RTable {
+    std::vector<float> res2_k;
+    std::vector<float> res3_k;
+    std::vector<float> res4_k;
+    static constexpr int TSIZE = 16;
+    RTable()
+    {
+      for (int order = 4; order <= 8; order += 2)
+        {
+          for (int t = 0; t <= TSIZE + 1; t++)
+            {
+              double res = std::clamp (double (t) / TSIZE, 0.0, 1.0);
+
+              // R must be in interval [0:1]
+              const double R = 1 - res;
+              const double r_alpha = std::acos (R) / (order / 2);
+
+              std::vector<double> Rn;
+              for (int i = 0; i < order / 2; i++)
+                {
+                  /* butterworth roots in s, left semi plane */
+                  const double bw_s_alpha = M_PI * (4 * i + order + 2) / (2 * order);
+                  /* add resonance */
+                  Rn.push_back (-cos (bw_s_alpha + r_alpha));
+                }
+
+              std::sort (Rn.begin(), Rn.end(), std::greater<double>());
+
+              for (auto xr : Rn)
+                {
+                  if (order == 4)
+                    res2_k.push_back ((1 - xr) * 2);
+                  if (order == 6)
+                    res3_k.push_back ((1 - xr) * 2);
+                  if (order == 8)
+                    res4_k.push_back ((1 - xr) * 2);
+                }
+            }
+        }
+    }
+  public:
+    static const RTable&
+    the()
+    {
+      static RTable rtable;
+      return rtable;
+    }
+    void
+    interpolate_resonance (float res, int stages, float *k, const std::vector<float>& res_k) const
+    {
+      auto lerp = [] (float a, float b, float frac) {
+        return a + frac * (b - a);
+      };
+
+      float fidx = std::clamp (res, 0.f, 1.f) * TSIZE;
+      int idx = fidx;
+      float frac = fidx - idx;
+
+      for (int s = 0; s < stages; s++)
+        {
+          k[s] = lerp (res_k[idx * stages + s], res_k[idx * stages + stages + s], frac);
+        }
+    }
+    void
+    lookup_resonance (float res, int stages, float *k) const
+    {
+      if (stages == 2)
+        interpolate_resonance (res, stages, k, res2_k);
+
+      if (stages == 3)
+        interpolate_resonance (res, stages, k, res3_k);
+
+      if (stages == 4)
+        interpolate_resonance (res, stages, k, res4_k);
+    }
+  };
+  const RTable& rtable_;
 public:
   SKFilter (int over) :
-    over_ (over)
+    over_ (over),
+    rtable_ (RTable::the())
   {
     for (auto& channel : channels_)
       {
@@ -57,6 +141,30 @@ public:
     post_scale_ = post;
   }
   void
+  apply_reso_drive (float reso, float drive)
+  {
+    const float db_x2_factor = 0.166096404744368; // 1/(20*log(2)/log(10))
+    const float sqrt2 = M_SQRT2;
+
+    // drive resonance boost
+    if (drive > 0)
+      reso += drive * 0.015f;
+
+    float vol = exp2f ((drive + -18 * reso) * db_x2_factor);
+
+    if (reso < 0.9)
+      {
+        reso = 1 - (1-reso)*(1-reso)*(1-sqrt2/4);
+      }
+    else
+      {
+        reso = 1 - (1-0.9f)*(1-0.9f)*(1-sqrt2/4) + (reso-0.9f)*0.1f;
+      }
+
+    set_scale (vol, std::max (1 / vol, 1.0f));
+    setup_k (reso);
+  }
+  void
   setup_k (float res)
   {
     if (mode2stages (mode_) == 1)
@@ -66,26 +174,7 @@ public:
       }
     else
       {
-        // two stages; use two filters with different resonance settings
-
-        // roots of 4th order butterworth in s, left semi-plane
-        double sq2inv = 1 / sqrt (2);
-        std::complex<double> r1 {-sq2inv,  sq2inv};
-        std::complex<double> r2 {-sq2inv, -sq2inv};
-
-        // R must be in interval [0:1]
-        std::complex<double> R = std::clamp (1 - res, 0.f, 1.f);
-        std::complex<double> a1 = R + std::sqrt (R * R - 1.0);
-
-        // roots with resonance
-        std::complex<double> r1res = r1 * std::sqrt (a1);
-        std::complex<double> r2res = r2 * std::sqrt (a1);
-
-        auto R1 = -r1res.real();
-        auto R2 = -r2res.real();
-
-        k_[0] = (1 - R1) * 2;
-        k_[1] = (1 - R2) * 2;
+        rtable_.lookup_resonance (res, mode2stages (mode_), &k_[0]);
       }
   }
   void
@@ -93,6 +182,21 @@ public:
   {
     mode_ = i;
     setup_k (res);
+  }
+  void
+  set_mode (int m)
+  {
+    mode_ = m;
+  }
+  void
+  set_reso (float reso)
+  {
+    reso_ = reso;
+  }
+  void
+  set_drive (float drive)
+  {
+    drive_ = drive;
   }
   void
   reset ()
@@ -163,6 +267,12 @@ private:
                 case 5: return y2;
                 case 6: return y2hp;
                 case 7: return (y1hp - y2hp);
+                case 8: return y2;
+                case 9: return y2hp;
+                case 10: return (y1hp - y2hp);
+                case 11: return y2;
+                case 12: return y2hp;
+                case 13: return (y1hp - y2hp);
                 default: return 0;
               }
           };
@@ -221,7 +331,7 @@ private:
   }
   template<int MODE>
   void
-  process_block_mode (uint n_samples, float *left, float *right, const float *freq_in)
+  process_block_mode (uint n_samples, float *left, float *right, const float *freq_in, const float *reso_in, const float *drive_in)
   {
     float over_samples_left[n_samples * over_];
     float over_samples_right[n_samples * over_];
@@ -235,6 +345,8 @@ private:
     uint j = 0;
     for (uint i = 0; i < n_samples * over_; i += over_)
       {
+        apply_reso_drive (reso_in ? reso_in[j] : reso_, drive_in ? drive_in[j] : drive_);
+
         /* we only support stereo (left != 0, right != 0) and mono (left != 0, right == 0) */
 
         if (left && right)
@@ -253,28 +365,40 @@ private:
     if (right)
       channels_[1].res_down->process_block (over_samples_right, n_samples * over_, right);
   }
+
+  using ProcessBlockFunc = decltype (&SKFilter::process_block_mode<0>);
+  static constexpr size_t LAST_MODE = 13;
+
+  template<size_t... INDICES>
+  static constexpr std::array<ProcessBlockFunc, LAST_MODE + 1>
+  make_jump_table (std::integer_sequence<size_t, INDICES...>)
+  {
+    auto mk_func = [] (auto I) { return &SKFilter::process_block_mode<I.value>; };
+
+    return { mk_func (std::integral_constant<int, INDICES>{})... };
+  }
 public:
   void
-  process_block (uint n_samples, float *left, float *right, float *freq_in)
+  process_block (uint n_samples, float *left, float *right, const float *freq_in, const float *reso_in = nullptr, const float *drive_in = nullptr)
   {
-    switch (mode_)
+    static constexpr auto jump_table { make_jump_table (std::make_index_sequence<LAST_MODE + 1>()) };
+
+    while (n_samples)
       {
-        case 0: process_block_mode<0> (n_samples, left, right, freq_in);
-                break;
-        case 1: process_block_mode<1> (n_samples, left, right, freq_in);
-                break;
-        case 2: process_block_mode<2> (n_samples, left, right, freq_in);
-                break;
-        case 3: process_block_mode<3> (n_samples, left, right, freq_in);
-                break;
-        case 4: process_block_mode<4> (n_samples, left, right, freq_in);
-                break;
-        case 5: process_block_mode<5> (n_samples, left, right, freq_in);
-                break;
-        case 6: process_block_mode<6> (n_samples, left, right, freq_in);
-                break;
-        case 7: process_block_mode<7> (n_samples, left, right, freq_in);
-                break;
+        const uint todo = std::min (n_samples, MAX_BLOCK_SIZE);
+
+        (this->*jump_table[mode_]) (todo, left, right, freq_in, reso_in, drive_in);
+
+        if (left)
+          left += todo;
+        if (right)
+          right += todo;
+        if (freq_in)
+          freq_in += todo;
+        if (reso_in)
+          reso_in += todo;
+
+        n_samples -= todo;
       }
   }
 };
