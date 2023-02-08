@@ -537,7 +537,10 @@ class BlepSynth : public AudioProcessor {
         voice->osc2_.reset();
         voice->vcf_.reset();
         voice->vcf_.set_rate (sample_rate());
+
         voice->skf_.reset();
+        voice->skf_.set_rate (sample_rate());
+        voice->skf_.set_frequency_range (10, 30000);
 
         voice->cutoff_smooth_.reset (sample_rate(), 0.020);
         voice->last_cutoff_ = -5000; // force reset
@@ -648,17 +651,17 @@ class BlepSynth : public AudioProcessor {
         int  skf_mode = -1;
         switch (irintf (get_param (pid_mode_)))
           {
-          case 10: skf_mode = 7;
+          case 10: skf_mode = SKFilter::HP4;
             break;
-          case 9: skf_mode = 6;
+          case 9: skf_mode = SKFilter::BP4;
             break;
-          case 8: skf_mode = 5;
+          case 8: skf_mode = SKFilter::LP4;
             break;
-          case 7: skf_mode = 2;
+          case 7: skf_mode = SKFilter::HP2;
             break;
-          case 6: skf_mode = 1;
+          case 6: skf_mode = SKFilter::BP2;
             break;
-          case 5: skf_mode = 0;
+          case 5: skf_mode = SKFilter::LP2;
             break;
           case 4: voice->vcf_.set_mode (LadderVCFMode::LP4);
             break;
@@ -737,7 +740,7 @@ class BlepSynth : public AudioProcessor {
           }
         if (skf_mode >= 0)
           {
-            voice->skf_.set_mode (skf_mode);
+            voice->skf_.set_mode (SKFilter::Mode (skf_mode));
             voice->skf_.process_block (n_frames, outputs[0], outputs[1], freq_in, reso_in, drive_in);
           }
         else
