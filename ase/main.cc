@@ -99,6 +99,7 @@ print_usage (bool help)
     }
   printout ("Usage: %s [OPTIONS] [project.anklang]\n", executable_name());
   printout ("  --check          Run integrity tests\n");
+  printout ("  --test[=test]    Run specific tests\n");
   printout ("  --class-tree     Print exported class tree\n");
   printout ("  --disable-randomization Test mode for deterministic tests\n");
   printout ("  --embed <fd>     Parent process socket for embedding\n");
@@ -118,6 +119,8 @@ print_usage (bool help)
 // 1:ERROR 2:FAILED+REJECT 4:IO 8:MESSAGE 16:GET 256:BINARY
 static constexpr int jsipc_logflags = 1 | 2 | 4 | 8 | 16;
 static constexpr int jsbin_logflags = 1 | 256;
+
+static StringS check_test_names;
 
 static MainConfig
 parse_args (int *argcp, char **argv)
@@ -159,6 +162,15 @@ parse_args (int *argcp, char **argv)
         {
           config.mode = MainConfig::CHECK_INTEGRITY_TESTS;
           ase_fatal_warnings = true;
+        }
+      else if (strcmp ("--test", argv[i]) == 0 || strncmp ("--test=", argv[i], 7) == 0)
+        {
+          const char *eq = strchr (argv[i], '=');
+          const char *arg = eq ? eq + 1 : i+1 < argc ? argv[++i] : nullptr;
+          config.mode = MainConfig::CHECK_INTEGRITY_TESTS;
+          ase_fatal_warnings = true;
+          if (arg)
+            check_test_names.push_back (arg);
         }
       else if (argv[i] == String ("--blake3") && i + 1 < size_t (argc))
         {
@@ -258,7 +270,10 @@ static void
 run_tests_and_quit ()
 {
   printerr ("CHECK_INTEGRITY_TESTS…\n");
-  Test::run();
+  if (check_test_names.empty())
+    Test::run();
+  else
+    Test::run (check_test_names);
   main_loop->quit (0);
 }
 
@@ -544,10 +559,6 @@ main (int argc, char *argv[])
       while (n < 0 && errno == EINTR);
     }
 
-  // run test suite
-  if (main_config.mode == MainConfig::CHECK_INTEGRITY_TESTS)
-    main_loop->exec_now (run_tests_and_quit);
-
   // start output capturing
   if (config.outputfile)
     {
@@ -563,6 +574,10 @@ main (int argc, char *argv[])
   // start auto play
   if (config.play_autostart && preload_project)
     main_loop->exec_idle ([preload_project] () { preload_project->start_playback (config.play_autostop); });
+
+  // run test suite
+  if (main_config.mode == MainConfig::CHECK_INTEGRITY_TESTS)
+    main_loop->exec_now (run_tests_and_quit);
 
   // run main event loop and catch SIGUSR2
   const int exitcode = main_loop->run();
