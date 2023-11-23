@@ -7,6 +7,7 @@ devices/4ase.ccfiles ::=
 include devices/blepsynth/Makefile.mk
 include devices/freeverb/Makefile.mk
 include devices/saturation/Makefile.mk
+include devices/fluidsynth/Makefile.mk
 
 # local sources
 devices/4ase.ccfiles += $(strip		\
