@@ -394,7 +394,7 @@ all: $(ALL_TARGETS) $(ALL_TESTS)
 
 # == grep-reminders ==
 $>/.grep-reminders: $(wildcard $(LS_TREE_LST))
-	$Q test -r .git && git -P grep -nE '(/[*/]+[*/ ]*|[#*]+ *)?(FI[X]ME).*' || true
+	$Q test -r .git && git -P grep -nE '(/[*/]+[*/ ]*|[#*]+ *)?(FI[X]STWME).*' || true
 	$Q touch $@
 all: $>/.grep-reminders
 
