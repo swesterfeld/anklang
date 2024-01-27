@@ -8,6 +8,7 @@
 #include "storage.hh"
 #include "project.hh"
 #include "path.hh"
+#include "compress.hh"
 
 // X11 wrapper
 #include "clapplugin.hh"
@@ -2309,12 +2310,13 @@ public:
     PathMap path_map;
     path_map.abstract_path = [&] (const String &path) { String hash; project_->writer_collect (path, &hash); return hash; };
 
-    String str;
+    String str; // ttl files are typically really small, so save to string is perfect
     gtk_thread ([&] { str = plugin_instance_->save_string (&path_map); });
 
     if (str != "")
       {
-        String blobname = string_format ("lv2-%s.ttl", device_path);
+        str = zstd_compress (str);
+        String blobname = string_format ("lv2-%s.ttl.zst", device_path);
         const String blobfile = project->writer_file_name (blobname);
 
         if (!Path::stringwrite (blobfile, str, false))
@@ -2355,6 +2357,7 @@ public:
           }
         if (ret == 0)
           {
+            blob_data = zstd_uncompress (blob_data);
             PathMap path_map;
             path_map.absolute_path = [&] (String hash) { return project_->loader_resolve (hash); };
 
