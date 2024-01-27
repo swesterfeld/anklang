@@ -27,7 +27,6 @@ public:
   AudioProcessorP    _audio_processor      () const override;
   void               _set_event_source     (AudioProcessorP esource) override;
   void               _disconnect_remove    () override;
-  String             get_device_path       ();
   static String      clap_version          ();
   static DeviceP     create_clap_device    (AudioEngine &engine, const String &clapuri);
   static ClapPluginHandleP access_clap_handle (DeviceP device);

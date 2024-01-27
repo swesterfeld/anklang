@@ -133,26 +133,6 @@ ClapDeviceImpl::~ClapDeviceImpl()
   handle_ = nullptr;
 }
 
-String
-ClapDeviceImpl::get_device_path ()
-{
-  std::vector<String> nums;
-  NativeDevice *parent = dynamic_cast<NativeDevice*> (this->_parent());
-  for (Device *dev = this; parent; dev = parent, parent = dynamic_cast<NativeDevice*> (dev->_parent()))
-    {
-      ssize_t index = Aux::index_of (parent->list_devices(),
-                                     [dev] (const DeviceP &e) { return dev == &*e; });
-      if (index >= 0)
-        nums.insert (nums.begin(), string_from_int (index));
-    }
-  String s = string_join ("d", nums);
-  ProjectImpl *project = _project();
-  Track *track = _track();
-  if (project && track)
-    s = string_format ("t%ud%s", project->track_index (*track), s);
-  return s;
-}
-
 void
 ClapDeviceImpl::serialize (WritNode &xs)
 {
