@@ -782,8 +782,11 @@ private:
       x11wrapper = get_x11wrapper();
     if (x11wrapper)
       {
-        suil_host = x11wrapper->create_suil_host (PluginInstance::host_ui_write, PluginInstance::host_ui_index);
-        // TODO: free suil_host when done
+        if (x11wrapper->have_display())
+          {
+            suil_host = x11wrapper->create_suil_host (PluginInstance::host_ui_write, PluginInstance::host_ui_index);
+            // TODO: free suil_host when done
+           }
       }
 
     world = lilv_world_new();
@@ -798,6 +801,7 @@ public:
     static PluginHost host;
     return host;
   }
+  bool have_display() { return suil_host != nullptr; }
   PluginInstance *instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback);
 
 private:
@@ -956,6 +960,7 @@ PluginUI::PluginUI (PluginHost &plugin_host, PluginInstance *plugin_instance, co
   plugin_host_ (plugin_host)
 {
   assert_return (this_thread_is_gtk());
+  assert_return (PluginHost::the().have_display());
 
   plugin_instance_ = plugin_instance;
 
@@ -2291,12 +2296,13 @@ public:
   bool
   gui_supported()
   {
-    return plugin_instance_->gui_supported();
+    return plugin_host_.have_display() && plugin_instance_->gui_supported();
   }
   void
   gui_toggle()
   {
-    gtk_thread ([&] { plugin_instance_->toggle_ui(); });
+    if (plugin_host_.have_display())
+      gtk_thread ([&] { plugin_instance_->toggle_ui(); });
   }
   void
   save_state (WritNode &xs, const string& device_path, ProjectImpl *project)
