@@ -14,6 +14,7 @@ using std::string;
 
 static std::thread *gtk_thread = nullptr;
 static std::thread::id gtk_thread_id {};
+static bool gtk_thread_have_display = false;
 
 // == Semaphore ==
 class Semaphore {
@@ -68,13 +69,22 @@ gtkmain()
   gdk_threads_init();
   gdk_threads_enter();
 
-  if (1) {
-    int argc = 0;
-    char **argv = nullptr;
-    gtk_init (&argc, &argv);
-  }
-
-  gtk_main();
+  int argc = 0;
+  char **argv = nullptr;
+  if (gtk_init_check (&argc, &argv))
+    {
+      gtk_thread_have_display = true;
+      gtk_main();
+    }
+  else
+    {
+      gtk_thread_have_display = false;
+      GMainLoop *main_loop = g_main_loop_new (nullptr, FALSE);
+      GDK_THREADS_LEAVE ();
+      g_main_loop_run (main_loop);
+      GDK_THREADS_ENTER ();
+      g_main_loop_unref (main_loop);
+    }
   gdk_threads_leave();
 }
 
@@ -263,6 +273,10 @@ Ase::Gtk2DlWrapEntry Ase__Gtk2__wrapentry {
   .threads_leave = gdk_threads_leave,
   .gtk_thread_id = [] () -> std::thread::id {
     return gtkidle_call (get_gtk_thread_id);
+  },
+  .have_display = [] () {
+    gtkidle_call (get_gtk_thread_id); // ensure gtk thread is running
+    return gtk_thread_have_display;
   },
   .register_timer = [] (const std::function<bool()>& callback, uint interval_ms) -> uint {
     check_gtk_thread();

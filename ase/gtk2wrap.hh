@@ -28,6 +28,7 @@ struct Gtk2DlWrapEntry {
   void  (*threads_enter)              ();
   void  (*threads_leave)              ();
   std::thread::id (*gtk_thread_id)    ();
+  bool  (*have_display)               ();
   uint  (*register_timer)             (const std::function<bool()>& callback, uint interval_ms);
   bool  (*remove_timer)               (uint timer_id);
   void  (*exec_in_gtk_thread)         (const std::function<void()>& func);
