@@ -125,7 +125,10 @@ class LiquidSFZ : public AudioProcessor {
   build_parameter_map()
   {
     ParameterMap pmap;
-    pmap[INSTRUMENT] = Param { "instrument", _("Instrument"), _("Inst"), "", "", {}, "", { String ("blurb=") + "Instrument File Name", } };
+    pmap[INSTRUMENT] = Param { "instrument", _("Instrument"), _("Inst"), "", "", {}, "", {
+        String ("blurb=") + _("Instrument File Name"),
+        "extensions=sfz",
+      } };
     auto ccs = synth_.list_ccs();
     for (const auto& cc_info : ccs)
       {
