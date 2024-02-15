@@ -55,6 +55,8 @@ typedef struct {
 
 namespace Ase {
 
+class LV2Processor;
+
 namespace
 {
 
@@ -587,6 +589,16 @@ class PluginInstance
   LilvInstance              *instance_ = nullptr;
   vector<Port>               plugin_ports_;
   vector<PresetInfo>         presets_;
+  LV2Processor              *processor_;
+
+  enum PresetState {
+    PRESET_STATE_READY,
+    PRESET_STATE_LOAD,
+    PRESET_STATE_FINALIZE
+  };
+  std::atomic<int>           preset_state_ { PRESET_STATE_READY };
+  int                        preset_to_load_ = 0;
+  std::unique_ptr<PortRestoreHelper>  preset_port_restore_helper_;
 
   ControlChangedCallback     control_in_changed_callback_;
 
@@ -605,7 +617,7 @@ class PluginInstance
   static constexpr auto ANKLANG_STATE_URI = "urn:anklang:state";
 public:
   PluginInstance (PluginHost& plugin_host, uint sample_rate, const LilvPlugin *plugin,
-                  PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback);
+                  PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback, LV2Processor *processor);
   ~PluginInstance();
 
   static constexpr double       ui_update_fps = 60;
@@ -642,6 +654,10 @@ public:
 
   bool restore_string (const String& str, PortRestoreHelper *helper, PathMap *path_map = nullptr);
   void restore_preset (int preset, PortRestoreHelper *helper);
+  void restore_preset_async (int preset);
+  void finalize_preset_restore();
+  bool busy_loading_preset();
+  void gtk_idle_timer();
 
   String save_string (PathMap *path_map);
 
@@ -794,6 +810,8 @@ private:
 
     nodes.init (world);
   }
+  vector<PluginInstance *> plugin_instances_;
+  uint                     timer_id_ = 0;
 public:
   static PluginHost&
   the()
@@ -802,7 +820,10 @@ public:
     return host;
   }
   bool have_display() { return suil_host != nullptr; }
-  PluginInstance *instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback);
+  PluginInstance *instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback, LV2Processor *processor);
+  void add_instance (PluginInstance *instance);
+  void remove_instance (PluginInstance *instance);
+  void post_load();
 
 private:
   DeviceInfoS devs;
@@ -1114,7 +1135,7 @@ Options::Options (PluginHost& plugin_host, float sample_rate) :
 }
 
 PluginInstance *
-PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback)
+PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback, LV2Processor *processor)
 {
   assert_return (this_thread_is_gtk(), nullptr);
   LilvNode* uri = lilv_new_uri (world, plugin_uri);
@@ -1140,7 +1161,7 @@ PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHe
     }
   lilv_node_free (uri);
 
-  PluginInstance *plugin_instance = new PluginInstance (*this, sample_rate, plugin, port_restore_helper, callback);
+  PluginInstance *plugin_instance = new PluginInstance (*this, sample_rate, plugin, port_restore_helper, callback, processor);
   if (!plugin_instance->init_ok())
     {
       printerr ("plugin instantiate failed\n");
@@ -1152,12 +1173,49 @@ PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHe
   return plugin_instance;
 }
 
+void
+PluginHost::add_instance (PluginInstance *instance)
+{
+  if (plugin_instances_.empty() && x11wrapper)
+    {
+      /* do this for the first plugin */
+      timer_id_ = x11wrapper->register_timer (
+        [this]
+          {
+            for (auto instance : plugin_instances_)
+              instance->gtk_idle_timer();
+            return true;
+          },
+        100);
+    }
+  plugin_instances_.push_back (instance);
+}
+
+void
+PluginHost::remove_instance (PluginInstance *instance)
+{
+  std::erase (plugin_instances_, instance);
+  if (plugin_instances_.empty() && timer_id_)
+    {
+      /* remove if this was the last plugin */
+      x11wrapper->remove_timer (timer_id_);
+    }
+}
+
+void
+PluginHost::post_load()
+{
+  for (auto instance : plugin_instances_)
+    instance->finalize_preset_restore();
+}
+
 PluginInstance::PluginInstance (PluginHost& plugin_host, uint sample_rate, const LilvPlugin *plugin,
-                                PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback) :
+                                PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback, LV2Processor *processor) :
   options_ (plugin_host, sample_rate),
   plugin_ (plugin),
   sample_rate_ (sample_rate),
   plugin_host_ (plugin_host),
+  processor_ (processor),
   control_in_changed_callback_ (callback)
 {
   assert_return (this_thread_is_gtk());
@@ -1206,6 +1264,7 @@ PluginInstance::PluginInstance (PluginHost& plugin_host, uint sample_rate, const
           lilv_state_free (default_state);
         }
     }
+  plugin_host_.add_instance (this);
   init_ok_ = true;
 }
 
@@ -1213,6 +1272,7 @@ PluginInstance::~PluginInstance()
 {
   assert_return (this_thread_is_gtk());
 
+  plugin_host_.remove_instance (this);
   if (worker_)
     worker_->stop();
 
@@ -1891,19 +1951,6 @@ PluginInstance::restore_string (const String& str, PortRestoreHelper *helper, Pa
     }
 }
 
-void
-PluginInstance::restore_preset (int preset, PortRestoreHelper *helper)
-{
-  assert_return (this_thread_is_gtk());
-  assert_return (preset >= 0 && preset < int (presets_.size()));
-
-  if (LilvState *state = lilv_state_new_from_world (plugin_host_.world, plugin_host_.urid_map.lv2_map(), presets_[preset].preset))
-    {
-      restore_state (state, helper);
-      lilv_state_free (state);
-    }
-}
-
 const void*
 PluginInstance::get_port_value_for_save (const char *port_symbol,
                                          void       *user_data,
@@ -2024,7 +2071,7 @@ class LV2Processor : public AudioProcessor {
       set_param_from_render (PID_CONTROL_OFFSET + port->control_in_idx, port->param_from_lv2 (port->control));
     };
 
-    gtk_thread ([&] { plugin_instance_ = plugin_host_.instantiate (lv2_uri_.c_str(), sample_rate(), &port_restore_helper, control_in_changed_callback); });
+    gtk_thread ([&] { plugin_instance_ = plugin_host_.instantiate (lv2_uri_.c_str(), sample_rate(), &port_restore_helper, control_in_changed_callback, this); });
 
     // TODO: this is probably not the right location for restoring the parameter values
     restore_params (port_restore_helper);
@@ -2135,20 +2182,10 @@ class LV2Processor : public AudioProcessor {
     if (int (tag) == PID_PRESET)
       {
         int want_preset = irintf (get_param (tag));
-        if (current_preset_ != want_preset)
+        if (current_preset_ != want_preset && !plugin_instance_->busy_loading_preset())
           {
             current_preset_ = want_preset;
-
-            // TODO: blocking the audio thread here is a bad idea
-            PortRestoreHelper port_restore_helper (plugin_host_);
-            gtk_thread ([&] { plugin_instance_->restore_preset (want_preset - 1, &port_restore_helper); });
-
-            // TODO: evil (possibly crashing) broken hack to set the parameters:
-            //  -> should be replaced by something else once presets are loaded outside the audio thread
-            main_loop->exec_idle ([port_restore_helper, this] () // <- delete source required if processor is destroyed
-              {
-                restore_params (port_restore_helper);
-              });
+            plugin_instance_->restore_preset_async (want_preset - 1);
           }
       }
 
@@ -2199,7 +2236,25 @@ class LV2Processor : public AudioProcessor {
           }
       }
 
-    uint n_audio_inputs = plugin_instance_->n_audio_inputs();
+    const uint n_audio_inputs = plugin_instance_->n_audio_inputs();
+    const uint n_audio_outputs = plugin_instance_->n_audio_outputs();
+
+    if (plugin_instance_->busy_loading_preset())
+      {
+        /* we need to guaranee that run() is not called while loading a preset */
+        if (n_audio_outputs == 2)
+          {
+            floatfill (oblock (stereo_out_, 0), 0, n_frames);
+            floatfill (oblock (stereo_out_, 1), 0, n_frames);
+          }
+        else
+          {
+            for (uint i = 0; i < n_audio_outputs; i++)
+              floatfill (oblock (mono_outs_[i], 0), 0, n_frames);
+          }
+        return;
+      }
+
     if (n_audio_inputs == 2)
       {
         plugin_instance_->connect_audio_in (0, ifloats (stereo_in_, 0));
@@ -2211,7 +2266,6 @@ class LV2Processor : public AudioProcessor {
           plugin_instance_->connect_audio_in (i, ifloats (mono_ins_[i], 0));
       }
 
-    uint n_audio_outputs = plugin_instance_->n_audio_outputs();
     if (n_audio_outputs == 2)
       {
         plugin_instance_->connect_audio_out (0, oblock (stereo_out_, 0));
@@ -2259,6 +2313,7 @@ class LV2Processor : public AudioProcessor {
       }
     return AudioProcessor::param_value_from_text (paramid, text);
   }
+public:
   void
   restore_params (const PortRestoreHelper &port_restore_helper)
   {
@@ -2270,7 +2325,6 @@ class LV2Processor : public AudioProcessor {
           send_param (i + PID_CONTROL_OFFSET, port.param_from_lv2 (it->second));
       }
   }
-public:
   LV2Processor (const ProcessorSetup &psetup) :
     AudioProcessor (psetup),
     plugin_host_ (PluginHost::the())
@@ -2391,6 +2445,65 @@ public:
       }
   }
 };
+
+void
+PluginInstance::restore_preset (int preset, PortRestoreHelper *helper)
+{
+  assert_return (this_thread_is_gtk());
+  assert_return (preset >= 0 && preset < int (presets_.size()));
+
+  if (LilvState *state = lilv_state_new_from_world (plugin_host_.world, plugin_host_.urid_map.lv2_map(), presets_[preset].preset))
+    {
+      restore_state (state, helper);
+      lilv_state_free (state);
+    }
+}
+
+void
+PluginInstance::restore_preset_async (int preset)
+{
+  preset_to_load_ = preset;
+  preset_state_.store (PRESET_STATE_LOAD);
+}
+
+bool
+PluginInstance::busy_loading_preset()
+{
+  return preset_state_.load() != PRESET_STATE_READY;
+}
+
+void
+PluginInstance::gtk_idle_timer()
+{
+  if (preset_state_.load() == PRESET_STATE_LOAD)
+    {
+      assert_return (this_thread_is_gtk());
+
+      preset_port_restore_helper_ = std::make_unique<PortRestoreHelper> (plugin_host_);
+      restore_preset (preset_to_load_, preset_port_restore_helper_.get());
+
+      // send new parameters from ASE thread
+      preset_state_.store (PRESET_STATE_FINALIZE);
+
+      // TODO: it may be possible to restore the parameters here as well, however
+      // this would mean that AudioProcessor::send_param should be supported from
+      // the gtk thread as well
+      main_loop->exec_idle ([] { PluginHost::the().post_load(); });
+    }
+}
+
+void
+PluginInstance::finalize_preset_restore()
+{
+  if (preset_state_.load() == PRESET_STATE_FINALIZE)
+    {
+      assert_return (this_thread_is_ase());
+
+      processor_->restore_params (*preset_port_restore_helper_.get());
+      preset_port_restore_helper_.reset();
+      preset_state_.store (PRESET_STATE_READY);
+    }
+}
 
 static auto lv2processor_aseid = register_audio_processor<LV2Processor>();
 
