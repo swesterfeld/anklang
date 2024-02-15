@@ -2459,6 +2459,29 @@ PluginInstance::restore_preset (int preset, PortRestoreHelper *helper)
     }
 }
 
+/*
+ * Asynchronous preset loading: a user can select a new preset in the UI -
+ * since this is a choice propery of the Processor, the audio thread will get
+ * notified during render() that a preset should be loaded, but we don't want
+ * to stall the audio thread to actually load the preset (which can take a
+ * while, depending on the plugin). See also #37.
+ *
+ * So loading a preset works like this:
+ *  - audio thread checks if the preset choice property has been changed by the user
+ *  - audio thread sets preset_to_load_ with the new preset if choice has been changed
+ *  - audio thread stores PRESET_STATE_LOAD to the preset_state_ std::atomic
+ *  - gtk thread periodically scans all PluginInstance objects if std::atomic contains PRESET_STATE_LOAD
+ *  - if so, it restores the preset preset_to_load_ using restore_preset()
+ *  - gtk thread sets std::atomic to PRESET_STATE_FINALIZE
+ *  - gtk thread wakes up ase thread
+ *  - ase thread loops over all PluginInstance objects and checks if std::atomic contains PRESET_STATE_FINALIZE
+ *  - ase thread applies the parameters to the plugin and resets std::atomic to PRESET_STATE_READY
+ *
+ * Since LV2 does not allow preset loading and calling the run function at the
+ * same time, the AudioProcessor checks if the std::atomic contains
+ * PRESET_STATE_READY before calling the run function. If it does, it does not
+ * call the run() function and fills all output buffers with zeros.
+ */
 void
 PluginInstance::restore_preset_async (int preset)
 {
