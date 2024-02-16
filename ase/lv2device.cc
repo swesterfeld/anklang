@@ -63,7 +63,6 @@ namespace
 static Gtk2DlWrapEntry *x11wrapper = nullptr;
 
 using std::vector;
-using std::string;
 using std::set;
 using std::map;
 using std::max;
@@ -111,7 +110,7 @@ class ControlEventVector
 public:
   template<typename Func>
   void
-  for_each (ControlEventVector& trash_events, Func func)
+  for_each (ControlEventVector &trash_events, Func func)
   {
     ControlEvent *const events = events_.pop_reversed(), *last = nullptr;
     for (ControlEvent *event = events; event; last = event, event = event->next_)
@@ -154,7 +153,7 @@ class Map
 {
   std::mutex            map_mutex;
   LV2_URID              next_id;
-  map<string, LV2_URID> m_urid_map;
+  map<String, LV2_URID> m_urid_map;
   map<LV2_URID, String> m_urid_unmap;
 
   LV2_URID_Map       lv2_urid_map;
@@ -187,7 +186,7 @@ public:
   {
     std::lock_guard lg (map_mutex);
 
-    LV2_URID& id = m_urid_map[str];
+    LV2_URID &id = m_urid_map[str];
     if (id == 0)
       id = next_id++;
 
@@ -243,7 +242,7 @@ class Options
 
   LV2_Feature lv2_options_feature_;
 public:
-  Options (PluginHost& plugin_host, float sample_rate);
+  Options (PluginHost &plugin_host, float sample_rate);
   const LV2_Feature *
   feature() const
   {
@@ -384,7 +383,7 @@ public:
   get_features()
   {
     assert_return (null_terminated_ptrs.empty(), nullptr);
-    for (const auto& f : features)
+    for (const auto &f : features)
       null_terminated_ptrs.push_back (&f);
     null_terminated_ptrs.push_back (nullptr);
 
@@ -580,7 +579,7 @@ class PluginInstance
   std::atomic<bool>          dsp2ui_notifications_enabled_ { false };
   std::unique_ptr<PluginUI>  plugin_ui_;
 
-  PluginHost&                plugin_host_;
+  PluginHost                &plugin_host_;
 
   LV2_Feature                lv2_instance_access_feature_ {};
   LV2_Feature                lv2_data_access_feature_ {};
@@ -616,8 +615,8 @@ class PluginInstance
   // lilv_state_to_string requires a non-empty URI
   static constexpr auto ANKLANG_STATE_URI = "urn:anklang:state";
 public:
-  PluginInstance (PluginHost& plugin_host, uint sample_rate, const LilvPlugin *plugin,
-                  PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback, LV2Processor *processor);
+  PluginInstance (PluginHost &plugin_host, uint sample_rate, const LilvPlugin *plugin,
+                  PortRestoreHelper *port_restore_helper, const ControlChangedCallback &callback, LV2Processor *processor);
   ~PluginInstance();
 
   static constexpr double       ui_update_fps = 60;
@@ -652,7 +651,7 @@ public:
   void delete_ui();
   void set_control_param (size_t index, double value);
 
-  bool restore_string (const String& str, PortRestoreHelper *helper, PathMap *path_map = nullptr);
+  bool restore_string (const String &str, PortRestoreHelper *helper, PathMap *path_map = nullptr);
   void restore_preset (int preset, PortRestoreHelper *helper);
   void restore_preset_async (int preset);
   void finalize_preset_restore();
@@ -691,7 +690,7 @@ public:
     LV2_URID time_frame;
     LV2_URID time_speed;
 
-    URIDs (Map& map) :
+    URIDs (Map &map) :
       param_sampleRate          (map.urid_map (LV2_PARAMETERS__sampleRate)),
       atom_Double               (map.urid_map (LV2_ATOM__Double)),
       atom_Float                (map.urid_map (LV2_ATOM__Float)),
@@ -820,17 +819,17 @@ public:
     return host;
   }
   bool have_display() { return suil_host != nullptr; }
-  PluginInstance *instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback, LV2Processor *processor);
+  PluginInstance *instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback &callback, LV2Processor *processor);
   void add_instance (PluginInstance *instance);
   void remove_instance (PluginInstance *instance);
   void post_load();
 
 private:
   DeviceInfoS devs;
-  map<string, DeviceInfo> lv2_device_info_map;
+  map<String, DeviceInfo> lv2_device_info_map;
 
   bool
-  required_features_supported (const LilvPlugin *plugin, const string& name)
+  required_features_supported (const LilvPlugin *plugin, const String &name)
   {
     bool can_use_plugin = true;
 
@@ -860,7 +859,7 @@ private:
     return can_use_plugin;
   }
   bool
-  required_ui_features_supported (const LilvUI *ui, const string& name)
+  required_ui_features_supported (const LilvUI *ui, const String &name)
   {
     const LilvNode *s = lilv_ui_get_uri (ui);
     bool can_use_ui = true;
@@ -904,7 +903,7 @@ private:
   }
 public:
   DeviceInfo
-  lv2_device_info (const string& uri)
+  lv2_device_info (const String &uri)
   {
     if (devs.empty())
       list_plugins();
@@ -924,7 +923,7 @@ public:
         const LilvPlugin* p = lilv_plugins_get (plugins, i);
 
         DeviceInfo device_info;
-        string lv2_uri = lilv_node_as_uri (lilv_plugin_get_uri (p));
+        String lv2_uri = lilv_node_as_uri (lilv_plugin_get_uri (p));
         device_info.uri = "LV2:" + lv2_uri;
 
         LilvNode* n = lilv_plugin_get_name (p);
@@ -951,14 +950,14 @@ public:
             lilv_uis_free (uis);
           }
       }
-    std::stable_sort (devs.begin(), devs.end(), [] (auto& d1, auto& d2) { return string_casecmp (d1.name, d2.name) < 0; });
+    std::stable_sort (devs.begin(), devs.end(), [] (auto &d1, auto &d2) { return string_casecmp (d1.name, d2.name) < 0; });
     return devs;
   }
 };
 
 class PluginUI
 {
-  PluginHost&             plugin_host_;
+  PluginHost             &plugin_host_;
   bool                    init_ok_ = false;
   bool                    ui_closed_ = false;
   bool                    external_ui_ = false;
@@ -971,13 +970,13 @@ class PluginUI
 
   bool ui_is_resizable (const LilvUI *ui);
 public:
-  PluginUI (PluginHost &plugin_host, PluginInstance *plugin_instance, const string& plugin_uri, const string& ui_type_uri, const LilvUI *ui);
+  PluginUI (PluginHost &plugin_host, PluginInstance *plugin_instance, const String &plugin_uri, const String &ui_type_uri, const LilvUI *ui);
   ~PluginUI();
   bool init_ok() const { return init_ok_; }
 };
 
-PluginUI::PluginUI (PluginHost &plugin_host, PluginInstance *plugin_instance, const string& plugin_uri,
-                    const string& ui_type_uri, const LilvUI *ui) :
+PluginUI::PluginUI (PluginHost &plugin_host, PluginInstance *plugin_instance, const String &plugin_uri,
+                    const String &ui_type_uri, const LilvUI *ui) :
   plugin_host_ (plugin_host)
 {
   assert_return (this_thread_is_gtk());
@@ -988,7 +987,7 @@ PluginUI::PluginUI (PluginHost &plugin_host, PluginInstance *plugin_instance, co
   external_ui_ = lilv_ui_is_a (ui, plugin_host_.nodes.lv2_ui_external) ||
                  lilv_ui_is_a (ui, plugin_host_.nodes.lv2_ui_externalkx);
 
-  string window_title = PluginHost::the().lv2_device_info (plugin_uri).name;
+  String window_title = PluginHost::the().lv2_device_info (plugin_uri).name;
 
   const char* bundle_uri  = lilv_node_as_uri (lilv_ui_get_bundle_uri (ui));
   const char* binary_uri  = lilv_node_as_uri (lilv_ui_get_binary_uri (ui));
@@ -1031,8 +1030,8 @@ PluginUI::PluginUI (PluginHost &plugin_host, PluginInstance *plugin_instance, co
    */
   plugin_instance_->enable_dsp2ui_notifications (true);
 
-  string ui_uri = lilv_node_as_uri (lilv_ui_get_uri (ui));
-  string container_ui_uri = external_ui_ ? ui_type_uri : "http://lv2plug.in/ns/extensions/ui#GtkUI";
+  String ui_uri = lilv_node_as_uri (lilv_ui_get_uri (ui));
+  String container_ui_uri = external_ui_ ? ui_type_uri : "http://lv2plug.in/ns/extensions/ui#GtkUI";
   ui_instance_ = x11wrapper->create_suil_instance (PluginHost::the().suil_host,
                                                    plugin_instance,
                                                    container_ui_uri,
@@ -1119,7 +1118,7 @@ PluginUI::~PluginUI()
     }
 }
 
-Options::Options (PluginHost& plugin_host, float sample_rate) :
+Options::Options (PluginHost &plugin_host, float sample_rate) :
   m_sample_rate_ (sample_rate),
   lv2_options_feature_ { LV2_OPTIONS__options, nullptr }
 {
@@ -1135,7 +1134,7 @@ Options::Options (PluginHost& plugin_host, float sample_rate) :
 }
 
 PluginInstance *
-PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback, LV2Processor *processor)
+PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback &callback, LV2Processor *processor)
 {
   assert_return (this_thread_is_gtk(), nullptr);
   LilvNode* uri = lilv_new_uri (world, plugin_uri);
@@ -1209,8 +1208,8 @@ PluginHost::post_load()
     instance->finalize_preset_restore();
 }
 
-PluginInstance::PluginInstance (PluginHost& plugin_host, uint sample_rate, const LilvPlugin *plugin,
-                                PortRestoreHelper *port_restore_helper, const ControlChangedCallback& callback, LV2Processor *processor) :
+PluginInstance::PluginInstance (PluginHost &plugin_host, uint sample_rate, const LilvPlugin *plugin,
+                                PortRestoreHelper *port_restore_helper, const ControlChangedCallback &callback, LV2Processor *processor) :
   options_ (plugin_host, sample_rate),
   plugin_ (plugin),
   sample_rate_ (sample_rate),
@@ -1505,7 +1504,7 @@ PluginInstance::init_ports()
 void
 PluginInstance::free_ports()
 {
-  for (auto& port : plugin_ports_)
+  for (auto &port : plugin_ports_)
     {
       if (port.evbuf)
         lv2_evbuf_free (port.evbuf);
@@ -1535,7 +1534,7 @@ PluginInstance::init_presets()
 void
 PluginInstance::free_presets()
 {
-  for (auto& preset : presets_)
+  for (auto &preset : presets_)
     lilv_node_free (preset.preset);
   presets_.clear();
 }
@@ -1660,7 +1659,7 @@ PluginInstance::run (uint32_t n_frames)
         if (event->protocol() == 0)
           {
             assert_return (event->size() == sizeof (float));
-            port->control = *(float *)event->data();
+            port->control = *(float *) event->data();
 
             control_in_changed_callback_ (port);
           }
@@ -1668,7 +1667,7 @@ PluginInstance::run (uint32_t n_frames)
           {
             LV2_Evbuf_Iterator    e    = lv2_evbuf_end (port->evbuf);
             const LV2_Atom* const atom = (const LV2_Atom *) event->data();
-            lv2_evbuf_write (&e, n_frames, 0, atom->type, atom->size, (const uint8_t*)LV2_ATOM_BODY_CONST(atom));
+            lv2_evbuf_write (&e, n_frames, 0, atom->type, atom->size, (const uint8_t*) LV2_ATOM_BODY_CONST (atom));
           }
         else
           {
@@ -1744,7 +1743,7 @@ PluginInstance::set_initial_controls_ui()
   /* Set initial control values on UI */
   for (size_t port_index = 0; port_index < plugin_ports_.size(); port_index++)
     {
-      const auto& port = plugin_ports_[port_index];
+      const auto &port = plugin_ports_[port_index];
 
       if (port.flags & Port::CONTROL)
         {
@@ -1757,7 +1756,7 @@ PluginInstance::set_initial_controls_ui()
 void
 PluginInstance::set_control_param (size_t index, double param_value)
 {
-  auto& port = plugin_ports_[control_in_ports_[index]];
+  auto &port = plugin_ports_[control_in_ports_[index]];
   // param_value is the parameter value used in LV2Processor and needs to be converted to lv2 value first
   port.control = port.param_to_lv2 (param_value);
 
@@ -1784,7 +1783,7 @@ PluginInstance::send_ui_updates (uint32_t delta_frames)
         }
       for (size_t port_index = 0; port_index < plugin_ports_.size(); port_index++)
         {
-          const Port& port = plugin_ports_[port_index];
+          const Port &port = plugin_ports_[port_index];
 
           if ((port.flags & Port::CONTROL) && (port.flags & Port::OUTPUT))
             {
@@ -1873,10 +1872,10 @@ PluginInstance::clear_dsp2ui_events()
 
 struct PortRestoreHelper
 {
-  PluginHost& plugin_host;
-  map<string, double> values;
+  PluginHost &plugin_host;
+  map<String, double> values;
 
-  PortRestoreHelper (PluginHost& host) :
+  PortRestoreHelper (PluginHost &host) :
     plugin_host (host)
   {
   }
@@ -1894,19 +1893,19 @@ struct PortRestoreHelper
     double dvalue = 0;
     if (type == plugin_host.urids.atom_Float)
       {
-        dvalue = *(const float*)value;
+        dvalue = *(const float*) value;
       }
     else if (type == plugin_host.urids.atom_Double)
       {
-        dvalue = *(const double*)value;
+        dvalue = *(const double*) value;
       }
     else if (type == plugin_host.urids.atom_Int)
       {
-        dvalue = *(const int32_t*)value;
+        dvalue = *(const int32_t*) value;
       }
     else if (type == plugin_host.urids.atom_Long)
       {
-        dvalue = *(const int64_t*)value;
+        dvalue = *(const int64_t*) value;
       }
     else
       {
@@ -1935,7 +1934,7 @@ PluginInstance::restore_state (LilvState *state, PortRestoreHelper *helper, Path
 }
 
 bool
-PluginInstance::restore_string (const String& str, PortRestoreHelper *helper, PathMap *path_map)
+PluginInstance::restore_string (const String &str, PortRestoreHelper *helper, PathMap *path_map)
 {
   assert_return (this_thread_is_gtk(), false);
 
@@ -1958,7 +1957,7 @@ PluginInstance::get_port_value_for_save (const char *port_symbol,
                                          uint32_t   *type)
 {
   PluginInstance *plugin_instance = (PluginInstance *) user_data;
-  for (auto& port : plugin_instance->plugin_ports_)
+  for (auto &port : plugin_instance->plugin_ports_)
     {
       if (port.symbol == port_symbol && (port.flags & Port::INPUT) && (port.flags & Port::CONTROL))
         {
@@ -2042,10 +2041,10 @@ class LV2Processor : public AudioProcessor {
 
   ProjectImpl        *project_ = nullptr;
   PluginInstance     *plugin_instance_;
-  PluginHost&         plugin_host_;
+  PluginHost         &plugin_host_;
 
   int                 current_preset_ = 0;
-  string              lv2_uri_;
+  String              lv2_uri_;
 
   enum
     {
@@ -2055,7 +2054,7 @@ class LV2Processor : public AudioProcessor {
 
 
   void
-  gtk_thread (const std::function<void()>& fun)
+  gtk_thread (const std::function<void()> &fun)
   {
     // make calling a function in gtk thread a little shorter by wrapping this
     assert_return (x11wrapper);
@@ -2344,7 +2343,7 @@ public:
     info.label = "Anklang.Devices.LV2Processor";
   }
   void
-  set_uri (const string& lv2_uri)
+  set_uri (const String &lv2_uri)
   {
     lv2_uri_ = lv2_uri;
   }
@@ -2360,7 +2359,7 @@ public:
       gtk_thread ([&] { plugin_instance_->toggle_ui(); });
   }
   void
-  save_state (WritNode &xs, const string& device_path, ProjectImpl *project)
+  save_state (WritNode &xs, const String& device_path, ProjectImpl *project)
   {
     if (project_)
       assert_return (project == project_);
@@ -2546,7 +2545,7 @@ static auto lv2processor_aseid = register_audio_processor<LV2Processor>();
 DeviceInfoS
 LV2DeviceImpl::list_lv2_plugins()
 {
-  PluginHost& plugin_host = PluginHost::the();
+  PluginHost &plugin_host = PluginHost::the();
   return plugin_host.list_plugins();
 }
 
