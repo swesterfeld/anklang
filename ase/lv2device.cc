@@ -2088,7 +2088,7 @@ class LV2Processor : public AudioProcessor {
         centries += { "0", "-none-" };
         for (auto preset : plugin_instance_->presets())
           centries += { string_format ("%d", ++preset_num), preset.name };
-        pmap[PID_PRESET] = Param { "device_preset", "Device Preset", "Preset", 0, "", std::move (centries), GUIONLY, "Device Preset to be used" };
+        pmap[PID_PRESET] = Param { "device_preset", "Device Preset", "Preset", 0, "", std::move (centries), GUIONLY, { String ("blurb=") + _("Device Preset to be used") } };
       }
     current_preset_ = 0;
 
