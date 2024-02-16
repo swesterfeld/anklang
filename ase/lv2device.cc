@@ -2120,10 +2120,6 @@ class LV2Processor : public AudioProcessor {
           pmap[pid] = Param { port.symbol, port.name, "", port.control, "", { port.min_value, port.max_value }, hints };
       }
 
-    // TODO: deactivate?
-    // TODO: is this the right place?
-    gtk_thread ([&] { plugin_instance_->activate(); });
-
     install_params (pmap);
 
     prepare_event_input();
@@ -2331,6 +2327,11 @@ public:
   {}
   ~LV2Processor()
   {
+    destroy_instance();
+  }
+  void
+  destroy_instance()
+  {
     if (plugin_instance_)
       {
         gtk_thread ([&] { delete plugin_instance_; });
@@ -2443,6 +2444,18 @@ public:
       {
         printerr ("%s: LV2Device: blob read error: '%s' open failed\n", program_alias(), blobname);
       }
+  }
+  void
+  activate()
+  {
+    assert_return (plugin_instance_);
+    gtk_thread ([&] { plugin_instance_->activate(); });
+  }
+  void
+  deactivate()
+  {
+    assert_return (plugin_instance_);
+    gtk_thread ([&] { plugin_instance_->deactivate(); });
   }
 };
 
@@ -2593,6 +2606,36 @@ LV2DeviceImpl::serialize (WritNode &xs)
         lv2aproc->load_state (xs, _project());
     }
 }
+
+void
+LV2DeviceImpl::_activate()
+{
+  DeviceImpl::_activate();
+  auto lv2aproc = dynamic_cast<LV2Processor *> (proc_.get());
+  lv2aproc->activate();
+}
+
+void
+LV2DeviceImpl::_deactivate()
+{
+  auto lv2aproc = dynamic_cast<LV2Processor *> (proc_.get());
+  lv2aproc->deactivate();
+  DeviceImpl::_deactivate();
+}
+
+void
+LV2DeviceImpl::_set_parent (GadgetImpl *parent)
+{
+  DeviceImpl::_set_parent (parent);
+  // deactivate and destroy plugin
+  if (!parent)
+    {
+      auto lv2aproc = dynamic_cast<LV2Processor *> (proc_.get());
+      if (lv2aproc)
+        lv2aproc->destroy_instance();
+    }
+}
+
 
 } // Ase
 

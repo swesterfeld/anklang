@@ -15,6 +15,9 @@ class LV2DeviceImpl : public DeviceImpl
   explicit           LV2DeviceImpl     (const String &lv2_uri, AudioProcessorP);
 protected:
   void               serialize         (WritNode &xs) override;
+  void               _activate         () override;
+  void               _deactivate       () override;
+  void               _set_parent (GadgetImpl *parent) override;
 public:
   AudioProcessorP    _audio_processor  () const override                  { return proc_; }
   void               _set_event_source (AudioProcessorP esource) override { /* FIXME: implement */ }
