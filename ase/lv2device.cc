@@ -543,8 +543,6 @@ struct PathMap
   std::function<String(String)> absolute_path;
 };
 
-typedef std::function<void(const Port *)> ControlChangedCallback;
-
 class PluginInstance
 {
   bool                       init_ok_ = false;
@@ -599,8 +597,6 @@ class PluginInstance
   int                        preset_to_load_ = 0;
   std::unique_ptr<PortRestoreHelper>  preset_port_restore_helper_;
 
-  ControlChangedCallback     control_in_changed_callback_;
-
   void init_ports();
   void free_ports();
   void init_presets();
@@ -616,7 +612,7 @@ class PluginInstance
   static constexpr auto ANKLANG_STATE_URI = "urn:anklang:state";
 public:
   PluginInstance (PluginHost &plugin_host, uint sample_rate, const LilvPlugin *plugin,
-                  PortRestoreHelper *port_restore_helper, const ControlChangedCallback &callback, LV2Processor *processor);
+                  PortRestoreHelper *port_restore_helper, LV2Processor *processor);
   ~PluginInstance();
 
   static constexpr double       ui_update_fps = 60;
@@ -819,7 +815,7 @@ public:
     return host;
   }
   bool have_display() { return suil_host != nullptr; }
-  PluginInstance *instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback &callback, LV2Processor *processor);
+  PluginInstance *instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, LV2Processor *processor);
   void add_instance (PluginInstance *instance);
   void remove_instance (PluginInstance *instance);
   void post_load();
@@ -1134,7 +1130,7 @@ Options::Options (PluginHost &plugin_host, float sample_rate) :
 }
 
 PluginInstance *
-PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, const ControlChangedCallback &callback, LV2Processor *processor)
+PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHelper *port_restore_helper, LV2Processor *processor)
 {
   assert_return (this_thread_is_gtk(), nullptr);
   LilvNode* uri = lilv_new_uri (world, plugin_uri);
@@ -1160,7 +1156,7 @@ PluginHost::instantiate (const char *plugin_uri, uint sample_rate, PortRestoreHe
     }
   lilv_node_free (uri);
 
-  PluginInstance *plugin_instance = new PluginInstance (*this, sample_rate, plugin, port_restore_helper, callback, processor);
+  PluginInstance *plugin_instance = new PluginInstance (*this, sample_rate, plugin, port_restore_helper, processor);
   if (!plugin_instance->init_ok())
     {
       printerr ("plugin instantiate failed\n");
@@ -1209,13 +1205,12 @@ PluginHost::post_load()
 }
 
 PluginInstance::PluginInstance (PluginHost &plugin_host, uint sample_rate, const LilvPlugin *plugin,
-                                PortRestoreHelper *port_restore_helper, const ControlChangedCallback &callback, LV2Processor *processor) :
+                                PortRestoreHelper *port_restore_helper, LV2Processor *processor) :
   options_ (plugin_host, sample_rate),
   plugin_ (plugin),
   sample_rate_ (sample_rate),
   plugin_host_ (plugin_host),
-  processor_ (processor),
-  control_in_changed_callback_ (callback)
+  processor_ (processor)
 {
   assert_return (this_thread_is_gtk());
 
@@ -1649,48 +1644,6 @@ PluginInstance::connect_audio_out (uint32_t output_port, float *buffer)
 }
 
 void
-PluginInstance::run (uint32_t n_frames)
-{
-  ui2dsp_events_.for_each (trash_events_,
-    [&] (const ControlEvent *event)
-      {
-        assert_return (event->port_index() < plugin_ports_.size());
-        Port* port = &plugin_ports_[event->port_index()];
-        if (event->protocol() == 0)
-          {
-            assert_return (event->size() == sizeof (float));
-            port->control = *(float *) event->data();
-
-            control_in_changed_callback_ (port);
-          }
-        else if (event->protocol() == plugin_host_.urids.atom_eventTransfer)
-          {
-            LV2_Evbuf_Iterator    e    = lv2_evbuf_end (port->evbuf);
-            const LV2_Atom* const atom = (const LV2_Atom *) event->data();
-            lv2_evbuf_write (&e, n_frames, 0, atom->type, atom->size, (const uint8_t*) LV2_ATOM_BODY_CONST (atom));
-          }
-        else
-          {
-            printerr ("LV2: PluginInstance: protocol: %d not implemented\n", event->protocol());
-          }
-      });
-
-  lilv_instance_run (instance_, n_frames);
-
-  if (worker_)
-    {
-      worker_->handle_responses();
-      worker_->end_run();
-    }
-
-  if (dsp2ui_notifications_enabled_.load())
-    {
-      send_plugin_events_to_ui();
-      send_ui_updates (n_frames);
-    }
-}
-
-void
 PluginInstance::enable_dsp2ui_notifications (bool enabled)
 {
   dsp2ui_notifications_enabled_.store (enabled);
@@ -2065,12 +2018,7 @@ class LV2Processor : public AudioProcessor {
   {
     PortRestoreHelper port_restore_helper (plugin_host_);
 
-    // called if parameters are changed using the LV2 custom UI during render
-    auto control_in_changed_callback = [this] (const Port *port) {
-      set_param_from_render (PID_CONTROL_OFFSET + port->control_in_idx, port->param_from_lv2 (port->control));
-    };
-
-    gtk_thread ([&] { plugin_instance_ = plugin_host_.instantiate (lv2_uri_.c_str(), sample_rate(), &port_restore_helper, control_in_changed_callback, this); });
+    gtk_thread ([&] { plugin_instance_ = plugin_host_.instantiate (lv2_uri_.c_str(), sample_rate(), &port_restore_helper, this); });
 
     // TODO: this is probably not the right location for restoring the parameter values
     restore_params (port_restore_helper);
@@ -2310,6 +2258,12 @@ class LV2Processor : public AudioProcessor {
   }
 public:
   void
+  control_in_changed (const Port *port)
+  {
+    // called if parameters are changed using the LV2 custom UI during render
+    set_param_from_render (PID_CONTROL_OFFSET + port->control_in_idx, port->param_from_lv2 (port->control));
+  }
+  void
   restore_params (const PortRestoreHelper &port_restore_helper)
   {
     for (int i = 0; i < (int) plugin_instance_->n_control_inputs(); i++)
@@ -2457,6 +2411,49 @@ public:
     gtk_thread ([&] { plugin_instance_->deactivate(); });
   }
 };
+
+void
+PluginInstance::run (uint32_t n_frames)
+{
+  ui2dsp_events_.for_each (trash_events_,
+    [&] (const ControlEvent *event)
+      {
+        assert_return (event->port_index() < plugin_ports_.size());
+        Port* port = &plugin_ports_[event->port_index()];
+        if (event->protocol() == 0)
+          {
+            assert_return (event->size() == sizeof (float));
+            port->control = *(float *) event->data();
+
+            processor_->control_in_changed (port);
+          }
+        else if (event->protocol() == plugin_host_.urids.atom_eventTransfer)
+          {
+            LV2_Evbuf_Iterator    e    = lv2_evbuf_end (port->evbuf);
+            const LV2_Atom* const atom = (const LV2_Atom *) event->data();
+            lv2_evbuf_write (&e, n_frames, 0, atom->type, atom->size, (const uint8_t*) LV2_ATOM_BODY_CONST (atom));
+          }
+        else
+          {
+            printerr ("LV2: PluginInstance: protocol: %d not implemented\n", event->protocol());
+          }
+      });
+
+  lilv_instance_run (instance_, n_frames);
+
+  if (worker_)
+    {
+      worker_->handle_responses();
+      worker_->end_run();
+    }
+
+  if (dsp2ui_notifications_enabled_.load())
+    {
+      send_plugin_events_to_ui();
+      send_ui_updates (n_frames);
+    }
+}
+
 
 void
 PluginInstance::restore_preset (int preset, PortRestoreHelper *helper)
