@@ -282,8 +282,8 @@ function element_rect (element) {
 export function keydown_move_focus (event) {
   // constrain focus movements within data-subfocus=1 container
   const fe = activeElement();
-  const subfocus = Util.closest (fe, '[data-subfocus]') || document.body;
-  const left_right = subfocus.getAttribute ('data-subfocus') === "*";
+  const subfocus = Util.closest (fe, '[data-subfocus="*"]') || document.body;
+  const left_right = !!Util.closest (fe, '[data-subfocus="+"]');
   let dir;
   if (event.keyCode == KeyCode.HOME)
     dir = 'HOME';
