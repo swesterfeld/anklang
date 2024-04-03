@@ -1,10 +1,5 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 #include "device.hh"
-#include "nativedevice.hh"
-#include "combo.hh"
-#include "project.hh"
-#include "jsonipc/jsonipc.hh"
-#include "serialize.hh"
 #include "internal.hh"
 
 namespace Ase {
