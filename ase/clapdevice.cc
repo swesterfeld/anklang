@@ -3,15 +3,8 @@
 #include "clapplugin.hh"
 #include "project.hh"
 #include "processor.hh"
-#include "compress.hh"
-#include "properties.hh"
-#include "storage.hh"
-#include "jsonipc/jsonipc.hh"
-#include "path.hh"
-#include "main.hh"
 #include "serialize.hh"
 #include "internal.hh"
-#include "gtk2wrap.hh"
 #include <dlfcn.h>
 
 #define CDEBUG(...)     Ase::debug ("clap", __VA_ARGS__)
