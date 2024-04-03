@@ -1,7 +1,6 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 #include "clapplugin.hh"
 #include "clapdevice.hh"
-#include "jsonipc/jsonipc.hh"
 #include "storage.hh"
 #include "project.hh"
 #include "processor.hh"
