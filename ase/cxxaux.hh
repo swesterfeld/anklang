@@ -180,17 +180,17 @@ divmod (T dividend, T divisor, T *reminderp)
 }
 
 /// Demangle identifier via libcc.
-std::string string_demangle_cxx (const char *mangled_identifier) noexcept;
+const char* string_demangle_cxx (const char *mangled_identifier) noexcept;
 
 /// Provide demangled stringified name for type `T`.
-template<class T> ASE_PURE static inline String
+template<class T> ASE_PURE static inline const char*
 typeid_name()
 {
   return string_demangle_cxx (typeid (T).name());
 }
 
 /// Provide demangled stringified name for object `obj`.
-template<class T> ASE_PURE static inline String
+template<class T> ASE_PURE static inline const char*
 typeid_name (T &obj)
 {
   return string_demangle_cxx (typeid (obj).name());
