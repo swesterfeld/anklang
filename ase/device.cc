@@ -46,14 +46,14 @@ DeviceImpl::_disconnect_remove ()
   AudioProcessorP proc = _audio_processor();
   return_unless (proc);
   AudioEngine *engine = &proc->engine();
-  auto j = [proc] () {
+  auto job = [proc] () {
     proc->enable_engine_output (false);
     proc->disconnect_ibuses();
     proc->disconnect_obuses();
     proc->disconnect_event_input();
-    // FIXME: remove from combo container if child
+    // TODO: do we need to remove this from parent container (combo)?
   };
-  engine->async_jobs += j;
+  engine->async_jobs += job;
 }
 
 DeviceInfo
