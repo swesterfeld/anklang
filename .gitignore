@@ -1,6 +1,12 @@
-/config-defaults.mk
-/out/
-/TAGS
-/rand/
+/.cache/
+/.dlcache
 /.submodule-stamp
-/.dlcache/
+/.vscode/
+/BACKLOG.md
+/TAGS
+/bun.lockb
+/compile_commands.json
+/config-defaults.mk
+/node_modules/
+/out/
+/rand/
