@@ -92,8 +92,8 @@ class BPropGroup extends LitComponent {
   {
     const hints = ':' + prop.hints_ + ':';
     let c = '';
-    if (prop.is_numeric_ && hints.search (/:big:/) < 0) // FIXME: test "big" hint
-      c += 'b-propgroup-big';
+    if (prop.is_numeric_ && hints.search (/:big:/) < 0)
+      c += 'b-propgroup-big';				// TODO: actually test "big" layout
     return c;
   }
   assign_layout_rows (props)
