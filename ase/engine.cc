@@ -286,12 +286,12 @@ void
 AudioEngineThread::run (StartQueue *sq)
 {
   assert_return (null_pcm_driver_);
+  assert_return (owner_wakeup_ != nullptr);
   if (!pcm_driver_)
     pcm_driver_ = null_pcm_driver_;
   floatfill (chbuffer_data_, 0.0, MAX_BUFFER_SIZE * fixed_n_channels);
   buffer_size_ = std::min (MAX_BUFFER_SIZE, size_t (pcm_driver_->pcm_block_length()));
   write_stamp_ = render_stamp_ - buffer_size_; // write an initial buffer of zeros
-  // FIXME: assert owner_wakeup and free trash
   this_thread_set_name ("AudioEngine-0"); // max 16 chars
   audio_engine_thread_id = std::this_thread::get_id();
   sched_fast_priority (this_thread_gettid());
@@ -299,6 +299,7 @@ AudioEngineThread::run (StartQueue *sq)
   sq->push ('R'); // StartQueue becomes invalid after this call
   sq = nullptr;
   event_loop_->run();
+  // TODO: do we need to cleanup / throw away job lists here?
 }
 
 bool
@@ -348,18 +349,17 @@ AudioEngineThread::driver_dispatcher (const LoopState &state)
       /* fall-through */
     case LoopState::CHECK:
       if (atquit_triggered())
-        return false;   // stall engine once program is aborted
+        return false;                           // stall engine once program is aborted
       if (!const_jobs_.empty() || !async_jobs_.empty())
-        return true; // jobs pending
+        return true;                            // jobs pending
       if (render_stamp_ <= write_stamp_)
-        return true; // must render
-      // FIXME: add pcm driver pollfd with 1-block threshold
+        return true;                            // must render
       return pcm_check_write (false, timeout_usecs);
     case LoopState::DISPATCH:
       pcm_check_write (true);
       if (render_stamp_ <= write_stamp_)
         {
-          process_jobs (async_jobs_); // apply pending modifications before render
+          process_jobs (async_jobs_);           // apply pending modifications before render
           if (schedule_invalid_)
             {
               schedule_clear();
@@ -367,17 +367,17 @@ AudioEngineThread::driver_dispatcher (const LoopState &state)
                 proc->schedule_processor();
               schedule_invalid_ = false;
             }
-          if (render_stamp_ <= write_stamp_) // async jobs may have adjusted stamps
+          if (render_stamp_ <= write_stamp_)    // async jobs may have adjusted stamps
             schedule_render (buffer_size_);
-          pcm_check_write (true); // minimize drop outs
+          pcm_check_write (true);               // minimize drop outs
         }
-      if (!const_jobs_.empty()) {   // owner may be blocking for const_jobs_ execution
-        process_jobs (async_jobs_); // apply pending modifications first
+      if (!const_jobs_.empty()) {               // owner may be blocking for const_jobs_ execution
+        process_jobs (async_jobs_);             // apply pending modifications first
         process_jobs (const_jobs_);
       }
       if (ipc_pending())
-        owner_wakeup_(); // owner needs to ipc_dispatch()
-      return true; // keep alive
+        owner_wakeup_();                        // owner needs to ipc_dispatch()
+      return true;                              // keep alive
     default: ;
     }
   return false;
