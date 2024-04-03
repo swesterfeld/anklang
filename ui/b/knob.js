@@ -37,7 +37,7 @@ import * as Util from "../util.js";
 import * as Mouse from '../mouse.js';
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-knob {
   display: flex; position: relative;
   margin: 0; padding: 0; text-align: center;

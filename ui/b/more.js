@@ -9,7 +9,7 @@ import { LitComponent, html, JsExtract, docs } from '../little.js';
  */
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-more { // b-more
   display: flex;
   align-items: center;

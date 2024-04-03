@@ -10,7 +10,7 @@ import { LitComponent, html, JsExtract, ref, docs } from '../little.js';
 import * as Util from "../util.js";
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-statusbar {
   @apply hflex m-0 h-6 select-none justify-between whitespace-nowrap px-4 py-0;
   .b-statusbar-field {

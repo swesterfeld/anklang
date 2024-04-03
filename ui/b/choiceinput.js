@@ -30,7 +30,7 @@ import * as Util from '../util.js';
 import { get_uri } from '../dom.js';
 
 // <STYLE/>
-JsExtract.scss`
+JsExtract.css`
 b-choiceinput {
   display: flex;
   flex-basis: auto;

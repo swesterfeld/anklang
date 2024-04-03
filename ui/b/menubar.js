@@ -12,7 +12,7 @@ import { hex, basename, dirname, displayfs, displaybasename, displaydirname } fr
  */
 
 // <STYLE/>
-JsExtract.scss`
+JsExtract.css`
 b-menubar {
   push-button {
     @apply button-down-within size-10;

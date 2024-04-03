@@ -9,7 +9,7 @@
 import { LitComponent, html, JsExtract, docs, ref } from '../little.js';
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-clipview {
   display: inline-grid;
   margin: 0 0 0 2px;

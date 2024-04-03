@@ -11,7 +11,7 @@ import * as Util from '../util.js';
  */
 
 // <STYLE/>
-JsExtract.scss`
+JsExtract.css`
 /* Bubble color setup */
 $b-data-bubble-hue: 52deg;
 $b-data-bubble-fg:  hsl($b-data-bubble-hue, 100%, 1%);

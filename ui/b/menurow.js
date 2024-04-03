@@ -18,7 +18,7 @@
 import { LitComponent, html, JsExtract, docs } from '../little.js';
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-menurow {
   @apply m-0 flex flex-initial items-baseline justify-center text-center;
   flex-flow: row nowrap;

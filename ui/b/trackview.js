@@ -15,7 +15,7 @@ import { get_uri } from '../dom.js';
 import { render_contextmenu } from './contextmenu.js';
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-trackview {
   display: flex;
   align-items: stretch;

@@ -11,7 +11,7 @@ import * as Util from '../util.js';
  */
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-cliplist {
   display: flex;
   position: relative;

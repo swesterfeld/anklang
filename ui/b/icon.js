@@ -31,7 +31,7 @@ import * as Dom from "../dom.js";
  */
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-icon { // not using shadow-root here
   display: inline-flex !important;
   place-content: center center;
