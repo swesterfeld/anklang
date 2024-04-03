@@ -219,7 +219,7 @@ AudioChain::render (uint n_frames)
             }
         }
     }
-  // FIXME: assign obus if no children are present
+  // TODO: do we need to assign oblock when no children are present?
 }
 
 /// Reconnect AudioChain child processors at start and after.
