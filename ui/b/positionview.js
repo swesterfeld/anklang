@@ -76,7 +76,7 @@ class BPositionView extends LitComponent {
     super.connectedCallback();
     let project = Data.project;
     if (!project.bpm) {
-      // FIXME: work around until the TimeSignature branch is merged
+      // TODO: work around until the TimeSignature branch is merged
       project = Object.create (project);
       for (const key of ['bpm', 'numerator', 'denominator'])
 	project[key] = () => project.get_value (key);
