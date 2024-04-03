@@ -402,7 +402,7 @@ public:
   uint
   fetch_events (MidiEventOutput&, double) override
   {
-    return 0; // FIXME: needed?
+    return 0;
   }
   static void
   list_drivers (Driver::EntryVec &entries)
