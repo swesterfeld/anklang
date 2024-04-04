@@ -23,7 +23,7 @@ protected:
   virtual String fallback_name     () const;
   void           serialize         (WritNode &xs) override;
   PropertyBag    property_bag      ();
-  virtual void   create_properties () {}
+  virtual void   create_properties ();
 public:
   void           _set_parent       (GadgetImpl *parent) override;
   GadgetImpl*    _parent           () const override    { return parent_; }
@@ -33,7 +33,56 @@ public:
   PropertyS      access_properties () override;
   bool           set_data          (const String &key, const Value &v) override;
   Value          get_data          (const String &key) const override;
+  template<class O, class M> void _register_parameter (O*, M*, const Param::ExtraVals&) const;
+  using MemberAccessF = std::function<bool(GadgetImpl*,const Value*,Value*)>;
+  using MemberInfosP = const StringS& (*) ();
+  using MemberClassT = bool (*) (const SharedBase&);
+private:
+  static bool requires_accessor (const char *ot, const char *mt, ptrdiff_t offset);
+  static void register_accessor (const char *ot, const char *mt, ptrdiff_t offset, MemberClassT,
+                                 const Param::ExtraVals&, MemberAccessF&&, MemberInfosP, uint64_t);
 };
+
+template<class O, class M> void
+GadgetImpl::_register_parameter (O *obj, M *memb, const Param::ExtraVals &ev) const
+{
+  static_assert (M::is_unique_per_member); // allows indexing per typeid, instead of per instance
+  GadgetImpl *gadget = obj;
+  ASE_ASSERT_RETURN (this == gadget);
+  const auto object_typeid_name = typeid_name<O>();
+  const auto member_typeid_name = typeid_name<M>();
+  const ptrdiff_t offset = ptrdiff_t (memb) - ptrdiff_t (obj);
+  if (!requires_accessor (object_typeid_name, member_typeid_name, offset))
+    return;
+  const MemberClassT classtest = [] (const SharedBase &b) -> bool { return !!dynamic_cast<const O*> (&b); };
+  using value_type = decltype (memb->get());
+  auto accessor = [offset] (GadgetImpl *g, const Value *in, Value *out) {
+    O &o = dynamic_cast<O&> (*g);
+    const ptrdiff_t maddr = ptrdiff_t (&o) + offset;
+    M *m = reinterpret_cast<M*> (maddr);
+    bool r = false;
+    if (in) {
+      value_type v = {};
+      if constexpr (std::is_integral_v<value_type>)
+        v = in->as_int();
+      else if constexpr (std::is_floating_point_v<value_type>)
+        v = in->as_double();
+      else if constexpr (std::is_assignable_v<value_type&,String>)
+        v = in->as_string();
+      else if constexpr (std::is_assignable_v<value_type&,const ValueS>)
+        v = in->as_array();
+      else if constexpr (std::is_assignable_v<value_type&,const ValueR>)
+        v = in->as_record();
+      else
+        static_assert (sizeof (value_type) < 0, "unhandled <value_type>");
+      r = m->set (v);
+    }
+    if (out)
+      *out = Value (m->get());
+    return r;
+  };
+  register_accessor (object_typeid_name, member_typeid_name, offset, classtest, ev, accessor, &memb->infos, memb->hints());
+}
 
 } // Ase
 
