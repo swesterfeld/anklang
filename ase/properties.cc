@@ -24,13 +24,6 @@ PropertyImpl::PropertyImpl (const Param &param, const PropertyGetter &getter,
   parameter_ = std::make_shared<Parameter> (param);
 }
 
-// == PropertyBag ==
-void
-PropertyBag::operator+= (const Prop &prop) const
-{
-  add_ (prop, group);
-}
-
 // == Preference ==
 using PrefsValueCallbackList = CallbackList<CString,const Value&>;
 struct PrefsValue {

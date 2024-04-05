@@ -69,7 +69,7 @@ public:
 struct PropertyBag {
   using RegisterF = std::function<void(const Prop&,CString)>;
   explicit PropertyBag (const RegisterF &f) : add_ (f) {}
-  void     operator+= (const Prop&) const;
+  void     operator+= (const Prop &p) const       { add_ (p, group); }
   CString  group;
 private:
   RegisterF add_;
