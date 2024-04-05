@@ -74,14 +74,6 @@ using PropertySetter = std::function<bool (const Value&)>;
 /// Function type to list Choice Property values.
 using PropertyLister = std::function<ChoiceS (const ParameterProperty&)>;
 
-/// Structured initializer for PropertyImpl
-struct Prop {
-  PropertyGetter getter;        ///< Lambda implementing the Property value getter.
-  PropertySetter setter;        ///< Lambda implementing the Property value setter.
-  Param          param;         ///< Parameter meta data for this Property.
-  PropertyLister lister;        ///< Lambda providing a list of possible Property value choices.
-};
-
 /// Property implementation for GadgetImpl, using lambdas as accessors.
 class PropertyImpl : public ParameterProperty {
   PropertyGetter getter_; PropertySetter setter_; PropertyLister lister_;
