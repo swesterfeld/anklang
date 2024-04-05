@@ -210,21 +210,6 @@ Gadget::set_value (String ident, const Value &v)
   return prop && prop->set_value (v);
 }
 
-PropertyBag
-GadgetImpl::property_bag ()
-{
-  auto add_prop = [this] (const Prop &prop, CString group) {
-    if (!group.empty() && prop.param.fetch ("group").empty()) {
-      Param param = prop.param;
-      param.store ("group", group);
-      this->props_.push_back (PropertyImpl::make_shared (param, prop.getter, prop.setter, prop.lister));
-    } else
-      this->props_.push_back (PropertyImpl::make_shared (prop.param, prop.getter, prop.setter, prop.lister));
-    // PropertyImpl &property = *gadget_.props_.back();
-  };
-  return PropertyBag (add_prop);
-}
-
 struct MemberAccessor {
   const char      *member_typeid_name = nullptr;
   ptrdiff_t        memb_offset = -1;

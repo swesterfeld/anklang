@@ -23,7 +23,6 @@ protected:
   virtual String fallback_name     () const;
   virtual bool   name_             (const std::string *n, std::string *q) override;
   void           serialize         (WritNode &xs) override;
-  PropertyBag    property_bag      ();
   virtual void   create_properties ();
 public:
   void           _set_parent       (GadgetImpl *parent) override;

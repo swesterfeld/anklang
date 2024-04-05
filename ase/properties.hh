@@ -93,16 +93,6 @@ public:
   ChoiceS choices   () const override           { return lister_ ? lister_ (*this) : parameter_->choices(); }
 };
 
-/// Helper to simplify property registrations.
-struct PropertyBag {
-  using RegisterF = std::function<void(const Prop&,CString)>;
-  explicit PropertyBag (const RegisterF &f) : add_ (f) {}
-  void     operator+= (const Prop &p) const       { add_ (p, group); }
-  CString  group;
-private:
-  RegisterF add_;
-};
-
 /// Value getter for enumeration types.
 template<typename Enum> std::function<void(Value&)>
 make_enum_getter (Enum *v)
