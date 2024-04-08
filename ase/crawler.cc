@@ -27,6 +27,7 @@ FileCrawler::FileCrawler (const String &cwd, bool constraindir, bool constrainfi
     assign (encodefs (cwd), false);
 }
 
+/// List all entries in the current folder.
 ResourceS
 FileCrawler::list_entries ()
 {
@@ -66,6 +67,7 @@ FileCrawler::list_entries ()
   return rs;
 }
 
+/// Expand directory name (file system encoding) to absolute folder path.
 String
 FileCrawler::expand_fsdir (const String &fsdir)
 {
@@ -79,6 +81,7 @@ FileCrawler::expand_fsdir (const String &fsdir)
   return "/";
 }
 
+/// Return the current folder.
 Resource
 FileCrawler::current_folder ()
 {
@@ -96,6 +99,7 @@ FileCrawler::current_folder ()
   return r;
 }
 
+/// Open a new folder and make it the current folder.
 void
 FileCrawler::assign (const String &utf8path, bool notify)
 {
@@ -116,6 +120,7 @@ FileCrawler::assign (const String &utf8path, bool notify)
     }
 }
 
+/// Canonify a UTF-8 path name, optionally constraining it to a folder or file.
 Resource
 FileCrawler::canonify (const String &utf8cwd, const String &utf8fragment, bool constraindir, bool constrainfile)
 {
@@ -128,6 +133,7 @@ FileCrawler::canonify (const String &utf8cwd, const String &utf8fragment, bool c
   return r;
 }
 
+/// Canonify a path (file system encoding), optionally constraining it to a directory or file.
 String
 FileCrawler::canonify_fspath (const String &fscwd, const String &fsfragment, bool constraindir, bool constrainfile)
 {
@@ -168,6 +174,7 @@ FileCrawler::canonify_fspath (const String &fscwd, const String &fsfragment, boo
 #include "testing.hh"
 
 TEST_INTEGRITY (crawler_tests);
+/// Test the filecrawler functions.
 static void
 crawler_tests()
 {

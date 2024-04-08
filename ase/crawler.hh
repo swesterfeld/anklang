@@ -6,6 +6,7 @@
 
 namespace Ase {
 
+/// Class implementing a file system crawler.
 class FileCrawler final : public ObjectImpl, public virtual ResourceCrawler {
   String cwd_;
   const uint constraindir_ : 1;
