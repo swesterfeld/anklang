@@ -440,7 +440,7 @@ struct CallbackInfo final {
   const JsonValue& ntharg       (size_t index) const { static JsonValue j0; return index < args_.Size() ? args_[index] : j0; }
   size_t           n_args       () const                { return args_.Size(); }
   Closure*         find_closure (const char *methodname);
-  std::string      classname    (const std::string &fallback);
+  std::string      classname    (const std::string &fallback) const;
   JsonAllocator&   allocator    ()                      { return doc_.GetAllocator(); }
   void             set_result   (JsonValue &result)     { result_ = result; have_result_ = true; } // move-semantic!
   JsonValue&       get_result   ()                      { return result_; }
@@ -745,7 +745,7 @@ CallbackInfo::find_closure (const char *methodname)
 }
 
 inline std::string
-CallbackInfo::classname (const std::string &fallback)
+CallbackInfo::classname (const std::string &fallback) const
 {
   const JsonValue &value = ntharg (0);
   InstanceMap::Wrapper *iw = InstanceMap::scope_lookup_wrapper (value);
