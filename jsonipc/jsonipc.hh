@@ -114,6 +114,10 @@ template<typename T> struct Has_shared_from_this<T, std::void_t< decltype (std::
 template<class, class = void> struct Has___typename__ : std::false_type {};
 template<typename T>          struct Has___typename__<T, std::void_t< decltype (std::declval<const T&>().__typename__()) > > : std::true_type {};
 
+/// Has_setget<T> - Check if type `T` provides methods `set()` and `get()`
+template<class, class = void> struct Has_setget : std::false_type {};
+template<typename T>          struct Has_setget<T, std::void_t< decltype (std::declval<T&>().set (std::declval<T&>().get())) > > : std::true_type {};
+
 /// Provide the __typename__() of @a object, or its rtti_typename().
 template<typename T, REQUIRES< Has___typename__<T>::value > = true> static inline std::string
 get___typename__ (const T &o)
@@ -1327,9 +1331,6 @@ can_wrap_object_from_base (const std::string &rttiname, WrapObjectFromBase *hand
   return it != downcastwrappers.end() ? it->second : nullptr;
 }
 
-/// Helper concept to test if a type provides methods `set()` and `get()`
-template<typename M> concept HasSetGet = requires (M &m) {{ m.set (m.get()) }; };
-
 // == Class ==
 template<typename T>
 struct Class final : TypeInfo {
@@ -1370,8 +1371,7 @@ struct Class final : TypeInfo {
     return *this;
   }
   /// Add a field member
-  template<typename M> requires HasSetGet<M>
-  Class&
+  template<typename M, REQUIRES< Has_setget<M>::value > = true> Class&
   set (const char *name, M T::*const memb)
   {
     static_assert (M::is_unique_per_member); // allows indexing per typeid, instead of per instance
