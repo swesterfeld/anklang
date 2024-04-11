@@ -989,7 +989,7 @@ private:
           break; }
         case GETSET:
           out += string_format ("  async %s (v) { return arguments.length > 0 ? "
-                                "Jsonipc.send ('set/%s', [this, await v]) : "
+                                "Jsonipc.send ('set/%s', [this, ...arguments]) : "
                                 "Jsonipc.send ('get/%s', [this]); }\n",
                                 p.name.c_str(), p.name.c_str(), p.name.c_str());
           break;
