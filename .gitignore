@@ -9,4 +9,5 @@
 /config-defaults.mk
 /node_modules/
 /out/
+/package-lock.json
 /rand/
