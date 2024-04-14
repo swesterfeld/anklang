@@ -126,6 +126,7 @@ public:
   virtual void       emit_event  (const String &type, const String &detail, const ValueR fields = {}) = 0;
   ASE_USE_RESULT
   virtual Connection on_event    (const String &eventselector, const EventHandler &eventhandler) = 0;
+  virtual void       emit_notify (const String &detail) = 0;
   void               js_trigger  (const String &eventselector, JsTrigger callback);
 };
 
