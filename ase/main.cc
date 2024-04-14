@@ -141,7 +141,7 @@ parse_args (int *argcp, char **argv)
       if (sep)
         config.args.push_back (argv[i]);
       else if (strcmp (argv[i], "--fatal-warnings") == 0 || strcmp (argv[i], "--g-fatal-warnings") == 0)
-        ase_fatal_warnings = true;
+        ase_fatal_warnings = assertion_failed_fatal = true;
       else if (strcmp ("--disable-randomization", argv[i]) == 0)
         config.allow_randomization = false;
       else if (strcmp ("--norc", argv[i]) == 0)
@@ -161,14 +161,14 @@ parse_args (int *argcp, char **argv)
       else if (strcmp ("--check", argv[i]) == 0)
         {
           config.mode = MainConfig::CHECK_INTEGRITY_TESTS;
-          ase_fatal_warnings = true;
+          ase_fatal_warnings = assertion_failed_fatal = true;
         }
       else if (strcmp ("--test", argv[i]) == 0 || strncmp ("--test=", argv[i], 7) == 0)
         {
           const char *eq = strchr (argv[i], '=');
           const char *arg = eq ? eq + 1 : i+1 < argc ? argv[++i] : nullptr;
           config.mode = MainConfig::CHECK_INTEGRITY_TESTS;
-          ase_fatal_warnings = true;
+          ase_fatal_warnings = assertion_failed_fatal = true;
           if (arg)
             check_test_names.push_back (arg);
         }
