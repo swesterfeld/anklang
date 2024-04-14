@@ -249,15 +249,21 @@ struct ClipNote {
 
 /// Container for MIDI note and control events.
 class Clip : public virtual Gadget {
+protected:
+  explicit          Clip           ();
+  virtual bool      all_notes_     (const ClipNoteS *n, ClipNoteS *q) = 0;
+  virtual bool      end_tick_      (const int64 *n, int64 *q) = 0;
 public:
   virtual int64     start_tick     () const = 0; ///< Get the first tick intended for playback (this is >= 0), changes on `notify:start_tick`.
   virtual int64     stop_tick      () const = 0; ///< Get the tick to stop playback, not events should be played after this, changes on `notify:stop_tick`.
-  virtual int64     end_tick       () const = 0; ///< Get the end tick, this tick is past any event ticks, changes on `notify:end_tick`.
   virtual void      assign_range   (int64 starttick, int64 stoptick) = 0; ///< Change start_tick() and stop_tick(); emits `notify:start_tick`, `notify:stop_tick`.
-  virtual ClipNoteS all_notes      () const = 0; ///< List all notes of this Clip; changes on `notify:all_notes`.
   /// Change note `id` according to the arguments or add a new note if `id` < 0; emits `notify:notes`.
   virtual int32     change_batch   (const ClipNoteS &notes, const String &undogroup = "") = 0; ///< Insert, change, delete in a batch.
   virtual ClipNoteS list_all_notes () = 0; ///< List all notes of this Clip; changes on `notify:notes`.
+  /// Access all notes of this clip, changes on `notify:all_notes`.
+  Member<&Clip::all_notes_> all_notes [[no_unique_address]];
+  /// The end tick is past any event ticks, changes on `notify:end_tick`.
+  Member<&Clip::end_tick_>  end_tick [[no_unique_address]];
 };
 
 /// Container for Clip objects and sequencing information.

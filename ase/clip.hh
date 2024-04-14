@@ -41,6 +41,8 @@ protected:
   virtual ~ClipImpl         ();
   void     serialize        (WritNode &xs) override;
   ssize_t  clip_index       () const;
+  bool     all_notes_       (const ClipNoteS *n, ClipNoteS *q) override;
+  bool     end_tick_        (const int64 *n, int64 *q) override;
 public:
   using OrderedEventsP = OrderedEventsV::ConstP;
   OrderedEventsP tick_events    () const;
@@ -49,9 +51,7 @@ public:
   UndoScope      undo_scope     (const String &scopename) { return project()->undo_scope (scopename); }
   int64          start_tick     () const override { return starttick_; }
   int64          stop_tick      () const override { return stoptick_; }
-  int64          end_tick       () const override { return endtick_; }
   void           assign_range   (int64 starttick, int64 stoptick) override;
-  ClipNoteS      all_notes      () const override;
   ClipNoteS      list_all_notes () override;
   bool           needs_serialize() const;
   int32          change_batch   (const ClipNoteS &notes, const String &undogroup) override;

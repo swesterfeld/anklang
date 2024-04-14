@@ -15,6 +15,13 @@
 
 namespace Ase {
 
+// == Clip ==
+Clip::Clip () :
+  all_notes (this, "all_notes"),
+  end_tick (this, "end_tick")
+{}
+
+// == ClipNote ==
 bool
 ClipNote::operator== (const ClipNote &o) const
 {
@@ -96,7 +103,7 @@ ClipImpl::serialize (WritNode &xs)
           notes_.insert (note);
         }
       emit_notify ("notes");
-      emit_notify ("all_notes");
+      all_notes.notify();
       // TODO: serialize range
     }
 }
@@ -135,13 +142,30 @@ ClipImpl::list_all_notes ()
   return cnotes;
 }
 
-ClipNoteS
-ClipImpl::all_notes () const
+bool
+ClipImpl::all_notes_ (const ClipNoteS *n, ClipNoteS *q)
 {
-  ClipNoteS cnotes;
-  auto events = tick_events();
-  cnotes.assign (events->begin(), events->end());
-  return cnotes;
+  if (n) {
+    // TODO: implement setter
+    all_notes.notify();
+  }
+  if (q) {
+    auto events = tick_events();
+    q->assign (events->begin(), events->end());
+  }
+  return true;
+}
+
+bool
+ClipImpl::end_tick_ (const int64 *n, int64 *q)
+{
+  if (n) {
+    endtick_ = *n;
+    end_tick.notify();
+  }
+  if (q)
+    *q = endtick_;
+  return true;
 }
 
 /// Retrieve const vector with all notes ordered by tick.
@@ -189,7 +213,7 @@ ClipImpl::apply_undo (const EventImage &image, const String &undogroup)
   for (const ClipNote &note : onotes)
     notes_.insert (note);
   emit_notify ("notes");
-  emit_notify ("all_notes");
+  all_notes.notify();
 }
 
 size_t
@@ -266,7 +290,7 @@ ClipImpl::change_batch (const ClipNoteS &batch, const String &undogroup)
       push_undo (orig_notes, undogroup.empty() ? "Change Notes" : undogroup);
     if (changes) CDEBUG ("%s: notes=%d undo_size: %fMB\n", __func__, notes_.size(), project()->undo_size_guess() / (1024. * 1024));
     emit_notify ("notes");
-    emit_notify ("all_notes");
+    all_notes.notify();
   }
   return 0;
 }
