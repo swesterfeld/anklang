@@ -21,6 +21,7 @@ protected:
   static String  canonify_key      (const String &input);
   virtual       ~GadgetImpl        ();
   virtual String fallback_name     () const;
+  virtual bool   name_             (const std::string *n, std::string *q) override;
   void           serialize         (WritNode &xs) override;
   PropertyBag    property_bag      ();
   virtual void   create_properties ();
@@ -28,8 +29,6 @@ public:
   void           _set_parent       (GadgetImpl *parent) override;
   GadgetImpl*    _parent           () const override    { return parent_; }
   String         type_nick         () const override;
-  String         name              () const override;
-  void           name              (String newname) override;
   PropertyS      access_properties () override;
   bool           set_data          (const String &key, const Value &v) override;
   Value          get_data          (const String &key) const override;

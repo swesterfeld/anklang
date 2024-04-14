@@ -9,6 +9,11 @@
 
 namespace Ase {
 
+// == Gadget ==
+Gadget::Gadget() :
+  name (this, "name")
+{}
+
 // == GadgetImpl ==
 JSONIPC_INHERIT (GadgetImpl, Gadget);
 
@@ -133,23 +138,24 @@ GadgetImpl::type_nick () const
 
 static CustomDataKey<String> gadget_name_key;
 
-String
-GadgetImpl::name () const
+bool
+GadgetImpl::name_ (const std::string *n, std::string *q)
 {
-  if (!has_custom_data (&gadget_name_key))
-    return fallback_name();
-  return get_custom_data (&gadget_name_key);
-}
-
-void
-GadgetImpl::name (String newname)
-{
-  newname = string_strip (newname);
-  if (newname.empty())
-    del_custom_data (&gadget_name_key);
-  else
-    set_custom_data (&gadget_name_key, newname);
-  emit_notify ("name");
+  if (n) {
+    String newname = string_strip (*n);
+    if (newname.empty())
+      del_custom_data (&gadget_name_key);
+    else
+      set_custom_data (&gadget_name_key, newname);
+    name.notify();
+  }
+  if (q) {
+    if (!has_custom_data (&gadget_name_key))
+      *q = fallback_name();
+    else
+      *q = get_custom_data (&gadget_name_key);
+  }
+  return true;
 }
 
 PropertyS
@@ -294,13 +300,13 @@ GadgetImpl::create_properties ()
         PropertyLister lister = nullptr;
         StringS infos = m->infosp();
         String hints = kvpairs_fetch (infos, "hints");
-        if (m->flags & PropMeta::READABLE)
+        if (m->flags & MemberDetails::READABLE)
           hints += ":r";
-        if (m->flags & PropMeta::WRITABLE)
+        if (m->flags & MemberDetails::WRITABLE)
           hints += ":w";
-        if (m->flags & PropMeta::STORAGE)
+        if (m->flags & MemberDetails::STORAGE)
           hints += ":S";
-        if (m->flags & PropMeta::GUI)
+        if (m->flags & MemberDetails::GUI)
           hints += ":G";
         kvpairs_assign (infos, "hints=" + hints);
         Param param { .extras = m->ev, .metadata = infos };
