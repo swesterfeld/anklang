@@ -103,34 +103,6 @@ struct ParameterMap final : std::map<uint32_t,ParameterC> {
   Entry operator[] (uint32_t id);
 };
 
-/// Abstract base type for Property implementations with Parameter meta data.
-class ParameterProperty : public EmittableImpl, public virtual Property {
-protected:
-  ParameterC parameter_;
-public:
-  String     ident          () const override     { return parameter_->cident; }
-  String     label          () const override     { return parameter_->label(); }
-  String     nick           () const override     { return parameter_->nick(); }
-  String     unit           () const override     { return parameter_->unit(); }
-  double     get_min        () const override     { return std::get<0> (parameter_->range()); }
-  double     get_max        () const override     { return std::get<1> (parameter_->range()); }
-  double     get_step       () const override     { return std::get<2> (parameter_->range()); }
-  bool       is_numeric     () const override     { return parameter_->is_numeric(); }
-  ChoiceS    choices        () const override     { return parameter_->choices(); }
-  StringS    metadata       () const override     { return parameter_->metadata(); }
-  void       reset          () override           { set_value (parameter_->initial()); }
-  double     get_normalized () const override     { return !is_numeric() ? 0 : parameter_->normalize (get_double()); }
-  bool       set_normalized (double v) override   { return is_numeric() && set_value (parameter_->rescale (v)); }
-  String     get_text       () const override     { return parameter_->value_to_text (get_value()); }
-  bool       set_text       (String txt) override { set_value (parameter_->value_from_text (txt)); return !txt.empty(); }
-  Value      get_value      () const override = 0;
-  bool       set_value      (const Value &v) override = 0;
-  double     get_double     () const              { return !is_numeric() ? 0 : get_value().as_double(); }
-  ParameterC parameter      () const              { return parameter_; }
-  Value      initial        () const              { return parameter_->initial(); }
-  MinMaxStep range          () const              { return parameter_->range(); }
-};
-
 /// Find a suitable 3-letter abbreviation for a Parameter without nick.
 String parameter_guess_nick (const String &parameter_label);
 
