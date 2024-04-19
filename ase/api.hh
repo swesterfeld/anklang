@@ -2,6 +2,7 @@
 #ifndef __ASE_API_HH__
 #define __ASE_API_HH__
 
+#include <ase/member.hh>
 #include <ase/value.hh>
 
 /// The Anklang C++ API namespace
