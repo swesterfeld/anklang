@@ -1009,12 +1009,13 @@ private:
           out += string_format ("  %s (%s) { return Jsonipc.send ('%s', [this%s%s]); }\n",
                                 p.name.c_str(), dargs.c_str(), p.name.c_str(), args.empty() ? "" : ", ", args.c_str());
           break; }
-        case GETSET:
-          out += string_format ("  async %s (v) { return arguments.length > 0 ? "
-                                "Jsonipc.send ('set/%s', [this, ...arguments]) : "
-                                "Jsonipc.send ('get/%s', [this]); }\n",
-                                p.name.c_str(), p.name.c_str(), p.name.c_str());
-          break;
+        case GETSET: {
+          const unsigned jsinit_index = p.count;        // js_initializer_index
+          out += string_format ("  get %s ()  { return Jsonipc.get_reactive_prop.call (this, '%s', %s); }\n",
+                                p.name.c_str(), p.name.c_str(), js_initializers[jsinit_index]);
+          out += string_format ("  set %s (v) { return Jsonipc.send ('set/' + '%s', [this, v]); }\n",
+                                p.name.c_str(), p.name.c_str());
+          break; }
         case ATTRIBUTE:
           serializable_attributes.push_back (p.name);
           break;
@@ -1376,7 +1377,7 @@ struct Class final : TypeInfo {
     JSONIPC_ASSERT_RETURN (get && set, *this);
     add_member_function_closure (std::string ("get/") + name, make_closure (get));
     add_member_function_closure (std::string ("set/") + name, make_closure (set));
-    print (ClassPrinter::GETSET, name, 0);
+    print (ClassPrinter::GETSET, name, js_initializer_index<R>());
     return *this;
   }
   template<typename F, REQUIRES< std::is_member_function_pointer<F>::value > = true> Class&
@@ -1421,7 +1422,8 @@ struct Class final : TypeInfo {
       m.set (Convert<typename M::T>::from_json (cbi.ntharg (HAS_THIS + 0)));
     };
     add_member_function_closure (std::string ("set/") + name, std::move (setter_closure));
-    print (ClassPrinter::GETSET, name, 0);
+    using ValueType = typename M::T;
+    print (ClassPrinter::GETSET, name, js_initializer_index<ValueType>());
     return *this;
   }
   static std::string
