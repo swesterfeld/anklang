@@ -2,27 +2,35 @@
 #ifndef __ASE_PARAMETER_HH__
 #define __ASE_PARAMETER_HH__
 
-#include <ase/api.hh>
-#include <ase/object.hh> // EmittableImpl
+#include <ase/defs.hh>
 #include <ase/memory.hh>
+#include <ase/value.hh>
 
 namespace Ase {
 
 /// Min, max, stepping for double ranges.
 using MinMaxStep = std::tuple<double,double,double>;
+
+/// Handler to generate all possible parameter choices dynamically.
 using ChoicesFunc = std::function<ChoiceS(const CString&)>;
+
+/// Initial value for parameters.
+using ParamInitialVal = std::variant<bool,int8_t,uint8_t,int16_t,uint16_t,int32_t,uint32_t,int64_t,uint64_t,float,double,const char*,std::string>;
+
+/// Helper to specify parameter ranges.
+struct ParamExtraVals : std::variant<MinMaxStep,ChoiceS,ChoicesFunc> {
+  ParamExtraVals () = default;
+  ParamExtraVals (double vmin, double vmax, double step = 0);
+  ParamExtraVals (const MinMaxStep&);
+  ParamExtraVals (const std::initializer_list<Choice>&);
+  ParamExtraVals (const ChoiceS&);
+  ParamExtraVals (const ChoicesFunc&);
+};
 
 /// Structured initializer for Parameter
 struct Param {
-  using InitialVal = std::variant<bool,int8_t,uint8_t,int16_t,uint16_t,int32_t,uint32_t,int64_t,uint64_t,float,double,const char*,std::string>;
-  struct ExtraVals : std::variant<MinMaxStep,ChoiceS,ChoicesFunc> {
-    ExtraVals () = default;
-    ExtraVals (double vmin, double vmax, double step = 0);
-    ExtraVals (const MinMaxStep&);
-    ExtraVals (const std::initializer_list<Choice>&);
-    ExtraVals (const ChoiceS&);
-    ExtraVals (const ChoicesFunc&);
-  };
+  using InitialVal = ParamInitialVal;
+  using ExtraVals = ParamExtraVals;
   String     ident;       ///< Identifier used for serialization (can be derived from untranslated label).
   String     label;       ///< Preferred user interface name.
   String     nick;        ///< Abbreviated user interface name, usually not more than 6 characters.

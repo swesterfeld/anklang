@@ -1,5 +1,6 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 #include "parameter.hh"
+#include "api.hh"
 #include "levenshtein.hh"
 #include "unicode.hh"
 #include "regex.hh"
@@ -9,29 +10,29 @@
 namespace Ase {
 
 // == Param ==
-Param::ExtraVals::ExtraVals (double vmin, double vmax, double step)
+ParamExtraVals::ParamExtraVals (double vmin, double vmax, double step)
 {
   using Base = std::variant<MinMaxStep,ChoiceS,ChoicesFunc>;
   Base::operator= (MinMaxStep { vmin, vmax, step });
 }
 
-Param::ExtraVals::ExtraVals (const MinMaxStep &range)
+ParamExtraVals::ParamExtraVals (const MinMaxStep &range)
 {
   using Base = std::variant<MinMaxStep,ChoiceS,ChoicesFunc>;
   Base::operator= (range);
 }
-Param::ExtraVals::ExtraVals (const std::initializer_list<Choice> &choices)
+ParamExtraVals::ParamExtraVals (const std::initializer_list<Choice> &choices)
 {
   *this = ChoiceS (choices);
 }
 
-Param::ExtraVals::ExtraVals (const ChoiceS &choices)
+ParamExtraVals::ParamExtraVals (const ChoiceS &choices)
 {
   using Base = std::variant<MinMaxStep,ChoiceS,ChoicesFunc>;
   Base::operator= (choices);
 }
 
-Param::ExtraVals::ExtraVals (const ChoicesFunc &choicesfunc)
+ParamExtraVals::ParamExtraVals (const ChoicesFunc &choicesfunc)
 {
   using Base = std::variant<MinMaxStep,ChoiceS,ChoicesFunc>;
   Base::operator= (choicesfunc);
