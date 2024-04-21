@@ -51,6 +51,16 @@ ui/lit.modules = $(strip	\
 	lit/directives/when.js \
 )
 
+# == ui/signal-polyfill.js ==
+$>/ui/signal-polyfill.js.map: $>/ui/signal-polyfill.js ;
+$>/ui/signal-polyfill.js: ui/Makefile.mk node_modules/.npm.done					| $>/ui/
+	$(QGEN)
+	$Q rm -f $>/ui/signal-polyfill.js* $@
+	$Q for mod in signal-polyfill ; do echo "export * from '$$mod';" ; done	> $>/ui/signal-all.js
+	$Q cd $>/ui/ && ../../node_modules/.bin/rollup -p @rollup/plugin-node-resolve signal-all.js -o $(@F) --sourcemapFile $(@F).map -m
+	$Q $(RM) $>/ui/signal-all.js
+$>/.ui-build-stamp: $>/ui/signal-polyfill.js
+
 # == ui/vue.js ==
 $>/ui/vue.js:	node_modules/.npm.done				| $>/ui/
 	$(QGEN)
