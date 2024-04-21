@@ -795,6 +795,24 @@ public:
   virtual void enumvalue        (const std::string &enumvalue)          {}
 };
 
+// == JavaScript Helpers ==
+/// JS initializer from C++ type
+template<class V> static inline unsigned
+js_initializer_index ()
+{
+  using T = std::decay_t<V>;
+  if constexpr (std::is_same<T,bool>::value)                            return 3;
+  if constexpr (std::is_integral<T>::value)                             return 1;
+  if constexpr (std::is_floating_point<T>::value)                       return 2;
+  if constexpr (std::is_convertible<const char*const, T>::value)        return 4;
+  if constexpr (std::is_convertible<const std::string, T>::value)       return 4;
+  if constexpr (DerivesVector<T>::value)                                return 5;
+  if constexpr (DerivesPair<T>::value)                                  return 5;
+  if constexpr (!IsSharedPtr<T>::value && std::is_class<T>::value)      return 6;
+  return 0;
+}
+static constexpr const char *const js_initializers[] = { "null", "0", "0.0", "false", "''", "[]", "{}" };
+
 // == ClassPrinter ==
 class ClassPrinter {
   using DepthFunc = size_t (*) ();
