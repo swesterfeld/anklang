@@ -2,8 +2,8 @@
 #ifndef __ASE_PROPERTIES_HH__
 #define __ASE_PROPERTIES_HH__
 
-#include <ase/parameter.hh>
-#include <ase/memory.hh>
+#include <ase/api.hh>
+#include <ase/object.hh>
 #include <ase/jsonapi.hh>
 
 namespace Ase {
