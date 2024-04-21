@@ -13,6 +13,22 @@ export const Jsonipc = {
   web_socket: null,
   counter: null,
   idmap: {},
+  cleanup_array_registry: new FinalizationRegistry (callback_array => {
+    while (callback_array.length)
+      callback_array.pop().call();
+  }),
+  get_reactive_prop (prop, dflt) {
+    if (!this.$props[prop]) {
+      if (!this.$props.$unwatchers) {
+	this.$props.$unwatchers = [];
+	Jsonipc.cleanup_array_registry.register (this, this.$props.$unwatchers, this.$props.$unwatchers);
+      }
+      this.$props[prop] = new Signal.State (dflt);
+      const async_fetch = async () => this.$props[prop].set (await Jsonipc.send ('get/' + prop, [this]));
+      async_fetch();
+    }
+    return this.$props[prop].get();
+  },
 
   /// Open the Jsonipc websocket
   open (url, protocols, options = {}) {
@@ -47,6 +63,7 @@ export const Jsonipc = {
   Jsonipc_prototype: class {
     constructor ($id) {
       Jsonipc.pdefine (this, '$id', { value: $id });
+      Jsonipc.pdefine (this, '$props', { value: {} });
       Jsonipc.finalization_registration (this);
     }
     // JSON.stringify replacer
