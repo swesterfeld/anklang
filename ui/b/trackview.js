@@ -175,7 +175,7 @@ class BTrackView extends LitComponent {
     super.connectedCallback();
     // ensure ContextMenu is ready when needed, *without* Chrome reloading styles and causing flicker
     if (!trackview_contextmenu)
-      trackview_contextmenu = render_contextmenu (trackview_contextmenu, HTML_CONTEXTMENU, { mcc: () => ' ' });
+      trackview_contextmenu = render_contextmenu (trackview_contextmenu, HTML_CONTEXTMENU, { mcc: this.mcc.bind (this) });
   }
   disconnectedCallback()
   {
