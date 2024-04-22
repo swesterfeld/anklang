@@ -48,7 +48,7 @@ class AseCachingWrapper {
 	  const val = await value_promise;
 	  if (this.__wref__ && val !== wrapper.value) {
 	    const old = wrapper.value;
-	    wrapper.value = Util.freeze_deep (val);
+	    wrapper.value = val; // NOTE, avoid Util.freeze_deep (val); otherwise other places cannot modify composed val properly
 	    for (const cb of wrapper.callbacks)
 	      cb.call (null, prop, old, val);
 	    reactive_notify (notify_set);
