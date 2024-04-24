@@ -293,7 +293,8 @@ ui/eslint.files ::= $(wildcard ui/*.html ui/*.js ui/b/*.js ui/b/*.vue)
 $>/.eslint.done: ui/eslintrc.cjs $(ui/eslint.files) ui/Makefile.mk node_modules/.npm.done	| $>/ui/
 	$(QECHO) RUN eslint
 	$Q node_modules/.bin/eslint --no-eslintrc -c ui/eslintrc.cjs -f unix --cache --cache-location $>/.eslintcache \
-		$(abspath $(ui/eslint.files)) |& ./misc/colorize.sh
+		$(abspath $(ui/eslint.files) jsonipc/jsonipc.js) \
+	|& ./misc/colorize.sh
 	$Q touch $@
 $>/.ui-reload-stamp: $>/.eslint.done
 eslint: node_modules/.npm.done
