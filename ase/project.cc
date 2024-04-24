@@ -28,6 +28,12 @@ static Preference synth_latency_pref =
 static std::vector<ProjectImplP> &all_projects = *new std::vector<ProjectImplP>();
 
 // == Project ==
+Project::Project() :
+  bpm (this, "bpm", MinMaxStep { 10., 999., 0 }, { "label="s + _("Beats Per Minute"), "nick=BPM" }),
+  numerator (this, "numerator", MinMaxStep { 1., 63., 0 }, { "label="s + _("Signature Numerator"), "nick=Num" }),
+  denominator (this, "denominator", MinMaxStep { 1, 16, 0 }, { "label="s + _("Signature Denominator"), "nick=Den" })
+{}
+
 ProjectP
 Project::last_project()
 {
@@ -58,14 +64,13 @@ private:
   PStorage **const ptrp_ = nullptr;
 };
 
-ProjectImpl::ProjectImpl() :
-  bpm (this, "bpm", 120.0, MinMaxStep { 10., 999., 0 }, { "label="s + _("Beats Per Minute"), "nick=BPM" }),
-  numerator (this, "numerator", 4.0, MinMaxStep { 1., 63., 0 }, { "label="s + _("Signature Numerator"), "nick=Num" }),
-  denominator (this, "denominator", 4, MinMaxStep { 1, 16, 0 }, { "label="s + _("Signature Denominator"), "nick=Den" })
+ProjectImpl::ProjectImpl()
 {
   if (tracks_.empty())
     create_track (); // ensure Master track
-  tick_sig_.set_bpm (120);
+  bpm = 120;
+  numerator = 4;
+  denominator = 4;
 
   if (0)
     autoplay_timer_ = main_loop->exec_timer ([this] () {
@@ -644,56 +649,50 @@ ProjectImpl::master_processor () const
 }
 
 bool
-ProjectImpl::set_bpm (double bpm)
+ProjectImpl::bpm_ (const double *n, double *q)
 {
-  bpm = CLAMP (bpm, MIN_BPM, MAX_BPM);
-  return_unless (tick_sig_.bpm() != bpm, false);
-  tick_sig_.set_bpm (bpm);
-  update_tempo();
-  emit_notify ("bpm");
+  if (n) {
+    const double nbpm = CLAMP (*n, MIN_BPM, MAX_BPM);
+    return_unless (tick_sig_.bpm() != nbpm, false);
+    tick_sig_.set_bpm (nbpm);
+    update_tempo();
+    bpm.notify();
+  }
+  if (q)
+    *q = tick_sig_.bpm();
   return true;
 }
 
-double
-ProjectImpl::get_bpm () const
+bool
+ProjectImpl::numerator_ (const double *n, double *q)
 {
-  return tick_sig_.bpm();
+  bool changed = true;
+  if (n) {
+    changed = tick_sig_.set_signature (*n, tick_sig_.beat_unit());
+    if (changed) {
+      update_tempo();
+      numerator.notify();
+    }
+  }
+  if (q)
+    *q = tick_sig_.beats_per_bar();
+  return true; // might notify invalid setter attempt
 }
 
 bool
-ProjectImpl::set_numerator (uint8 numerator)
+ProjectImpl::denominator_ (const double *n, double *q)
 {
-  if (tick_sig_.set_signature (numerator, tick_sig_.beat_unit()))
-    {
+  bool changed = true;
+  if (n) {
+    changed = tick_sig_.set_signature (tick_sig_.beats_per_bar(), *n);
+    if (changed) {
       update_tempo();
-      emit_notify ("numerator");
-      return true;
+      denominator.notify();
     }
-  return false;
-}
-
-uint8
-ProjectImpl::get_numerator () const
-{
-  return tick_sig_.beats_per_bar();
-}
-
-bool
-ProjectImpl::set_denominator (uint8 denominator)
-{
-  if (tick_sig_.set_signature (tick_sig_.beats_per_bar(), denominator))
-    {
-      update_tempo();
-      emit_notify ("denominator");
-      return true;
-    }
-  return false;
-}
-
-uint8
-ProjectImpl::get_denominator () const
-{
-  return tick_sig_.beat_unit();
+  }
+  if (q)
+    *q = tick_sig_.beat_unit();
+  return true; // might notify invalid setter attempt
 }
 
 void

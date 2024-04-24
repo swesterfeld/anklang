@@ -39,6 +39,9 @@ class ProjectImpl final : public DeviceImpl, public virtual Project {
 protected:
   explicit            ProjectImpl    ();
   virtual            ~ProjectImpl    ();
+  virtual bool        bpm_           (const double *n, double *q) override;
+  virtual bool        numerator_     (const double *n, double *q) override;
+  virtual bool        denominator_   (const double *n, double *q) override;
   void                serialize      (WritNode &xs) override;
   void                update_tempo   ();
 public:
@@ -62,12 +65,6 @@ public:
   void                 start_playback    (double autostop);
   void                 start_playback    () override    { start_playback (D64MAX); }
   void                 stop_playback     () override;
-  bool                 set_bpm           (double bpm);
-  double               get_bpm           () const;
-  bool                 set_numerator     (uint8 numerator);
-  uint8                get_numerator     () const;
-  bool                 set_denominator   (uint8 denominator);
-  uint8                get_denominator   () const;
   bool                 is_playing        () override;
   TrackP               create_track      () override;
   bool                 remove_track      (Track &child) override;
@@ -86,9 +83,6 @@ public:
   ssize_t              track_index       (const Track &child) const;
   static ProjectImplP  create            (const String &projectname);
   static size_t undo_mem_counter;
-  Ase::Member<&ProjectImpl::set_bpm, &ProjectImpl::get_bpm> bpm [[no_unique_address]];
-  Ase::Member<&ProjectImpl::set_numerator, &ProjectImpl::get_numerator> numerator [[no_unique_address]];
-  Ase::Member<&ProjectImpl::set_denominator, &ProjectImpl::get_denominator> denominator [[no_unique_address]];
 };
 using ProjectImplP = std::shared_ptr<ProjectImpl>;
 
