@@ -737,7 +737,7 @@ export function notes_canvas_tool_from_hover (piano_roll, pointerevent)
   const event_tick = layout.tick_from_x (coords.x);
   const event_key = layout.midinote_from_y (coords.y);
   // need an early decision if event is on a resizable note, so use last cache without await
-  const notes = piano_roll.wclip.all_notes || [];
+  const notes = piano_roll.clip.all_notes || [];
   const selected_notes = notes.filter (note => note.selected);
   // startup tool handler
   function drag_start (piano_roll)
@@ -902,15 +902,10 @@ async function queue_modify_notes (clip, modifier, undogroup = "")
 	await commit_last (last); // resets last.clip
       // fetch most recent set of notes
       if (clip != last.clip) {
-	last.clip = clip;
-	let wclip = Shell.piano_roll?.wclip;
-	last.wclip = wclip?.__aseobj__ === clip ? wclip : null;
-	if (!last.wclip) { // reusing piano_roll.wclip suffices and is GC friendly
-	  last.wclip = Util.wrap_ase_object (clip);
-	  last.wclip.__add__ ('all_notes', []);
-	}
-	await last.wclip.__promise__;
-	last.allnotes = last.wclip.all_notes;
+        clip.all_notes;                 // force read-out and auto-updates
+        last.clip = clip;
+        await clip.$props.$promise;     // finish all_notes fetching
+        last.allnotes = last.clip.all_notes;
 	last.notes = null;
       }
       const allnotes = last.notes || last.allnotes;
