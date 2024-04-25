@@ -17,6 +17,12 @@ namespace Fs = std::filesystem;
 
 namespace Ase {
 
+// == ResourceCrawler ==
+ResourceCrawler::ResourceCrawler() :
+  folder (this, "folder"),
+  files (this, "files")
+{}
+
 // == FileCrawler ==
 JSONIPC_INHERIT (FileCrawler, ResourceCrawler);
 
@@ -99,6 +105,27 @@ FileCrawler::current_folder ()
   return r;
 }
 
+bool
+FileCrawler::folder_ (const Resource *n, Resource *q)
+{
+  printerr ("%s: n=%p q=%p\n", __func__, n, q);
+  if (n)
+    assign (n->uri);
+  if (q)
+    *q = current_folder();
+  return true;
+}
+
+bool
+FileCrawler::files_ (const ResourceS *n, ResourceS *q)
+{
+  if (n)
+    ; // assignment not supported
+  if (q)
+    *q = list_entries();
+  return true;
+}
+
 /// Open a new folder and make it the current folder.
 void
 FileCrawler::assign (const String &utf8path, bool notify)
@@ -115,6 +142,8 @@ FileCrawler::assign (const String &utf8path, bool notify)
     cwd_.resize (cwd_.size() - 1);
   if (notify)
     {
+      folder.notify();
+      files.notify();
       emit_notify ("current");
       emit_notify ("entries");
     }

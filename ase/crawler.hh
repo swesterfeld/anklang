@@ -13,7 +13,9 @@ class FileCrawler final : public ObjectImpl, public virtual ResourceCrawler {
   const uint constrainfile_ : 1;
   FileCrawler (const String &cwd, bool constraindir = false, bool constrainfile = false);
 protected:
-  void      assign         (const String &utf8path, bool notify);
+  void      assign          (const String &utf8path, bool notify);
+  bool      folder_         (const Resource *n, Resource *q) override;
+  bool      files_          (const ResourceS*, ResourceS *q) override;
 public:
   ASE_DEFINE_MAKE_SHARED (FileCrawler);
   ResourceS list_entries    () override;
