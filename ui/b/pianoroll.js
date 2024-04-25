@@ -80,7 +80,7 @@ const HTML = (t, d) => html`
   <c-grid tabindex="-1" ${ref (h => t.cgrid = h)} data-f1="#piano-roll"
     @pointerenter=${t.pointerenter} @pointerleave=${t.pointerleave} @focus=${t.focuschange} @blur=${t.focuschange}
     @keydown=${e => t.piano_ctrl.keydown (e)}
-    @wheel=${t.wheel_event} >
+    @wheel=${{handleEvent: e => t.wheel_event (e), passive: false}} >
 
     <v-flex class="-toolbutton col-start-1 row-start-1" style="height: 1.7em; align-items: end; padding-right: 4px;" ${ref (h => t.menu_btn = h)}
       @click=${e => t.pianotoolmenu.popup (e)} @mousedown=${e => t.pianotoolmenu.popup (e)} >
