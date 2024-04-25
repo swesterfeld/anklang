@@ -71,8 +71,8 @@ const HTML = (t, d) => html`
     @click=${t.track_click0} @contextmenu=${t.menu_open}
     ${ref (h => t.trackviewcontrol_ = h)} >
     <b-editable ${ref (h => t.trackname_ = h)} clicks="2" style="min-width: 4em; width: 7em"
-      selectall @change=${event => t.track.name (event.detail.value.trim())}
-      value=${t.wtrack_.name}></b-editable>
+      selectall @change=${event => t.track.name = event.detail.value.trim()}
+      value=${t.track.name}></b-editable>
     <div class="-lvm-main">
       <div class="-lvm-levelbg" ${ref (h => t.levelbg_ = h)}></div>
       <div class="-lvm-covermid0" ${ref (h => t.covermid0_ = h)}></div>
@@ -158,7 +158,6 @@ class BTrackView extends LitComponent {
     this.track = null;
     this.trackviewcontrol_ = null;
     this.trackindex = -1;
-    this.wtrack_ = { name: '   ' };
     this.dbtip0_ = MINDB;
     this.dbtip1_ = MINDB;
     this.teleobj = null;
@@ -195,8 +194,7 @@ class BTrackView extends LitComponent {
   {
     if (changed_props.has ('track'))
       {
-	const weakthis = new WeakRef (this); // avoid strong wtrack_->this refs for automatic cleanup
-	this.wtrack_ = Util.wrap_ase_object (this.track, { name: '???', midi_channel: -1 }, () => weakthis.deref()?.requestUpdate());
+	this.track.midi_channel; // access field, we need it later on.
 	Util.telemetry_unsubscribe (this.teleobj);
 	this.teleobj = null;
 	// subscribe telemetry
@@ -214,7 +212,7 @@ class BTrackView extends LitComponent {
   }
   mcc (n) // midi_channel character
   {
-    return n == this.wtrack_.midi_channel ? '√' : ' ';
+    return n == this.track.midi_channel ? '√' : ' ';
   }
   track_click0 (event)
   {
@@ -274,7 +272,7 @@ class BTrackView extends LitComponent {
     if (uri.startsWith ('mc-'))
       {
 	const ch = parseInt (uri.substr (3));
-	this.track.midi_channel (ch);
+	this.track.midi_channel = ch;
       }
   }
   recv_telemetry (teleobj, arrays)
