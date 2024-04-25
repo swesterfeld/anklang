@@ -15,6 +15,7 @@ import ShellClass from '../b/shell.js';
 import * as Util from '../util.js';
 import * as Mouse from '../mouse.js';
 import { hex, basename, dirname, displayfs, displaybasename, displaydirname } from '../strings.js';
+import { Signal, State, Computed, Watcher, tracking_wrapper } from "../signal.js";
 
 // == App ==
 export class AppClass {
@@ -22,6 +23,19 @@ export class AppClass {
   panel3_types = [ 'i' /*info*/, 'b' /*browser*/ ];
   constructor (vue_app) {
     // super();
+    { // mimick familiar LitComponent API
+      let update_queued = false;
+      this.request_update = () => {
+	if (update_queued) return;
+	update_queued = true;
+	queueMicrotask (() => {
+	  update_queued = false;
+	  this.updated ({});
+	});
+      };
+      this.updated = tracking_wrapper (this.request_update, this.updated.bind (this));
+    }
+    // legacy (mostly for Vue interop compat), Data should become App once Vue is gone
     this.vue_app = vue_app;
     const data = {
       project: null,
@@ -37,12 +51,11 @@ export class AppClass {
     Object.defineProperty (globalThis, 'Data', { value: this.data });
     this.vue_app.config.globalProperties.App = App;   // global App, export methods
     this.vue_app.config.globalProperties.Data = Data; // global Data, reactive
+    this.request_update();
   }
-  get project () { return this.data.project; }
-  set project (p)
-  {
-    this.data.project = p;
-  }
+  #project = new Signal.State (undefined);
+  get project ()  { return this.#project.get(); }
+  set project (p) { this.#project.set (this.data.project = p); }
   get current_track () { return this.data.current_track; }
   set current_track (t)
   {
@@ -52,6 +65,11 @@ export class AppClass {
       for (const tv of this.shell.$el.querySelectorAll ('b-trackview'))
 	tv.notify_current_track(); // see trackview.js
   }
+  updated (changed_props)
+  {
+    const name = this.project?.name;
+    document.title = Util.format_title ('Anklang', name);
+  }
   mount (id) {
     this.shell = this.vue_app.mount (id);
     Object.defineProperty (globalThis, 'Shell', { value: this.shell });
@@ -59,7 +77,6 @@ export class AppClass {
       throw Error (`failed to mount App at: ${id}`);
   }
   shell_unmounted() {
-    this.notifynameclear?.();
   }
   switch_panel3 (n) {
     const a = this.panel3_types;
@@ -104,33 +121,26 @@ export class AppClass {
 	    const error = await newproject.load_project (project_or_path);
 	    if (error != Ase.Error.NONE)
 	      return error;
-	    await newproject.name (displaybasename (project_or_path));
+	    newproject.name = displaybasename (project_or_path);
 	  }
       }
     const mtrack = await newproject.master_track();
     const tracks = await newproject.all_tracks();
     // shut down old project
     let need_reload = false;
-    if (Data.project)
+    if (App.project)
       {
-	this.notifynameclear();
-	Data.project.stop_playback();
-	Data.project = null; // TODO: should trigger FinalizationGroup
+	App.project.stop_playback();
+	App.project = null; // TODO: should trigger FinalizationGroup
 	// TODO: App.open_piano_roll (undefined);
 	need_reload = true;
       }
     // replace project & master track without await, to synchronously trigger Vue updates for both
-    Data.project = newproject;
+    App.project = newproject; // assigns Data.project
     Data.mtrack = mtrack;
     App.current_track = tracks[0];
     const clips = await App.current_track.launcher_clips();
     App.open_piano_roll (clips.length ? clips[0] : null);
-    const update_title = async () => {
-      const name = Data.project ? await Data.project.name() : undefined;
-      document.title = Util.format_title ('Anklang', name);
-    };
-    this.notifynameclear = Data.project.on ("notify:name", update_title);
-    update_title();
     if (this.shell)
       this.shell.update();
     if (need_reload) {
