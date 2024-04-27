@@ -64,7 +64,7 @@ import * as Kbd from '../kbd.js';
 import { text_content, get_uri, valid_uri, has_uri } from '../dom.js';
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-contextmenu {
   display: contents; /* avoids interfering when inside a flexbox with justify-content:space-between */
 }

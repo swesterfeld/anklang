@@ -16,7 +16,7 @@ import { LitComponent, html, render, noChange, JsExtract, docs, ref } from '../l
  */
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 :host(b-propinput) {
   display: flex; justify-content: center;
   .b-propinput-ldiv[class]::before { content: "\200b"; /* zero width character to force line height */ }

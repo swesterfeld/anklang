@@ -27,7 +27,7 @@ import * as Util from '../util.js';
  */
 
 // <STYLE/>
-JsExtract.scss`
+JsExtract.css`
 b-numberinput {
   display: flex; justify-content: flex-end;
   label {

@@ -20,7 +20,7 @@ import * as Util from '../util.js';
  */
 
 // <STYLE/>
-JsExtract.scss`
+JsExtract.css`
 b-objecteditor {
   display: grid;
   grid-gap: 0.6em 0.5em;

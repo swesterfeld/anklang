@@ -77,7 +77,7 @@ export function lit_update_all (root)
  */
 export const JsExtract = {
   // Mark CSS template string for jsextract.js
-  css: () => undefined,
+  css: (strings, ...values) => undefined,
   // Mark SCSS template string for jsextract.js
   scss: (strings, ...values) => undefined,
   // Mark HTML template string for jsextract.js

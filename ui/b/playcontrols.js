@@ -10,7 +10,7 @@ import * as Util from "../util.js";
  */
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-playcontrols {
   button, push-button	{ padding: 5px; }
 }

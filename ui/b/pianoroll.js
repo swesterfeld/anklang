@@ -18,7 +18,7 @@ import * as Mouse from '../mouse.js';
 const floor = Math.floor, round = Math.round;
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-piano-roll {
   display: flex; flex-direction: column; align-items: stretch;
   position: relative;

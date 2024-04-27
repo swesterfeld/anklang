@@ -11,7 +11,7 @@ import { LitComponent, html, JsExtract, docs } from '../little.js';
 import * as Util from '../util.js';
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-propgroup {
   @include v-flex();
   padding: 5px;

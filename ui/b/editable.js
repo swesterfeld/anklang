@@ -15,7 +15,7 @@ import * as Util from "../util.js";
  */
 
 // == STYLE ==
-JsExtract.scss`
+JsExtract.css`
 b-editable {
   @apply inline-flex;
 }`;
