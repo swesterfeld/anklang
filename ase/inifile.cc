@@ -27,14 +27,14 @@ namespace Ase {
  * @endcode
  */
 
-/* FIXME: possible IniFile improvements
-   - support \xUUUU unicode escapes in strings
-   - support \s for space (desktop-entry-spec)
-   - support value list parsing, using ';' as delimiters
-   - support current locale matching, including locale aliases
-   - support merging of duplicates
-   - support %(var) interpolation like Pyton's configparser.ConfigParser
-   - parse into vector<IniEntry> which are: { kind=(section|assignment|other); String text, comment; }
+/* TODO: possible IniFile improvements
+ * - support \xUUUU unicode escapes in strings
+ * - support \s for space (desktop-entry-spec)
+ * - support value list parsing, using ';' as delimiters
+ * - support current locale matching, including locale aliases
+ * - support merging of duplicates
+ * - support %(var) interpolation like Pyton's configparser.ConfigParser
+ * - parse into vector<IniEntry> which are: { kind=(section|assignment|other); String text, comment; }
  */
 
 static bool

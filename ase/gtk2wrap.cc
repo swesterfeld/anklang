@@ -140,7 +140,7 @@ hide_window (ulong windowid)
 template<typename Ret, typename ...Args, typename ...Params> static Ret
 gtkidle_call (Ret (*func) (Params...), Args &&...args)
 {
-  if (!gtkthred)        // FIXME: need thread cleanup
+  if (!gtkthred)        // TODO: clean this up on process exit
     gtkthred = new std::thread (gtkmain);
   Semaphore sem;
   Ret ret = {};

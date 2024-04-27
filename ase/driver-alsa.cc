@@ -1109,11 +1109,13 @@ public:
     flags_ &= ~size_t (Flags::OPENED | Flags::READABLE | Flags::WRITABLE);
     mdebug_ = false;
   }
+#if WITH_MIDI_POLL
   static void
-  pollfree_func (void *data) // FIXME: needed?
+  pollfree_func (void *data)
   {
     // AlsaSeqMidiDriver *thisp = (AlsaSeqMidiDriver*) data;
   }
+#endif
   double
   queue_now ()
   {

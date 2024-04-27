@@ -1,6 +1,5 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 #include "combo.hh"
-#include "randomhash.hh"
 #include "server.hh"
 #include "internal.hh"
 
@@ -219,7 +218,7 @@ AudioChain::render (uint n_frames)
             }
         }
     }
-  // FIXME: assign obus if no children are present
+  // TODO: do we need to assign oblock when no children are present?
 }
 
 /// Reconnect AudioChain child processors at start and after.

@@ -3,15 +3,8 @@
 #include "clapplugin.hh"
 #include "project.hh"
 #include "processor.hh"
-#include "compress.hh"
-#include "properties.hh"
-#include "storage.hh"
-#include "jsonipc/jsonipc.hh"
-#include "path.hh"
-#include "main.hh"
 #include "serialize.hh"
 #include "internal.hh"
-#include "gtk2wrap.hh"
 #include <dlfcn.h>
 
 #define CDEBUG(...)     Ase::debug ("clap", __VA_ARGS__)
@@ -247,7 +240,7 @@ ClapDeviceImpl::list_clap_plugins ()
   if (devs.size())
     return devs;
   for (ClapPluginDescriptor *descriptor : ClapPluginDescriptor::collect_descriptors()) {
-    std::string title = descriptor->name; // FIXME
+    std::string title = descriptor->name;
     if (!descriptor->version.empty())
       title = title + " " + descriptor->version;
     if (!descriptor->vendor.empty())
@@ -266,13 +259,13 @@ ClapDeviceImpl::_audio_processor () const
 void
 ClapDeviceImpl::_set_event_source (AudioProcessorP esource)
 {
-  // FIXME: implement
+  // TODO: _set_event_source may be needed for nested plugins
 }
 
 void
 ClapDeviceImpl::_disconnect_remove ()
 {
-  // FIXME: implement
+  // TODO: this needs adjustments when _set_event_source is implemented
 }
 
 String

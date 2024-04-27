@@ -80,7 +80,7 @@ export class BClipView extends LitComponent {
     this.wclip_ = null;
     this.canvas = null;
     this.starttick = 0;
-    this.end_tick = null; // FIXME
+    this.end_tick = null; // TODO: remove or fetch from ASE
     this.trackindex = -1;
     this.tickscale = 10.0 / Util.PPQN; // TODO: adjust hzoom
     this.notes_changed = () => this.repaint (false);
