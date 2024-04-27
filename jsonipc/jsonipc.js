@@ -5,14 +5,69 @@ export const Jsonipc = {
   pdefine: globalThis.Object.defineProperty,
   ofreeze: globalThis.Object.freeze,
   okeys: globalThis.Object.keys,
+  finalization_registration: () => undefined,           // hook for downstream finalizer installation
   classes: {},
   receivers: {},
-  finalization_registration: () => undefined,
   onbinary: null,
   authresult: undefined,
   web_socket: null,
   counter: null,
   idmap: {},
+
+  /// Registry to run cleanup callbacks once an instance was garbage collected
+  cleanup_array_registry: new FinalizationRegistry (callback_array => {
+    while (callback_array.length)
+      callback_array.pop().call();
+    // Note, verify this is called when altering $props.$weakthis & co
+  }),
+
+  /// Install auto-fetching for prop and get its value
+  get_reactive_prop (prop, dflt) {
+    const this_props = this.$props;
+    // install prop if needed
+    if (!this_props[prop]) {
+      // install $props system if needed
+      if (!this_props.$unwatchers) {
+        this_props.$weakthis = new WeakRef (this);      // helper to not keep `this` alive
+        this_props.$promise = null;                     // present if $promise !== undefined
+        this_props.$unwatchers = [ clean_this_props ];
+        Jsonipc.cleanup_array_registry.register (this, this_props.$unwatchers, this_props.$unwatchers);
+        //this_props.$id = this.$id;                                     // DEBUG $id GC
+        function clean_this_props() {
+          //console.log ("GC: $id=" + this_props.$id, "delete $props");  // DEBUG $id GC
+          for (let k of Jsonipc.okeys (this_props))
+            delete this_props[k];                       // allow GC for all fields
+        }
+        // We use this_props + $weakthis instead of `this` as object/data handle, to allow GC
+        // of `this`, which in turn calls all $props.$unwatchers[].
+      }
+      this_props[prop] = new globalThis.Signal.State (dflt); // cached state
+      // refetch, maintain $promise while waiting
+      function refetch_prop () {                        // async, returns Promise, avoid keeping `this` alive
+        let fetch_promise;
+        const last_promise = this_props.$promise;
+        async function async_fetch_prop () {
+          const self = this_props.$weakthis.deref();
+          if (!self) return;
+          let result = Jsonipc.send ('get/' + prop, [self]);  // `this`
+          if (last_promise)
+            await last_promise;                         // sync with last, before $promise reset
+          result = await result;
+          if (this_props.$promise === fetch_promise)
+            this_props.$promise = null;                 // reset, this call is just being resolved
+          this_props[prop].set (result);                // assign new value after reset, otherwise callbacks might see stale promise
+        }
+        // start fetching and remember call promise
+        this_props.$promise = fetch_promise = async_fetch_prop();
+        return fetch_promise;
+      }
+      const delnotifier = this.on ("notify:" + prop, refetch_prop);
+      this_props.$unwatchers.push (delnotifier);
+      refetch_prop();
+    }
+    // fetch its cached value
+    return this_props[prop].get();
+  },
 
   /// Open the Jsonipc websocket
   open (url, protocols, options = {}) {
@@ -47,7 +102,11 @@ export const Jsonipc = {
   Jsonipc_prototype: class {
     constructor ($id) {
       Jsonipc.pdefine (this, '$id', { value: $id });
+      Jsonipc.pdefine (this, '$props', { value: {} });
       Jsonipc.finalization_registration (this);
+      // Note that Vue recursively invades *all* objects used in a Vue component,
+      // which ultimately leads to Signal.get choking on being called on a Proxy.
+      // Thus, for the time being, we have to freeze `this`.
     }
     // JSON.stringify replacer
     toJSON() {
@@ -71,20 +130,34 @@ export const Jsonipc = {
   },
 
   /// Send a Jsonipc request
-  async send (method, params) {
+  send (method, params) {
     if (!this.web_socket)
       throw "Jsonipc: connection closed";
     const id = ++this.counter;
-    this.web_socket.send (globalThis.JSON.stringify ({ id, method, params }));
-    const register_reply_handler = resolve => this.idmap[id] = resolve;
-    const msg = await new globalThis.Promise (register_reply_handler);
-    if (msg.error)
-      throw globalThis.Error (
-	`${msg.error.code}: ${msg.error.message}\n` +
-	`Request: {"id":${id},"method":"${method}",…}\n` +
-	"Reply: " + globalThis.JSON.stringify (msg)
-      );
-    return msg.result;
+    let send_promise;                                   // promise to sync with this call
+    const this_props = params?.[0]?.$props;             // avoid keeping method's `this` alive
+    const last_promise = this_props?.$promise;
+    const send_async = async (method, params) => {
+      this.web_socket.send (globalThis.JSON.stringify ({ id, method, params }));
+      const register_reply_handler = resolve => this.idmap[id] = resolve;
+      let msg = new globalThis.Promise (register_reply_handler);
+      if (last_promise)
+	await last_promise;
+      msg = await msg;
+      if (last_promise !== undefined && this_props.$promise === send_promise)
+	this_props.$promise = null;                     // reset, this call is just being resolved
+      if (msg.error)
+	throw globalThis.Error (
+	  `${msg.error.code}: ${msg.error.message}\n` +
+	  `Request: {"id":${id},"method":"${method}",…}\n` +
+	  "Reply: " + globalThis.JSON.stringify (msg)
+	);
+      return msg.result;
+    };
+    send_promise = send_async (method, params);
+    if (last_promise !== undefined)
+      this_props.$promise = send_promise;               // chain this call with last promise
+    return send_promise;
   },
 
   /// Observe Jsonipc notifications

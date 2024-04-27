@@ -25,6 +25,7 @@ struct DriverEntry {
   bool   writeonly = false;
 };
 
+/// Base class for a PCM and MIDI devices.
 class Driver : public std::enable_shared_from_this<Driver> {
 protected:
   struct Flags { enum { OPENED = 1, READABLE = 2, WRITABLE = 4, }; };
@@ -69,6 +70,7 @@ public:
 };
 using DriverP = Driver::DriverP;
 
+/// Base class for a MIDI devices.
 class MidiDriver : public Driver {
 protected:
   explicit           MidiDriver      (const String &driver, const String &devid);
@@ -85,6 +87,7 @@ public:
 };
 using MidiDriverP = MidiDriver::MidiDriverP;
 
+/// PCM device configuration.
 struct PcmDriverConfig {
   uint n_channels = 0;
   uint mix_freq = 0;
@@ -92,6 +95,7 @@ struct PcmDriverConfig {
   uint latency_ms = 0;
 };
 
+/// Base class for a PCM devices.
 class PcmDriver : public Driver {
 protected:
   explicit           PcmDriver        (const String &driver, const String &devid);

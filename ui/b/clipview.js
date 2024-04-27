@@ -77,7 +77,6 @@ export class BClipView extends LitComponent {
   {
     super();
     this.clip = null;
-    this.wclip_ = null;
     this.canvas = null;
     this.starttick = 0;
     this.end_tick = null; // TODO: remove or fetch from ASE
@@ -89,12 +88,12 @@ export class BClipView extends LitComponent {
   get canvas_width()	{ return this.tickscale * Math.floor ((this.end_tick + tick_quant - 1) / tick_quant) * tick_quant; }
   updated (changed_props)
   {
-    if (changed_props.has ('clip'))
-      {
-	const weakthis = new WeakRef (this); // avoid strong wclip->this refs for automatic cleanup
-	this.wclip_ = Util.wrap_ase_object (this.clip, { end_tick: 0, name: '   ' }, () => weakthis.deref()?.requestUpdate());
-	this.wclip_.__add__ ('all_notes', [], () => weakthis.deref()?.notes_changed());
-      }
+    if (changed_props.has ('clip')) {
+      // force property auto-updating
+      this.clip.name;
+      this.clip.end_tick;
+      this.clip.all_notes;
+    }
     this.repaint (true);
   }
   repaint (layoutchange)
@@ -135,7 +134,7 @@ function render_canvas () {
   ctx.clearRect (0, 0, width, height);
   // color setup
   let cindex;
-  // cindex = Util.hash53 (this.wclip_.name);	// - color from clip name
+  // cindex = Util.hash53 (this.clip.name);	// - color from clip name
   // cindex = this.index;			// - color per clip
   // cindex = this.trackindex;			// - color per track
   cindex = 0;
@@ -160,12 +159,11 @@ function render_canvas () {
   ctx.fillStyle = csp ('--clipview-font-color');
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText (this.wclip_.name, 1.5, .5);
+  ctx.fillText (this.clip.name, 1.5, .5);
   // paint notes
   ctx.fillStyle = csp ('--clipview-note-color');
   const noteoffset = 12;
   const notescale = height / (123.0 - 2 * noteoffset); // MAX_NOTE
-  for (const note of this.wclip_.all_notes) {
+  for (const note of this.clip.all_notes)
     ctx.fillRect (note.tick * tickscale, height - (note.key - noteoffset) * notescale, note.duration * tickscale, 1 * pixelratio);
-  }
 }

@@ -51,6 +51,16 @@ ui/lit.modules = $(strip	\
 	lit/directives/when.js \
 )
 
+# == ui/signal-polyfill.js ==
+$>/ui/signal-polyfill.js.map: $>/ui/signal-polyfill.js ;
+$>/ui/signal-polyfill.js: ui/Makefile.mk node_modules/.npm.done					| $>/ui/
+	$(QGEN)
+	$Q rm -f $>/ui/signal-polyfill.js* $@
+	$Q for mod in signal-polyfill ; do echo "export * from '$$mod';" ; done	> $>/ui/signal-all.js
+	$Q cd $>/ui/ && ../../node_modules/.bin/rollup -p @rollup/plugin-node-resolve signal-all.js -o $(@F) --sourcemapFile $(@F).map -m
+	$Q $(RM) $>/ui/signal-all.js
+$>/.ui-build-stamp: $>/ui/signal-polyfill.js
+
 # == ui/vue.js ==
 $>/ui/vue.js:	node_modules/.npm.done				| $>/ui/
 	$(QGEN)
@@ -283,7 +293,8 @@ ui/eslint.files ::= $(wildcard ui/*.html ui/*.js ui/b/*.js ui/b/*.vue)
 $>/.eslint.done: ui/eslintrc.cjs $(ui/eslint.files) ui/Makefile.mk node_modules/.npm.done	| $>/ui/
 	$(QECHO) RUN eslint
 	$Q node_modules/.bin/eslint --no-eslintrc -c ui/eslintrc.cjs -f unix --cache --cache-location $>/.eslintcache \
-		$(abspath $(ui/eslint.files)) |& ./misc/colorize.sh
+		$(abspath $(ui/eslint.files) jsonipc/jsonipc.js) \
+	|& ./misc/colorize.sh
 	$Q touch $@
 $>/.ui-reload-stamp: $>/.eslint.done
 eslint: node_modules/.npm.done
@@ -333,11 +344,11 @@ ui/rebuild:
 	@: # incremental rebuild targets (without npm) that must succeed
 	$(MAKE) --no-print-directory $>/.ui-build-stamp NPMBLOCK=y -j`nproc`
 	@: # rebuild live reload targets
-	$(MAKE) $>/.ui-reload-stamp NPMBLOCK=y -j`nproc` |& tee $>/ui-build.log || ( : \
+	$(MAKE) $>/.ui-reload-stamp NPMBLOCK=y -j`nproc` |& tee $>/ui-build.log || { ( : \
 		&& echo '<html><head><title>anklang/ui: make error</title></head><body><pre>' \
 		&& cat out/ui-build.log && echo '</pre>' \
 		&& echo '<script>setTimeout(_=>window.location.reload(), 3000)</script></body></html>' \
-		) > $>/ui/index.html
+		) > $>/ui/index.html && touch --date=1990-01-01 $>/ui/index.html ; }
 	@: # close open sockets, only works if *same* executable still runs
 	-killall -s USR2 -u $(USER) -- $(abspath $(lib/AnklangSynthEngine))
 .PHONY: ui/rebuild

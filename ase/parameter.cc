@@ -1,5 +1,6 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 #include "parameter.hh"
+#include "api.hh"
 #include "levenshtein.hh"
 #include "unicode.hh"
 #include "regex.hh"
@@ -9,29 +10,29 @@
 namespace Ase {
 
 // == Param ==
-Param::ExtraVals::ExtraVals (double vmin, double vmax, double step)
+ParamExtraVals::ParamExtraVals (double vmin, double vmax, double step)
 {
   using Base = std::variant<MinMaxStep,ChoiceS,ChoicesFunc>;
   Base::operator= (MinMaxStep { vmin, vmax, step });
 }
 
-Param::ExtraVals::ExtraVals (const MinMaxStep &range)
+ParamExtraVals::ParamExtraVals (const MinMaxStep &range)
 {
   using Base = std::variant<MinMaxStep,ChoiceS,ChoicesFunc>;
   Base::operator= (range);
 }
-Param::ExtraVals::ExtraVals (const std::initializer_list<Choice> &choices)
+ParamExtraVals::ParamExtraVals (const std::initializer_list<Choice> &choices)
 {
   *this = ChoiceS (choices);
 }
 
-Param::ExtraVals::ExtraVals (const ChoiceS &choices)
+ParamExtraVals::ParamExtraVals (const ChoiceS &choices)
 {
   using Base = std::variant<MinMaxStep,ChoiceS,ChoicesFunc>;
   Base::operator= (choices);
 }
 
-Param::ExtraVals::ExtraVals (const ChoicesFunc &choicesfunc)
+ParamExtraVals::ParamExtraVals (const ChoicesFunc &choicesfunc)
 {
   using Base = std::variant<MinMaxStep,ChoiceS,ChoicesFunc>;
   Base::operator= (choicesfunc);
@@ -313,8 +314,15 @@ value_from_initialval (const Param::InitialVal &iv)
 Parameter::Parameter (const Param &initparam)
 {
   const Param &p = initparam;
-  cident = !p.ident.empty() ? string_to_ncname (p.ident) : string_to_ncname (p.label, '_');
-  metadata_ = p.metadata;
+  cident = kvpairs_fetch (p.metadata, "ident");
+  if (!p.ident.empty()) {
+    cident = string_to_ncname (p.ident);
+    kvpairs_assign (metadata_, "ident=" + cident);
+  } else if (cident.empty()) {
+    cident = string_to_ncname (p.label, '_');
+    kvpairs_assign (metadata_, "ident=" + cident);
+  }
+  metadata_ = p.metadata; // enable fetch()
   const auto choicesfuncp = std::get_if<ChoicesFunc> (&p.extras);
   MinMaxStep range;
   if (const auto rangep = std::get_if<MinMaxStep> (&p.extras))
@@ -342,7 +350,8 @@ Parameter::Parameter (const Param &initparam)
   String text = choicesfuncp || initial_.is_string() ? "text" : "";
   String dynamic = choicesfuncp ? "dynamic" : "";
   String stepped = isbool ? "stepped" : "";
-  store ("hints", construct_hints (p.hints, text + ":" + choice + ":" + dynamic + ":" + stepped, fmin, fmax));
+  store ("hints", construct_hints (p.hints, fetch ("hints") + ":" + text + ":" + choice + ":" + dynamic + ":" + stepped, fmin, fmax));
+  assert_return (!cident.empty());
 }
 
 String

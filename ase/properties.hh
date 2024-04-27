@@ -2,11 +2,39 @@
 #ifndef __ASE_PROPERTIES_HH__
 #define __ASE_PROPERTIES_HH__
 
-#include <ase/parameter.hh>
-#include <ase/memory.hh>
+#include <ase/api.hh>
+#include <ase/object.hh>
 #include <ase/jsonapi.hh>
 
 namespace Ase {
+
+/// Abstract base type for Property implementations with Parameter meta data.
+class ParameterProperty : public EmittableImpl, public virtual Property {
+protected:
+  ParameterC parameter_;
+public:
+  String     ident          () const override     { return parameter_->cident; }
+  String     label          () const override     { return parameter_->label(); }
+  String     nick           () const override     { return parameter_->nick(); }
+  String     unit           () const override     { return parameter_->unit(); }
+  double     get_min        () const override     { return std::get<0> (parameter_->range()); }
+  double     get_max        () const override     { return std::get<1> (parameter_->range()); }
+  double     get_step       () const override     { return std::get<2> (parameter_->range()); }
+  bool       is_numeric     () const override     { return parameter_->is_numeric(); }
+  ChoiceS    choices        () const override     { return parameter_->choices(); }
+  StringS    metadata       () const override     { return parameter_->metadata(); }
+  void       reset          () override           { set_value (parameter_->initial()); }
+  double     get_normalized () const override     { return !is_numeric() ? 0 : parameter_->normalize (get_double()); }
+  bool       set_normalized (double v) override   { return is_numeric() && set_value (parameter_->rescale (v)); }
+  String     get_text       () const override     { return parameter_->value_to_text (get_value()); }
+  bool       set_text       (String txt) override { set_value (parameter_->value_from_text (txt)); return !txt.empty(); }
+  Value      get_value      () const override = 0;
+  bool       set_value      (const Value &v) override = 0;
+  double     get_double     () const              { return !is_numeric() ? 0 : get_value().as_double(); }
+  ParameterC parameter      () const              { return parameter_; }
+  Value      initial        () const              { return parameter_->initial(); }
+  MinMaxStep range          () const              { return parameter_->range(); }
+};
 
 /// Class for preference parameters (global settings)
 class Preference : public ParameterProperty {
@@ -46,14 +74,6 @@ using PropertySetter = std::function<bool (const Value&)>;
 /// Function type to list Choice Property values.
 using PropertyLister = std::function<ChoiceS (const ParameterProperty&)>;
 
-/// Structured initializer for PropertyImpl
-struct Prop {
-  PropertyGetter getter;        ///< Lambda implementing the Property value getter.
-  PropertySetter setter;        ///< Lambda implementing the Property value setter.
-  Param          param;         ///< Parameter meta data for this Property.
-  PropertyLister lister;        ///< Lambda providing a list of possible Property value choices.
-};
-
 /// Property implementation for GadgetImpl, using lambdas as accessors.
 class PropertyImpl : public ParameterProperty {
   PropertyGetter getter_; PropertySetter setter_; PropertyLister lister_;
@@ -63,16 +83,6 @@ public:
   Value   get_value () const override           { Value v; getter_ (v); return v; }
   bool    set_value (const Value &v) override   { return setter_ (v); }
   ChoiceS choices   () const override           { return lister_ ? lister_ (*this) : parameter_->choices(); }
-};
-
-/// Helper to simplify property registrations.
-struct PropertyBag {
-  using RegisterF = std::function<void(const Prop&,CString)>;
-  explicit PropertyBag (const RegisterF &f) : add_ (f) {}
-  void     operator+= (const Prop&) const;
-  CString  group;
-private:
-  RegisterF add_;
 };
 
 /// Value getter for enumeration types.

@@ -14,15 +14,29 @@ VirtualBase::~VirtualBase() noexcept
  * This function uses abi::__cxa_demangle() from <cxxabi.h> to demangle C++ type names,
  * which works for g++, libstdc++, clang++, libc++.
  */
-String
+const char*
 string_demangle_cxx (const char *mangled_identifier) noexcept
 {
+  static std::unordered_map<const char*, const char*> m2d;
+  static std::mutex mtx;
+  { std::lock_guard<std::mutex> locker (mtx);
+    auto it = m2d.find (mangled_identifier);
+    if (it != m2d.end())
+      return it->second;
+  }
   int status = 0;
   char *malloced_result = abi::__cxa_demangle (mangled_identifier, NULL, NULL, &status);
-  String result = malloced_result && !status ? malloced_result : mangled_identifier;
-  if (malloced_result)
-    free (malloced_result);
-  return result;
+  if (malloced_result && !status) {
+    std::lock_guard<std::mutex> locker (mtx);
+    auto it = m2d.find (mangled_identifier);
+    if (it != m2d.end()) {
+      free (malloced_result);
+      return it->second;
+    }
+    m2d[mangled_identifier] = malloced_result;
+    return malloced_result;
+  }
+  return mangled_identifier;
 }
 
 /// Find GDB and construct command line

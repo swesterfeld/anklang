@@ -516,6 +516,9 @@ export function render_contextmenu (b_contextmenu, make_lithtml, target = undefi
     cm.contextmenu['.cm'] = cm;
     if (!cm.div.parentElement)
       document.body.appendChild (cm.div);
+    cm.contextmenu.stop_observer();
+    cm.contextmenu.integrate_children();
+    cm.contextmenu.start_observer();
     return cm.contextmenu;
   }
   throw new ReferenceError ("lit-html construct failed to create <b-contextmenu/>");

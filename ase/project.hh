@@ -4,6 +4,7 @@
 
 #include <ase/device.hh>
 #include <ase/track.hh>
+#include <ase/member.hh>
 #include <ase/transport.hh>
 
 namespace Ase {
@@ -38,9 +39,11 @@ class ProjectImpl final : public DeviceImpl, public virtual Project {
 protected:
   explicit            ProjectImpl    ();
   virtual            ~ProjectImpl    ();
+  virtual bool        bpm_           (const double *n, double *q) override;
+  virtual bool        numerator_     (const double *n, double *q) override;
+  virtual bool        denominator_   (const double *n, double *q) override;
   void                serialize      (WritNode &xs) override;
   void                update_tempo   ();
-  void                create_properties () override;
 public:
   void                 _activate         () override;
   void                 _deactivate       () override;
@@ -62,9 +65,6 @@ public:
   void                 start_playback    (double autostop);
   void                 start_playback    () override    { start_playback (D64MAX); }
   void                 stop_playback     () override;
-  bool                 set_bpm           (double bpm);
-  bool                 set_numerator     (uint8 numerator);
-  bool                 set_denominator   (uint8 denominator);
   bool                 is_playing        () override;
   TrackP               create_track      () override;
   bool                 remove_track      (Track &child) override;

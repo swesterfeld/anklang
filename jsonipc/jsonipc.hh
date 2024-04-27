@@ -114,6 +114,10 @@ template<typename T> struct Has_shared_from_this<T, std::void_t< decltype (std::
 template<class, class = void> struct Has___typename__ : std::false_type {};
 template<typename T>          struct Has___typename__<T, std::void_t< decltype (std::declval<const T&>().__typename__()) > > : std::true_type {};
 
+/// Has_setget<T> - Check if type `T` provides methods `set()` and `get()`
+template<class, class = void> struct Has_setget : std::false_type {};
+template<typename T>          struct Has_setget<T, std::void_t< decltype (std::declval<T&>().set (std::declval<T&>().get())) > > : std::true_type {};
+
 /// Provide the __typename__() of @a object, or its rtti_typename().
 template<typename T, REQUIRES< Has___typename__<T>::value > = true> static inline std::string
 get___typename__ (const T &o)
@@ -440,7 +444,7 @@ struct CallbackInfo final {
   const JsonValue& ntharg       (size_t index) const { static JsonValue j0; return index < args_.Size() ? args_[index] : j0; }
   size_t           n_args       () const                { return args_.Size(); }
   Closure*         find_closure (const char *methodname);
-  std::string      classname    (const std::string &fallback);
+  std::string      classname    (const std::string &fallback) const;
   JsonAllocator&   allocator    ()                      { return doc_.GetAllocator(); }
   void             set_result   (JsonValue &result)     { result_ = result; have_result_ = true; } // move-semantic!
   JsonValue&       get_result   ()                      { return result_; }
@@ -745,7 +749,7 @@ CallbackInfo::find_closure (const char *methodname)
 }
 
 inline std::string
-CallbackInfo::classname (const std::string &fallback)
+CallbackInfo::classname (const std::string &fallback) const
 {
   const JsonValue &value = ntharg (0);
   InstanceMap::Wrapper *iw = InstanceMap::scope_lookup_wrapper (value);
@@ -790,6 +794,24 @@ public:
   virtual void accessor         (const std::string &accessor)           {}
   virtual void enumvalue        (const std::string &enumvalue)          {}
 };
+
+// == JavaScript Helpers ==
+/// JS initializer from C++ type
+template<class V> static inline unsigned
+js_initializer_index ()
+{
+  using T = std::decay_t<V>;
+  if constexpr (std::is_same<T,bool>::value)                            return 3;
+  if constexpr (std::is_integral<T>::value)                             return 1;
+  if constexpr (std::is_floating_point<T>::value)                       return 2;
+  if constexpr (std::is_convertible<const char*const, T>::value)        return 4;
+  if constexpr (std::is_convertible<const std::string, T>::value)       return 4;
+  if constexpr (DerivesVector<T>::value)                                return 5;
+  if constexpr (DerivesPair<T>::value)                                  return 5;
+  if constexpr (!IsSharedPtr<T>::value && std::is_class<T>::value)      return 6;
+  return 0;
+}
+static constexpr const char *const js_initializers[] = { "null", "0", "0.0", "false", "''", "[]", "{}" };
 
 // == ClassPrinter ==
 class ClassPrinter {
@@ -987,12 +1009,13 @@ private:
           out += string_format ("  %s (%s) { return Jsonipc.send ('%s', [this%s%s]); }\n",
                                 p.name.c_str(), dargs.c_str(), p.name.c_str(), args.empty() ? "" : ", ", args.c_str());
           break; }
-        case GETSET:
-          out += string_format ("  async %s (v) { return arguments.length > 0 ? "
-                                "Jsonipc.send ('set/%s', [this, await v]) : "
-                                "Jsonipc.send ('get/%s', [this]); }\n",
-                                p.name.c_str(), p.name.c_str(), p.name.c_str());
-          break;
+        case GETSET: {
+          const unsigned jsinit_index = p.count;        // js_initializer_index
+          out += string_format ("  get %s ()  { return Jsonipc.get_reactive_prop.call (this, '%s', %s); }\n",
+                                p.name.c_str(), p.name.c_str(), js_initializers[jsinit_index]);
+          out += string_format ("  set %s (v) { return Jsonipc.send ('set/' + '%s', [this, v]); }\n",
+                                p.name.c_str(), p.name.c_str());
+          break; }
         case ATTRIBUTE:
           serializable_attributes.push_back (p.name);
           break;
@@ -1354,7 +1377,7 @@ struct Class final : TypeInfo {
     JSONIPC_ASSERT_RETURN (get && set, *this);
     add_member_function_closure (std::string ("get/") + name, make_closure (get));
     add_member_function_closure (std::string ("set/") + name, make_closure (set));
-    print (ClassPrinter::GETSET, name, 0);
+    print (ClassPrinter::GETSET, name, js_initializer_index<R>());
     return *this;
   }
   template<typename F, REQUIRES< std::is_member_function_pointer<F>::value > = true> Class&
@@ -1364,6 +1387,43 @@ struct Class final : TypeInfo {
     JSONIPC_ASSERT_RETURN (dflts.size() <= N_ARGS, *this);
     add_member_function_closure (name, make_closure (method));
     print (ClassPrinter::METHOD, name, N_ARGS, dflts);
+    return *this;
+  }
+  /// Add a field member
+  template<typename M, REQUIRES< Has_setget<M>::value > = true> Class&
+  set (const char *name, M T::*const memb)
+  {
+    static_assert (M::is_unique_per_member); // allows indexing per typeid, instead of per instance
+    // static_assert(std::is_same_v<void, M >);
+    JSONIPC_ASSERT_RETURN (memb, *this);
+    Closure getter_closure = [memb] (CallbackInfo &cbi) {
+      const bool HAS_THIS = true;
+      if (HAS_THIS + 0 != cbi.n_args())
+        throw Jsonipc::bad_invocation (-32602, "Invalid params: wrong number of arguments");
+      std::shared_ptr<T> instance = object_from_json (cbi.ntharg (0));
+      if (!instance)
+        throw Jsonipc::bad_invocation (-32603, "Internal error: closure without this");
+      T *obj = &*instance;
+      M &m = obj->*memb;
+      JsonValue rv;
+      rv = to_json (m.get(), cbi.allocator());
+      cbi.set_result (rv);
+    };
+    add_member_function_closure (std::string ("get/") + name, std::move (getter_closure));
+    Closure setter_closure = [memb] (const CallbackInfo &cbi) {
+      const bool HAS_THIS = true;
+      if (HAS_THIS + 1 != cbi.n_args())
+        throw Jsonipc::bad_invocation (-32602, "Invalid params: wrong number of arguments");
+      std::shared_ptr<T> instance = object_from_json (cbi.ntharg (0));
+      if (!instance)
+        throw Jsonipc::bad_invocation (-32603, "Internal error: closure without this");
+      T *obj = &*instance;
+      M &m = obj->*memb;
+      m.set (Convert<typename M::T>::from_json (cbi.ntharg (HAS_THIS + 0)));
+    };
+    add_member_function_closure (std::string ("set/") + name, std::move (setter_closure));
+    using ValueType = typename M::T;
+    print (ClassPrinter::GETSET, name, js_initializer_index<ValueType>());
     return *this;
   }
   static std::string

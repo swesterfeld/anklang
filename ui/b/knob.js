@@ -65,7 +65,8 @@ b-knob {
 
 // == HTML ==
 const HTML = (t,d) => html`
-  <div id="sprite" ?bidir=${d.bidir}   @wheel="${t.wheel_event}"
+  <div id="sprite" ?bidir=${d.bidir}
+    @wheel=${{handleEvent: e => t.wheel_event (e), passive: false }}
     @pointerdown="${t.pointerdown}"
     @dblclick="${Util.prevent_event}"
     style="background-position: 0px calc(-270 * var(--pxsize))"></div>

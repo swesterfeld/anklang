@@ -60,18 +60,18 @@ class BTextInput extends LitComponent {
   updated (changed_props)
   {
     if (changed_props.has ('prop')) {
-      changed_props['prop'] && changed_props['prop'].delnotify_ (this.request_update_);
-      this.prop && this.prop.addnotify_ (this.request_update_);
+      changed_props['prop'] && changed_props['prop'].delnotify_ (this.request_update);
+      this.prop && this.prop.addnotify_ (this.request_update);
     }
     const value = this.prop ? this.prop.value_.val : "";
     if (value !== this.value) {
       this.value = value;
-      this.request_update_ ('value');
+      this.request_update ('value');
     }
   }
   disconnectedCallback()
   {
-    this.prop && this.prop.delnotify_ (this.request_update_);
+    this.prop && this.prop.delnotify_ (this.request_update);
   }
   handle_input (event)  	// emit 'input' with constrained value
   {

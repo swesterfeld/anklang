@@ -13,6 +13,8 @@
 
 #define UDEBUG(...)     Ase::debug ("undo", __VA_ARGS__)
 
+using namespace std::literals;
+
 namespace Ase {
 
 static Preference synth_latency_pref =
@@ -26,6 +28,12 @@ static Preference synth_latency_pref =
 static std::vector<ProjectImplP> &all_projects = *new std::vector<ProjectImplP>();
 
 // == Project ==
+Project::Project() :
+  bpm (this, "bpm", MinMaxStep { 10., 999., 0 }, { "label="s + _("Beats Per Minute"), "nick=BPM" }),
+  numerator (this, "numerator", MinMaxStep { 1., 63., 0 }, { "label="s + _("Signature Numerator"), "nick=Num" }),
+  denominator (this, "denominator", MinMaxStep { 1, 16, 0 }, { "label="s + _("Signature Denominator"), "nick=Den" })
+{}
+
 ProjectP
 Project::last_project()
 {
@@ -60,7 +68,9 @@ ProjectImpl::ProjectImpl()
 {
   if (tracks_.empty())
     create_track (); // ensure Master track
-  tick_sig_.set_bpm (120);
+  bpm = 120;
+  numerator = 4;
+  denominator = 4;
 
   if (0)
     autoplay_timer_ = main_loop->exec_timer ([this] () {
@@ -70,6 +80,16 @@ ProjectImpl::ProjectImpl()
         start_playback();
       return false;
     }, 500);
+
+  /* TODO: MusicalTuning
+   * group = _("Tuning");
+   * Prop ("musical_tuning", _("Musical Tuning"), _("Tuning"), MusicalTuning::OD_12_TET, {
+   *   "descr="s + _("The tuning system which specifies the tones or pitches to be used. "
+   *                 "Due to the psychoacoustic properties of tones, various pitch combinations can "
+   *                 "sound \"natural\" or \"pleasing\" when used in combination, the musical "
+   *                 "tuning system defines the number and spacing of frequency values applied."), "" },
+   *   enum_lister<MusicalTuning>);
+   */
 }
 
 ProjectImpl::~ProjectImpl()
@@ -629,38 +649,50 @@ ProjectImpl::master_processor () const
 }
 
 bool
-ProjectImpl::set_bpm (double bpm)
+ProjectImpl::bpm_ (const double *n, double *q)
 {
-  bpm = CLAMP (bpm, MIN_BPM, MAX_BPM);
-  return_unless (tick_sig_.bpm() != bpm, false);
-  tick_sig_.set_bpm (bpm);
-  update_tempo();
-  emit_notify ("bpm");
+  if (n) {
+    const double nbpm = CLAMP (*n, MIN_BPM, MAX_BPM);
+    return_unless (tick_sig_.bpm() != nbpm, false);
+    tick_sig_.set_bpm (nbpm);
+    update_tempo();
+    bpm.notify();
+  }
+  if (q)
+    *q = tick_sig_.bpm();
   return true;
 }
 
 bool
-ProjectImpl::set_numerator (uint8 numerator)
+ProjectImpl::numerator_ (const double *n, double *q)
 {
-  if (tick_sig_.set_signature (numerator, tick_sig_.beat_unit()))
-    {
+  bool changed = true;
+  if (n) {
+    changed = tick_sig_.set_signature (*n, tick_sig_.beat_unit());
+    if (changed) {
       update_tempo();
-      emit_notify ("numerator");
-      return true;
+      numerator.notify();
     }
-  return false;
+  }
+  if (q)
+    *q = tick_sig_.beats_per_bar();
+  return true; // might notify invalid setter attempt
 }
 
 bool
-ProjectImpl::set_denominator (uint8 denominator)
+ProjectImpl::denominator_ (const double *n, double *q)
 {
-  if (tick_sig_.set_signature (tick_sig_.beats_per_bar(), denominator))
-    {
+  bool changed = true;
+  if (n) {
+    changed = tick_sig_.set_signature (tick_sig_.beats_per_bar(), *n);
+    if (changed) {
       update_tempo();
-      emit_notify ("denominator");
-      return true;
+      denominator.notify();
     }
-  return false;
+  }
+  if (q)
+    *q = tick_sig_.beat_unit();
+  return true; // might notify invalid setter attempt
 }
 
 void
@@ -798,36 +830,6 @@ ProjectImpl::master_track ()
 {
   assert_return (!tracks_.empty(), nullptr);
   return tracks_.back();
-}
-
-void
-ProjectImpl::create_properties ()
-{
-  // chain to base class
-  DeviceImpl::create_properties();
-  // create own properties
-  auto getbpm = [this] (Value &val) { val = tick_sig_.bpm(); };
-  auto setbpm = [this] (const Value &val) { return set_bpm (val.as_double()); };
-  auto getbpb = [this] (Value &val) { val = tick_sig_.beats_per_bar(); };
-  auto setbpb = [this] (const Value &val) { return set_numerator (val.as_int()); };
-  auto getunt = [this] (Value &val) { val = tick_sig_.beat_unit(); };
-  auto setunt = [this] (const Value &val) { return set_denominator (val.as_int()); };
-  PropertyBag bag = property_bag();
-  // bag.group = _("State");
-  // TODO: bag += Bool ("dirty", &dirty_, _("Modification Flag"), _("Dirty"), false, ":r:G:", _("Flag indicating modified project state"));
-  // struct Prop { CString ident; ValueGetter getter; ValueSetter setter; Param param; ValueLister lister; };
-  bag.group = _("Timing");
-  bag += Prop (getbpb, setbpb, { "numerator", _("Signature Numerator"), _("Numerator"), 4., "", MinMaxStep { 1., 63., 0 }, STANDARD });
-  bag += Prop (getunt, setunt, { "denominator", _("Signature Denominator"), _("Denominator"), 4, "", MinMaxStep { 1, 16, 0 }, STANDARD });
-  bag += Prop (getbpm, setbpm, { "bpm", _("Beats Per Minute"), _("BPM"), 120., "", MinMaxStep { 10., 1776., 0 }, STANDARD });
-  bag.group = _("Tuning");
-  bag += Prop (make_enum_getter<MusicalTuning> (&musical_tuning_), make_enum_setter<MusicalTuning> (&musical_tuning_),
-               { "musical_tuning", _("Musical Tuning"), _("Tuning"), uint32_t (MusicalTuning::OD_12_TET), "", {}, STANDARD, {
-                  String ("descr=") + _("The tuning system which specifies the tones or pitches to be used. "
-                                        "Due to the psychoacoustic properties of tones, various pitch combinations can "
-                                        "sound \"natural\" or \"pleasing\" when used in combination, the musical "
-                                        "tuning system defines the number and spacing of frequency values applied."), } },
-               enum_lister<MusicalTuning>);
 }
 
 DeviceInfo

@@ -1702,9 +1702,9 @@ string_tests()
   b = string_option_check ("no-a:b:c", "a"); TCMP (b, ==, false);
   b = string_option_check ("no-a:b:a=5:c", "b"); TCMP (b, ==, true);
   b = string_option_check ("x:all", ""); TCMP (b, ==, false); // must have feature?
-  TASSERT (typeid_name<int>() == "int");
-  TASSERT (typeid_name<bool>() == "bool");
-  TASSERT (typeid_name<::Ase::Strings>() == "Ase::Strings");
+  TASSERT (typeid_name<int>() == String ("int"));
+  TASSERT (typeid_name<bool>() == String ("bool"));
+  TASSERT (typeid_name<::Ase::Strings>() == String ("Ase::Strings"));
   TASSERT (string_from_double (1.0) == "1");
   TASSERT (string_from_double (-1.0) == "-1");
   TASSERT (string_from_double (0.0) == "0");

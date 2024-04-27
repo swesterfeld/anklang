@@ -2,6 +2,7 @@
 #ifndef __ASE_API_HH__
 #define __ASE_API_HH__
 
+#include <ase/member.hh>
 #include <ase/value.hh>
 
 /// The Anklang C++ API namespace
@@ -126,6 +127,7 @@ public:
   virtual void       emit_event  (const String &type, const String &detail, const ValueR fields = {}) = 0;
   ASE_USE_RESULT
   virtual Connection on_event    (const String &eventselector, const EventHandler &eventhandler) = 0;
+  virtual void       emit_notify (const String &detail) = 0;
   void               js_trigger  (const String &eventselector, JsTrigger callback);
 };
 
@@ -166,6 +168,9 @@ public:
 
 /// Base type for classes that have a Property.
 class Gadget : public virtual Object {
+protected:
+  explicit            Gadget            ();
+  virtual bool        name_             (const std::string *n, std::string *q) = 0;
 public:
   // Hierarchical parenting.
   virtual GadgetImpl* _parent           () const = 0;             ///< Retrieve parent container.
@@ -173,8 +178,6 @@ public:
   ProjectImpl*        _project          () const;                 ///< Find Project in parent ancestry.
   // Naming
   virtual String      type_nick         () const = 0;
-  virtual String      name              () const = 0;
-  virtual void        name              (String newname) = 0;
   // Properties
   virtual StringS     list_properties   ();                 ///< List all property identifiers.
   virtual PropertyP   access_property   (String ident);     ///< Retrieve handle for a Property.
@@ -185,6 +188,7 @@ public:
   virtual bool        set_data          (const String &key, const Value &v) = 0;
   /// Retrieve session data.
   virtual Value       get_data          (const String &key) const = 0;
+  Member<&Gadget::name_> name [[no_unique_address]];
 };
 
 /// Info for device types.
@@ -246,15 +250,21 @@ struct ClipNote {
 
 /// Container for MIDI note and control events.
 class Clip : public virtual Gadget {
+protected:
+  explicit          Clip           ();
+  virtual bool      all_notes_     (const ClipNoteS *n, ClipNoteS *q) = 0;
+  virtual bool      end_tick_      (const int64 *n, int64 *q) = 0;
 public:
   virtual int64     start_tick     () const = 0; ///< Get the first tick intended for playback (this is >= 0), changes on `notify:start_tick`.
   virtual int64     stop_tick      () const = 0; ///< Get the tick to stop playback, not events should be played after this, changes on `notify:stop_tick`.
-  virtual int64     end_tick       () const = 0; ///< Get the end tick, this tick is past any event ticks, changes on `notify:end_tick`.
   virtual void      assign_range   (int64 starttick, int64 stoptick) = 0; ///< Change start_tick() and stop_tick(); emits `notify:start_tick`, `notify:stop_tick`.
-  virtual ClipNoteS all_notes      () const = 0; ///< List all notes of this Clip; changes on `notify:all_notes`.
   /// Change note `id` according to the arguments or add a new note if `id` < 0; emits `notify:notes`.
   virtual int32     change_batch   (const ClipNoteS &notes, const String &undogroup = "") = 0; ///< Insert, change, delete in a batch.
   virtual ClipNoteS list_all_notes () = 0; ///< List all notes of this Clip; changes on `notify:notes`.
+  /// Access all notes of this clip, changes on `notify:all_notes`.
+  Member<&Clip::all_notes_> all_notes [[no_unique_address]];
+  /// The end tick is past any event ticks, changes on `notify:end_tick`.
+  Member<&Clip::end_tick_>  end_tick [[no_unique_address]];
 };
 
 /// Container for Clip objects and sequencing information.
@@ -291,6 +301,11 @@ public:
 
 /// Projects support loading, saving, playback and act as containers for all other sound objects.
 class Project : public virtual Device {
+protected:
+  explicit                Project        ();
+  virtual bool            bpm_           (const double *n, double *q) = 0;
+  virtual bool            numerator_     (const double *n, double *q) = 0;
+  virtual bool            denominator_   (const double *n, double *q) = 0;
 public:
   virtual void            discard        () = 0;       ///< Discard project and associated resources.
   virtual void            start_playback () = 0;       ///< Start playback of a project, requires active sound engine.
@@ -310,6 +325,9 @@ public:
   virtual bool            can_undo       () = 0;       ///< Check if any undo steps have been recorded.
   virtual void            redo           () = 0;       ///< Redo the last undo modification.
   virtual bool            can_redo       () = 0;       ///< Check if any redo steps have been recorded.
+  Member<&Project::bpm_>         bpm [[no_unique_address]];
+  Member<&Project::numerator_>   numerator [[no_unique_address]];
+  Member<&Project::denominator_> denominator [[no_unique_address]];
   static ProjectP         last_project   ();
 };
 

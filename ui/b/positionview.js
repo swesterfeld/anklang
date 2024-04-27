@@ -9,8 +9,6 @@ import * as Ase from '../aseapi.js';
  * @description
  * The <b-positionview> element displays the project
  * transport position pointer and related information.
- * ### Props:
- * - **project** - The object providing playback API.
  */
 
 // <STYLE/>
@@ -38,12 +36,12 @@ b-positionview {
 }`;
 
 // <HTML/>
-const HTML = (t, d) =>  html`
+const HTML = (t, project) =>  html`
   <b-editable class="w-16 text-center" @change=${event => t.apply_sig (event.detail.value)} selectall
-    value=${t.project_.numerator + '/' + t.project_.denominator}></b-editable>
+    value=${project.numerator + '/' + project.denominator}></b-editable>
   <span class="b-positionview-counter" ${ref (h => t.counter = h)} ></span>
-  <b-editable class="w-16 text-center" @change=${event => Data.project.set_value ('bpm', 0 | event.detail.value)} selectall
-    value=${t.project_.bpm}></b-editable>
+  <b-editable class="w-16 text-center" @change=${event => project.bpm = 0 | event.detail.value} selectall
+    value=${project.bpm}></b-editable>
   <span class="b-positionview-timer" ${ref (h => t.timer = h)}></span>
 `;
 
@@ -52,7 +50,7 @@ class BPositionView extends LitComponent {
   createRenderRoot() { return this; }
   render()
   {
-    return HTML (this, {});
+    return HTML (this, App.project);
   }
   constructor()
   {
@@ -60,7 +58,6 @@ class BPositionView extends LitComponent {
     this.fps = 0;
     this.counter = null;
     this.timer = null;
-    this.project_ = {};
   }
   updated()
   {
@@ -74,16 +71,7 @@ class BPositionView extends LitComponent {
   async connectedCallback()
   {
     super.connectedCallback();
-    let project = Data.project;
-    if (!project.bpm) {
-      // TODO: work around until the TimeSignature branch is merged
-      project = Object.create (project);
-      for (const key of ['bpm', 'numerator', 'denominator'])
-	project[key] = () => project.get_value (key);
-    }
-    const weakthis = new WeakRef (this); // avoid strong wtrack->this refs for automatic cleanup
-    this.project_ = Util.wrap_ase_object (project, { bpm: 0, numerator: 0, denominator: 1 }, () => weakthis.deref()?.requestUpdate());
-    this.telemetry = Object.freeze (await Data.project.telemetry());
+    this.telemetry = Object.freeze (await App.project.telemetry());
     if (this.telemetry) {
       const telefields = [ 'current_bar', 'current_beat', 'current_sixteenth', 'current_minutes', 'current_seconds' ];
       const subscribefields = this.telemetry.filter (field => telefields.includes (field.name));
@@ -105,8 +93,8 @@ class BPositionView extends LitComponent {
     if (parts.length == 2) {
       const n = Number (parts[0]), d = Number (parts[1]);
       if (n > 0 && d > 0) {
-	Data.project.set_value ('numerator', n);
-	Data.project.set_value ('denominator', d);
+	App.project.numerator = n;
+	App.project.denominator = d;
       }
     }
   }

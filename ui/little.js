@@ -9,6 +9,7 @@ export { ref } from 'lit/directives/ref';
 export { live } from 'lit/directives/live';
 export { repeat } from 'lit/directives/repeat';
 import { LitElement, css, unsafeCSS } from 'lit';
+import { Signal, State, Computed, Watcher, tracking_wrapper } from "./signal.js";
 
 export const docs = (...args) => undefined;
 
@@ -16,22 +17,32 @@ export const docs = (...args) => undefined;
 /** @class LitComponent
  * @description
  * An interface extending LitElement with reactive render() and updated() methods.
- * ### Props:
- * *render*
- * : A pre-bound Wrapper.reactive_wrapper() around LitElement.render().
- * *updated*
- * : A pre-bound Wrapper.reactive_wrapper() around LitElement.updated().
- * *request_update_*
- * : A pre-bound wrapper around LitElement.requestUpdate().
+ *
+ * ### Methods:
+ * *render()*
+ * : A this-bound Wrapper around LitElement.render() with JS Signal tracking.
+ * *updated (changedProps)*
+ * : A this-bound Wrapper around LitElement.updated() with JS Signal tracking.
+ * *request_update()*
+ * : A this-bound wrapper around LitElement.requestUpdate().
+ * *weak_this()*
+ * : A new WeakRef to this.
+ * *createRenderRoot()*
+ * : In addition to calling LitElement.createRenderRoot() this will call adopt_component_styles().
  */
 export class LitComponent extends LitElement {
   constructor()
   {
     super();
-    this.request_update_ = this.requestUpdate.bind (this);
-    // Use cast to hide assignment causing instance member property shadowing instance member function (TS2425)
-    (/**@type{any}*/ (this)).render = Wrapper.reactive_wrapper (this.render.bind (this), this.request_update_);
-    (/**@type{any}*/ (this)).updated = Wrapper.reactive_wrapper (this.updated.bind (this), this.request_update_);
+    const self = /**@type{any}*/ (this);			// use self. to hide instance member shadowing (TS2425)
+    // .request_update() - callback with fixed this (using a WeakRef will not prevent GC)
+    const weak_this = this.weak_this;
+    const request_update = (...args) => weak_this.deref()?.requestUpdate?. (...args);
+    self.request_update = request_update;
+    // .render() - with Signal dependency tracking
+    self.render = tracking_wrapper (this.request_update, this.render.bind (this));
+    // .updated() - with Signal dependency tracking
+    self.updated = tracking_wrapper (this.request_update, this.updated.bind (this));
   }
   createRenderRoot()
   {
@@ -39,13 +50,14 @@ export class LitComponent extends LitElement {
     adopt_component_styles (render_root);
     return render_root;
   }
+  request_update (...args) { return this.requestUpdate (...args); }
   get weak_this()
   {
-    let wt = this[sym_weak_this];
-    return wt || (this[sym_weak_this] = new WeakRef (this));
+    let wt = this[WEAKTHIS];
+    return wt || (this[WEAKTHIS] = new WeakRef (this));
   }
 }
-const sym_weak_this = Symbol ('weak_this');
+const WEAKTHIS = Symbol ('WEAKTHIS');
 
 // == lit_update_all ==
 /** Call requestUpdate() on all `LitElement`s */

@@ -15,6 +15,7 @@ import * as Util from '../util.js';
 import { clamp } from '../util.js';
 import { text_content, get_uri } from '../dom.js';
 import * as Mouse from '../mouse.js';
+import { Signal, State, Computed, Watcher, tracking_wrapper } from "../signal.js";
 const floor = Math.floor, round = Math.round;
 
 // == STYLE ==
@@ -80,7 +81,7 @@ const HTML = (t, d) => html`
   <c-grid tabindex="-1" ${ref (h => t.cgrid = h)} data-f1="#piano-roll"
     @pointerenter=${t.pointerenter} @pointerleave=${t.pointerleave} @focus=${t.focuschange} @blur=${t.focuschange}
     @keydown=${e => t.piano_ctrl.keydown (e)}
-    @wheel=${t.wheel_event} >
+    @wheel=${{handleEvent: e => t.wheel_event (e), passive: false}} >
 
     <v-flex class="-toolbutton col-start-1 row-start-1" style="height: 1.7em; align-items: end; padding-right: 4px;" ${ref (h => t.menu_btn = h)}
       @click=${e => t.pianotoolmenu.popup (e)} @mousedown=${e => t.pianotoolmenu.popup (e)} >
@@ -162,7 +163,6 @@ class BPianoRoll extends LitComponent {
     this.last_pos = -9.987;
     this.srect_ = { x: 0, y: 0, w: 0, h: 0, sx: 0, sy: 0 };
     this.clip = null;
-    this.wclip = null;
     this.end_click = 99999;
     this.auto_scrollto = undefined;	// positions to restore scroll & zoom
     this.stepping = [];                 // current grid stepping granularity
@@ -171,13 +171,18 @@ class BPianoRoll extends LitComponent {
     this.piano_ctrl = new PianoCtrl.PianoCtrl (this);
     this.drag_event = this.piano_ctrl.drag_event.bind (this.piano_ctrl);
     // track repaint dependencies
-    this.repaint_pending_ = null;
-    this.queue_repaint = () =>
-      {
-	if (!this.repaint_pending_)
-	  this.repaint_pending_ = (async () => { await 0; this.repaint(); }) ();
+    {
+      let update_queued = false;
+      this.queue_repaint = () => {
+        if (update_queued) return;
+        update_queued = true;
+        queueMicrotask (() => {
+          update_queued = false;
+          this.repaint();
+        });
       };
-    this.repaint = Util.reactive_wrapper (this.repaint.bind (this), this.queue_repaint);
+    }
+    this.repaint = tracking_wrapper (this.queue_repaint, this.repaint.bind (this));
     // trigger layout on resize
     this.resize_observer = new ResizeObserver (els => this.requestUpdate.bind (this));
     this.resize_observer.observe (this);
@@ -206,15 +211,12 @@ class BPianoRoll extends LitComponent {
       this.hscrollbar.onscroll = e => this.hvscroll (e);
     if (this.vscrollbar && !this.vscrollbar.onscroll)
       this.vscrollbar.onscroll = e => this.hvscroll (e);
-    if (changed_props.has ('clip'))
-      {
-	this.wclip?.__cleanup__?.();
-	this.wclip = null;
-      }
     if (changed_props.has ('clip') && this.clip)
       {
-	this.wclip = Util.wrap_ase_object (this.clip, { end_tick: 0, name: '???' }, this.requestUpdate.bind (this));
-	this.wclip.__add__ ('all_notes', [], this.queue_repaint);
+	// read out props to force auto-updates
+	this.clip.all_notes.end_tick;
+	this.clip.all_notes.name;
+	this.clip.all_notes;
 	this.hscrollbar.scrollTo ({ left: 0, behavior: 'instant' });
 	this.vscroll_to (0.5);
 	this.last_note_length = default_note_length;
@@ -374,7 +376,6 @@ class BPianoRoll extends LitComponent {
   }
   repaint()
   {
-    this.repaint_pending_ = null;
     if (!this.clip || !this.notes_canvas || !this.hscrollbar || !this.vscrollbar)
       return;
     paint_notes.call (this);
@@ -389,7 +390,7 @@ class BPianoRoll extends LitComponent {
 	this.hzoom = clamp (this.hzoom * (delta.deltaX > 0 ? 1.1 : 0.9), 0.25, 25);
       if (delta.deltaY)
 	this.vzoom = clamp (this.vzoom * (delta.deltaY > 0 ? 1.1 : 0.9), 0.5, 25);
-      this.request_update_();
+      this.request_update();
     } else {
       if (delta.deltaX)
 	this.hscrollbar.scrollBy ({ left: delta.deltaX });
@@ -446,7 +447,7 @@ function piano_layout()
   const white_offsets  = [ 0,    12,     24, 36,     48,       60,     72 ]; 	// for 84px octave
   const key_length = parseFloat (cstyle.getPropertyValue ('--piano-roll-key-length'));
   const min_end_tick = 16 * (4 * Util.PPQN);
-  const end_tick = Math.max (this.wclip.end_tick || 0, min_end_tick);
+  const end_tick = Math.max (this.clip.end_tick || 0, min_end_tick);
   // scale layout
   layout.dpr_height = round (layout.DPR * layout.cssheight);
   layout.white_width = key_length || layout.white_width; // allow CSS override
@@ -736,7 +737,7 @@ function paint_notes()
   ctx.strokeStyle = csp ('--piano-roll-note-focus-border');
   // draw notes
   const draw_notes = (selected) => {
-    for (const note of this.wclip.all_notes)
+    for (const note of this.clip.all_notes)
       {
         if (note.selected == selected)
           {
@@ -862,4 +863,3 @@ function paint_timegrid (canvas, with_labels)
 	}
     }
 }
-

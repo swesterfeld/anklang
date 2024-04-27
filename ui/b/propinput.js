@@ -91,14 +91,14 @@ class BPropInput extends LitComponent {
   updated (changed_props)
   {
     if (changed_props.has ('prop')) {
-      changed_props['prop'] && changed_props['prop'].delnotify_ (this.request_update_);
-      this.prop && this.prop.addnotify_ (this.request_update_);
+      changed_props['prop'] && changed_props['prop'].delnotify_ (this.request_update);
+      this.prop && this.prop.addnotify_ (this.request_update);
     }
     this.value_changed();
   }
   disconnectedCallback()
   {
-    this.prop && this.prop.delnotify_ (this.request_update_);
+    this.prop && this.prop.delnotify_ (this.request_update);
   }
   get classes() {
     return this.readonly ? 'b-propinput-readonly' : '';

@@ -17,12 +17,14 @@ Driver::Driver (const String &driver, const String &devid) :
 Driver::~Driver ()
 {}
 
+/// Return a string which uniquely identifies this driver and device.
 String
 Driver::devid () const
 {
   return devid_.empty() ? driver_ : driver_ + "=" + devid_;
 }
 
+/// Return string which represents the given priority mask.
 String
 Driver::priority_string (uint priority)
 {
@@ -56,7 +58,7 @@ using RegisteredLoaderVector = std::vector<RegisteredLoader>;
 static RegisteredLoaderVector& registered_loaders() { static RegisteredLoaderVector lv; return lv; }
 static bool registered_loaders_executed = false;
 
-///< Register loader callbacks at static constructor time.
+/// Register loader callbacks at static constructor time.
 bool*
 register_driver_loader (const char *staticwhat, Error (*loader) ())
 {
@@ -67,6 +69,7 @@ register_driver_loader (const char *staticwhat, Error (*loader) ())
   return &registered_loaders_executed;
 }
 
+/// Load all registered drivers.
 void
 load_registered_drivers()
 {
@@ -87,14 +90,16 @@ struct RegisteredDriver {
   std::function<DriverP (const String&)>  create_;
   std::function<void (Driver::EntryVec&)> list_;
   using RegisteredDriverVector = std::vector<RegisteredDriver>;
+
   static RegisteredDriverVector&
   registered_driver_vector()
   {
     static RegisteredDriverVector registered_driver_vector_;
     return registered_driver_vector_;
   }
+
   static DriverP
-  open (const String &devid, Driver::IODir iodir, Error *ep,
+  open (const String &devid, Driver::IODir iodir, Error *errorp,
         const std::function<Error (DriverP, Driver::IODir)> &opener)
   {
     std::function<DriverP (const String&)> create;
@@ -110,8 +115,8 @@ struct RegisteredDriver {
     if (driver)
       {
         error = opener (driver, iodir);
-        if (ep)
-          *ep = error;
+        if (errorp)
+          *errorp = error;
         if (error == Error::NONE)
           {
             assert_return (driver->opened() == true, nullptr);
@@ -121,10 +126,11 @@ struct RegisteredDriver {
         else
           driver = nullptr;
       }
-    else if (ep)
-      *ep = error;
+    else if (errorp)
+      *errorp = error;
     return driver;
   }
+
   static String
   register_driver (const String &driverid,
                    const std::function<DriverP (const String&)> &create,
@@ -161,6 +167,7 @@ PcmDriver::PcmDriver (const String &driver, const String &devid) :
   Driver (driver, devid)
 {}
 
+/// Open PCM device and return a pointer to it, or nullptr with `*ep` set on error.
 PcmDriverP
 PcmDriver::open (const String &devid, IODir desired, IODir required, const PcmDriverConfig &config, Error *ep)
 {
