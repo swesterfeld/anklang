@@ -20,7 +20,7 @@ namespace Ase {
 // == ResourceCrawler ==
 ResourceCrawler::ResourceCrawler() :
   folder (this, "folder"),
-  files (this, "files")
+  entries (this, "entries")
 {}
 
 // == FileCrawler ==
@@ -117,7 +117,7 @@ FileCrawler::folder_ (const Resource *n, Resource *q)
 }
 
 bool
-FileCrawler::files_ (const ResourceS *n, ResourceS *q)
+FileCrawler::entries_ (const ResourceS *n, ResourceS *q)
 {
   if (n)
     ; // assignment not supported
@@ -143,7 +143,7 @@ FileCrawler::assign (const String &utf8path, bool notify)
   if (notify)
     {
       folder.notify();
-      files.notify();
+      entries.notify();
       emit_notify ("current");
       emit_notify ("entries");
     }

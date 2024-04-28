@@ -350,15 +350,15 @@ class ResourceCrawler : public virtual Object {
 protected:
   explicit          ResourceCrawler ();
   virtual bool      folder_         (const Resource *n, Resource *q) = 0;
-  virtual bool      files_          (const ResourceS *n, ResourceS *q) = 0;
+  virtual bool      entries_        (const ResourceS *n, ResourceS *q) = 0;
 public:
   virtual ResourceS list_entries    () = 0;                             ///< List entries of a folder.
   virtual Resource  current_folder  () = 0;                             ///< Describe current folder.
   virtual void      assign          (const String &utf8path) = 0;       ///< Move to a different path.
   /// Return absolute path, slash-terminated if directory, constrain to existing paths.
   virtual Resource  canonify        (const String &utf8cwd, const String &utf8fragment, bool constraindir, bool constrainfile) = 0;
-  Member<&ResourceCrawler::folder_> folder [[no_unique_address]];       ///< The folder currently being browsed, UTF-8 encoded.
-  Member<&ResourceCrawler::files_>  files [[no_unique_address]];        ///< The files in the current folder, UTF-8 encoded.
+  Member<&ResourceCrawler::folder_>  folder [[no_unique_address]];      ///< The folder currently being browsed, UTF-8 encoded.
+  Member<&ResourceCrawler::entries_> entries [[no_unique_address]];     ///< The entries in the current folder, UTF-8 encoded.
 };
 
 /// Contents of user interface notifications.
