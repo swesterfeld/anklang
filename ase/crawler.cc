@@ -108,7 +108,6 @@ FileCrawler::current_folder ()
 bool
 FileCrawler::folder_ (const Resource *n, Resource *q)
 {
-  printerr ("%s: n=%p q=%p\n", __func__, n, q);
   if (n)
     assign (n->uri);
   if (q)
