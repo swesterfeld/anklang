@@ -280,6 +280,15 @@ function element_rect (element) {
   };
 }
 
+export function keydown_move_focus_down (event) {
+  if (event.keyCode == KeyCode.DOWN)
+    return keydown_move_focus (event);
+}
+export function keydown_move_focus_up (event) {
+  if (event.keyCode == KeyCode.UP)
+    return keydown_move_focus (event);
+}
+
 /** Move focus on UP/DOWN/HOME/END `keydown` events */
 export function keydown_move_focus (event) {
   // constrain focus movements within data-subfocus=1 container
