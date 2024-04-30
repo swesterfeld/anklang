@@ -64,7 +64,7 @@ FileCrawler::list_entries ()
       Resource r {
         .type = is_dir ? ResourceType::FOLDER : ResourceType::FILE,
         .label = displayfs (encodefs (de->d_name)),
-        .uri = encodefs (cwdfile + de->d_name),
+        .uri = encodefs (cwdfile + de->d_name) + (is_dir ? "/" : ""),
         .mtime = mtime };
       r.size = is_dir && size > 0 ? -size : size;
       rs.push_back (r);
