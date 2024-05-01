@@ -123,6 +123,7 @@ class BCrawlerDialog extends LitComponent {
     const d = { entries: this.update_inflight ? [] : this.filtered_entries() };
     return HTML (this, d);
   }
+  /// properties - override to declare properties
   static properties = {
     title:	{ type: String,  reflect: true }, // sync attribute with property
     button:	{ type: String,  reflect: true }, // sync attribute with property
@@ -132,6 +133,7 @@ class BCrawlerDialog extends LitComponent {
     filters:	{ type: Array,   reflect: true }, // sync attribute with property
     promise:	{ type: Promise, state:   true }, // private property
   };
+  /// Ctrl_L - hotkey for focus on path entry
   Ctrl_L = "Ctrl+L";
   constructor()
   {
@@ -161,6 +163,7 @@ class BCrawlerDialog extends LitComponent {
       this.request_update();
     }) ();
   }
+  /// folder - getter for the current folder without protocol
   get folder()
   {
     let path = this.crawler?.folder?.uri || '/';
@@ -171,6 +174,7 @@ class BCrawlerDialog extends LitComponent {
   {
     return this.crawler?.entries || [];
   }
+  /// update_inflight - indicates if the crawler is asynchronously updating
   get update_inflight()
   {
     return this.promise || this.crawler?.$props?.$promise;
@@ -202,6 +206,7 @@ class BCrawlerDialog extends LitComponent {
     Kbd.remove_hotkey (this.Ctrl_L, this.ctrl_l_grab_focus);
     super.disconnectedCallback();
   }
+  /// assign_utf8path - assign a path in UTF-8 encoding and possibly select it
   async assign_utf8path (filepath, pickfile = false)
   {
     if (this.promise) return;
@@ -252,6 +257,7 @@ class BCrawlerDialog extends LitComponent {
     const uri = this.current?.uri;
     return uri && uri[uri.length - 1] === '/';
   }
+  /// entry_event - handle events on the file entries
   entry_event (event, entry)
   {
     if (entry.uri && entry.uri != this.current?.uri)
@@ -280,6 +286,7 @@ class BCrawlerDialog extends LitComponent {
 	break;
     }
   }
+  /// filtered_entries - filter hidden entries
   filtered_entries()
   {
     let e = this.entries;
@@ -299,6 +306,7 @@ class BCrawlerDialog extends LitComponent {
     });
     return e;
   }
+  /// select_entry  - send 'select' event for `entry` or `pathentry.value`
   select_entry (entry)
   {
     debug ("select_entry:", entry, "this.existing:", this.existing, "inflight:", this.update_inflight);
@@ -315,6 +323,7 @@ class BCrawlerDialog extends LitComponent {
     if (pvalue && pvalue.search ('/') < 0)
       return this.dispatchEvent (new CustomEvent ('select', { detail: { uri: this.folder + '/' + pvalue } }));
   }
+  /// close_click - send 'close' event for the dialog
   close_click (ev = null)
   {
     ev && ev.preventDefault();
