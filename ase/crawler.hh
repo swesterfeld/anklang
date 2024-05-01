@@ -15,7 +15,7 @@ class FileCrawler final : public ObjectImpl, public virtual ResourceCrawler {
 protected:
   void      assign          (const String &utf8path, bool notify);
   bool      folder_         (const Resource *n, Resource *q) override;
-  bool      entries_        (const ResourceS*, ResourceS *q) override;
+  bool      entries_        (const ResourceS *n, ResourceS *q) override;
 public:
   ASE_DEFINE_MAKE_SHARED (FileCrawler);
   ResourceS list_entries    () override;
