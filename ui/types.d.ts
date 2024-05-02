@@ -13,6 +13,7 @@ declare global {
   var __DEV__: bool;
   var debug: Function;
   var assert: Function;
+  var _: Function;
 
   interface ViewTransition {
     finished: Promise<void>;
