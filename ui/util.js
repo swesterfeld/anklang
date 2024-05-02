@@ -1182,13 +1182,11 @@ export function compute_style_properties (el, obj) {
 
 /** Check if `element` or any parentElement has `display:none` */
 export function inside_display_none (element) {
-  while (element)
-    {
-      if (getComputedStyle (element).display == "none")
-	return true;
-      element = element.parentElement;
-    }
-  return false;
+  // detect display=="none" without getComputedStyle which is often expensive
+  if (element.offsetWidth * element.offsetHeight == 0)
+    return true;
+  else
+    return false;
 }
 
 /** Check if `element` is displayed (has width/height assigned) */
