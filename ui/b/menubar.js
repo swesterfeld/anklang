@@ -271,13 +271,14 @@ async function open_file() {
       // load_project_checked() displays a dialog
     }
 }
-let open_file_last_dir = "MUSIC";
+let open_file_last_dir = "~MUSIC";
 
 async function save_project (asnew = false) {
   const opt = {
     title:  _('Save Project'),
     button: _('Save As'),
-    cwd:    save_project_last_dir || "MUSIC",
+    cwd:    save_project_last_dir || "~MUSIC",
+    existing: false,
     filters: [ { name: 'Projects', extensions: ['anklang'] }, ],
   };
   let filename = await Data.project.saved_filename();
@@ -317,4 +318,4 @@ async function save_project (asnew = false) {
 				 ], 'ERROR');
   return false;
 }
-let save_project_last_dir = "MUSIC";
+let save_project_last_dir = "~MUSIC";
