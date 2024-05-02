@@ -134,6 +134,16 @@ string_tolower (const String &str)
   return s;
 }
 
+/// Check if all string characters are Unicode lower case characters.
+bool
+string_islower (const String &str)
+{
+  for (size_t i = 0; i < str.size(); i++)
+    if (str[i] != Unicode::tolower (str[i]))
+      return false;
+  return true;
+}
+
 /// Convert all string characters into Unicode upper case characters.
 String
 string_toupper (const String &str)
@@ -142,6 +152,16 @@ string_toupper (const String &str)
   for (size_t i = 0; i < s.size(); i++)
     s[i] = Unicode::toupper (s[i]);
   return s;
+}
+
+/// Check if all string characters are Unicode upper case characters.
+bool
+string_isupper (const String &str)
+{
+  for (size_t i = 0; i < str.size(); i++)
+    if (str[i] != Unicode::toupper (str[i]))
+      return false;
+  return true;
 }
 
 /// Convert all string characters into Unicode title characters.
