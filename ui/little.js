@@ -56,6 +56,16 @@ export class LitComponent extends LitElement {
     let wt = this[WEAKTHIS];
     return wt || (this[WEAKTHIS] = new WeakRef (this));
   }
+  /// Install reactive Signal.State for all props
+  mkstate (str_olist)
+  {
+    const propnames = Array.isArray (str_olist) ? str_olist : [ str_olist ];
+    for (let prop of propnames) {
+      const s = new Signal.State (this[prop]);
+      Object.defineProperty (this, prop, { get: ()  => s.get(), set: (v) => { s.set (v); },
+      });
+    }
+  }
 }
 const WEAKTHIS = Symbol ('WEAKTHIS');
 
