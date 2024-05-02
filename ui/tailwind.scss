@@ -80,6 +80,7 @@ p		{ user-select: text; }
 /// Style for dialog footer containers.
 .dialog-footer {
   @apply groove-above mt-8 flex justify-center py-6 text-center leading-6;
+  > button { margin: 0 1em; }
 }
 
 /// Style for buttons with hover, disabled, potentially focussable, see also .button-down.
