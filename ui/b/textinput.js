@@ -35,11 +35,23 @@ html`
 <label>
   <input ${ref (h => t.input_element = h)} type="text" ?readonly=${t.readonly}
 	 style="width: 100%; min-width: 2.5em" @input=${t.handle_input}
+         @click=${t.textinput_click}
 	 placeholder=${t.placeholder} .value=${live (t.value)} >
 </label>
 `;
 
 // <SCRIPT/>
+function prop_info (prop, key) {
+  const md = prop?.metadata;
+  if (!md || !key) return "";
+  const eq = key.length;
+  for (let kv of md) {
+    if (kv[eq] === '=' && kv.startsWith (key))
+      return kv.substring (eq + 1);
+  }
+  return "";
+}
+
 class BTextInput extends LitComponent {
   createRenderRoot() { return this; }
   render() { return HTML (this); }
@@ -60,10 +72,14 @@ class BTextInput extends LitComponent {
   updated (changed_props)
   {
     if (changed_props.has ('prop')) {
-      changed_props['prop'] && changed_props['prop'].delnotify_ (this.request_update);
-      this.prop && this.prop.addnotify_ (this.request_update);
+      if (this.prop) {
+	this.prop.name; // access field, we need it later on.
+	this.prop.value; // access field, we need it later on.
+	this.prop.metadata; // access field, we need it later on.
+      }
     }
     const value = this.prop ? this.prop.value_.val : "";
+    debug ("prop-val:", this.prop.value_.val, this.prop.value);
     if (value !== this.value) {
       this.value = value;
       this.request_update ('value');
@@ -84,6 +100,21 @@ class BTextInput extends LitComponent {
   constrain (txt)
   {
     return '' + txt;
+  }
+  async textinput_click (event)
+  {
+    if (!prop_info (this.prop, "extensions"))
+      return;
+    const opt = {
+      title:  _('Select File'),
+      button: _('Open File'),
+      cwd:    "~MUSIC",
+      // TODO: filter by extensions
+    };
+    const filename = await App.shell.select_file (opt);
+    if (!filename)
+      return;
+    this.prop.value = filename;
   }
 }
 customElements.define ('b-textinput', BTextInput);
