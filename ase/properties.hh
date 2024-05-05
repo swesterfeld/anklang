@@ -12,6 +12,7 @@ namespace Ase {
 class ParameterProperty : public EmittableImpl, public virtual Property {
 protected:
   ParameterC parameter_;
+  StringS    get_metadata   () const override     { return parameter_->metadata(); }
 public:
   String     ident          () const override     { return parameter_->cident; }
   String     label          () const override     { return parameter_->label(); }
@@ -22,7 +23,6 @@ public:
   double     get_step       () const override     { return std::get<2> (parameter_->range()); }
   bool       is_numeric     () const override     { return parameter_->is_numeric(); }
   ChoiceS    choices        () const override     { return parameter_->choices(); }
-  StringS    metadata       () const override     { return parameter_->metadata(); }
   void       reset          () override           { set_value (parameter_->initial()); }
   double     get_normalized () const override     { return !is_numeric() ? 0 : parameter_->normalize (get_double()); }
   bool       set_normalized (double v) override   { return is_numeric() && set_value (parameter_->rescale (v)); }

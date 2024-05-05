@@ -13,8 +13,41 @@
 namespace Ase {
 
 // == Property ==
+Property::Property() :
+  name (this, "name"),
+  value (this, "value"),
+  metadata (this, "metadata")
+{}
+
 Property::~Property()
 {}
+
+bool
+Property::name_ (const String *n, String *q)
+{
+  if (q)
+    *q = ident();
+  return false;
+}
+
+bool
+Property::value_ (const Value *n, Value *q)
+{
+  bool changed = false;
+  if (n)
+    changed = set_value (*n);
+  if (q)
+    *q = get_value();
+  return changed;
+}
+
+bool
+Property::metadata_ (const StringS *n, StringS *q)
+{
+  if (q)
+    *q = get_metadata();
+  return false;
+}
 
 // == PropertyImpl ==
 PropertyImpl::PropertyImpl (const Param &param, const PropertyGetter &getter,
@@ -144,6 +177,7 @@ Preference::set_value (const Value &v)
   const bool changed = next == pv.value;
   pv.value = std::move (next);
   queue_notify_preference_listeners (parameter_->cident); // delayed
+  this->value.notify();
   return changed;
 }
 

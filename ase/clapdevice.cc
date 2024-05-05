@@ -57,7 +57,7 @@ public:
     return choices;
   }
   StringS
-  metadata () const override
+  get_metadata () const override
   {
     StringS md;
     md.push_back ("hints=" + ClapParamInfo::hints_from_param_info_flags (flags));

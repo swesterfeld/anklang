@@ -960,6 +960,7 @@ public:
     const double value = inflight_stamp_ >  proc->engine().frame_counter() ? inflight_value_ : AudioProcessor::param_peek_mt (proc, id_);
     ValueR vfields;
     vfields["value"] = value;
+    this->value.notify();
     emit_event ("notify", parameter_->ident(), vfields);
   }
   void
@@ -1040,7 +1041,7 @@ public:
     return parameter_->choices();
   }
   StringS
-  metadata () const override
+  get_metadata () const override
   {
     return parameter_->metadata();
   }
