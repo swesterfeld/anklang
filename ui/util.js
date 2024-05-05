@@ -926,6 +926,9 @@ export async function extend_property (prop, disconnector = undefined, augment =
     await prop.update_();
     return prop;
   }
+  prop.name;     // access field, we need it later on.
+  prop.value;    // access field, we need it later on.
+  prop.metadata; // access field, we need it later on.
   const notify_cbs = []; // custom notify callbacks
   const xprop = {
     hints_: prop.hints(),
