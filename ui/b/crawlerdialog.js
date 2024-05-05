@@ -152,6 +152,7 @@ class BCrawlerDialog extends LitComponent {
     this.current = {};
     this.direntry = null;
     this.pathentry = null;
+    this.entrygrid = null;
     // template for reactive Proxy object
     this.ctrl_l_grab_focus = () => {
       this.pathentry.focus();
@@ -215,7 +216,6 @@ class BCrawlerDialog extends LitComponent {
       debug ("assign_utf8path:", filepath, '=>', dir, "/", file);
       if (this.pathentry.value !== file)
 	this.pathentry.value = file;
-      const pvalue = this.pathentry.value;
       await this.crawler?.$props?.$promise;
       this.promise = null;
       if (pickfile)
