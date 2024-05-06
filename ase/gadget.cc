@@ -263,7 +263,7 @@ GadgetImpl::register_accessor (const char *ot, const char *mt, ptrdiff_t offset,
 {
   auto &cml = cml_set();
   auto [celement, inserted] = cml.emplace (ot, classtest);
-  assert_return (celement != nullptr);
+  assert_return (celement != cml.end());
   GadgetClassMemberList *element = const_cast<GadgetClassMemberList*> (&*celement);
   element->members.push_back (new MemberAccessor {mt, offset, std::move (accessfunc), infosp, ev, flags});
   //printerr ("%s: %s+%s=%+zd\n", __func__, ot, mt, offset);

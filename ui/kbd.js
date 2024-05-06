@@ -3,6 +3,8 @@
 
 import * as Util from './util.js';
 
+const kdebug = 0 ? debug : () => undefined;
+
 /// Keyboard modifiers used for hotkeys.
 const kbd_modifiers = Util.freeze_deep ([ 'cmd', 'command', 'super', 'meta', 'option', 'alt', 'altgraph', 'control', 'ctrl', 'shift' ]);
 
@@ -278,12 +280,21 @@ function element_rect (element) {
   };
 }
 
+export function keydown_move_focus_down (event) {
+  if (event.keyCode == KeyCode.DOWN)
+    return keydown_move_focus (event);
+}
+export function keydown_move_focus_up (event) {
+  if (event.keyCode == KeyCode.UP)
+    return keydown_move_focus (event);
+}
+
 /** Move focus on UP/DOWN/HOME/END `keydown` events */
 export function keydown_move_focus (event) {
   // constrain focus movements within data-subfocus=1 container
   const fe = activeElement();
-  const subfocus = Util.closest (fe, '[data-subfocus]') || document.body;
-  const left_right = subfocus.getAttribute ('data-subfocus') === "*";
+  const subfocus = Util.closest (fe, '[data-subfocus="*"]') || document.body;
+  const left_right = subfocus || !!Util.closest (fe, '[data-subfocus="+"]');
   let dir;
   if (event.keyCode == KeyCode.HOME)
     dir = 'HOME';
@@ -409,7 +420,6 @@ const filter_keycodes = {};
 
 /// Global key handler to dispatch key events according to global keymaps.
 function hotkey_handler (event) {
-  const kdebug = () => undefined; // kdebug = debug;
   const focus_root = the_focus_guard?.focus_root_list?.[0];
   const fe = activeElement();
   kdebug ("hotkey_handler:", "focus:", fe, event);
@@ -509,6 +519,7 @@ window.addEventListener ('keydown', event => hotkey_handler (event) && event.pre
 /// Add a global hotkey handler.
 export function add_hotkey (hotkey, callback, subtree_element = undefined) {
   hotkey_list.push ([ hotkey, callback, subtree_element ]);
+  kdebug ("add_hotkey:", hotkey, typeof (callback));
 }
 
 /// Remove a global hotkey handler.
@@ -518,6 +529,7 @@ export function remove_hotkey (hotkey, callback) {
     if (hotkey === array[i][0] && callback === array[i][1])
       {
 	array.splice (i, 1);
+	kdebug ("remove_hotkey:", hotkey, typeof (callback));
 	return true;
       }
   return false;

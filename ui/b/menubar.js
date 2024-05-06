@@ -254,8 +254,8 @@ function window_close()
 
 async function open_file() {
   const opt = {
-    title:  Util.format_title ('Anklang', 'Select File To Open'),
-    button: 'Open File',
+    title:  _('Open Project'),
+    button: _('Open File'),
     cwd:    open_file_last_dir,
     filters: [ { name: 'Projects', extensions: ['anklang'] }, // TODO: filters
 	       { name: 'Audio Files', extensions: [ 'anklang', 'mid', 'wav', 'mp3', 'ogg' ] },
@@ -271,13 +271,14 @@ async function open_file() {
       // load_project_checked() displays a dialog
     }
 }
-let open_file_last_dir = "MUSIC";
+let open_file_last_dir = "~MUSIC";
 
 async function save_project (asnew = false) {
   const opt = {
-    title:  Util.format_title ('Anklang', 'Save Project'),
-    button: 'Save As',
-    cwd:    save_project_last_dir || "MUSIC",
+    title:  _('Save Project'),
+    button: _('Save As'),
+    cwd:    save_project_last_dir || "~MUSIC",
+    existing: false,
     filters: [ { name: 'Projects', extensions: ['anklang'] }, ],
   };
   let filename = await Data.project.saved_filename();
@@ -317,4 +318,4 @@ async function save_project (asnew = false) {
 				 ], 'ERROR');
   return false;
 }
-let save_project_last_dir = "MUSIC";
+let save_project_last_dir = "~MUSIC";

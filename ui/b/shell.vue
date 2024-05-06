@@ -141,11 +141,11 @@ html.b-shell-during-drag .b-app {
     <b-statusbar class="-row9 -col123" />
 
     <!-- Modal Dialogs -->
-    <b-aboutdialog ref="about_dialog" :shown.prop="show_about_dialog_" @close="show_about_dialog(0)" v-if="show_about_dialog_" />
+    <b-aboutdialog :shown.prop="show_about_dialog_" @close="show_about_dialog(0)" v-if="show_about_dialog_" />
+    <b-crawlerdialog v-if="!!fs.resolve" :shown.prop="true" :title="fs.title" :filters="fs.filters" :button="fs.button"
+		     :existing.prop="fs.existing" :cwd="fs.cwd" @close="fs.resolve()" @select="fs.resolve($event.detail?.uri)" />
     <div class="-fullcoverage" style="z-index: 90" id="b-app-shell-modaldialogs" >
       <b-preferencesdialog v-model:shown="Data.show_preferences_dialog" />
-      <b-filedialog :shown="!!fs.resolve" :title="fs.title" :filters="fs.filters" :button="fs.button"
-		    :cwd="fs.cwd" @close="fs.resolve()" @select="fs.resolve($event)" />
 
       <!-- Modal Message Popups -->
       <b-dialog class="-modal-message" v-for="d in m.modal_dialogs"
@@ -212,7 +212,7 @@ class ShellClass extends Envue.Component {
   data_bubble = null;
   constructor (vm) {
     super (vm);
-    this.fs = Vue.reactive ({ title: 'File Selector', button: 'Select', cwd: 'MUSIC', filters: [], resolve: null });
+    this.fs = Vue.reactive ({ title: 'File Selector', button: 'Select', cwd: '~MUSIC', filters: [], resolve: null });
     this.m = observable_project_data.call (vm);
     this.m.modal_dialogs = [];
     this.m.show_spinner_count = 0;
@@ -339,10 +339,11 @@ class ShellClass extends Envue.Component {
     if (this.fs.resolve)
       return undefined;
     Object.assign (this.fs, opt);
+    this.fs.existing === false || (this.fs.existing = true);
     let resolve;
     const fileselector_promise = new Promise (r => resolve = r);
     this.fs.resolve = path => { // assignment shows file selector
-      this.fs.resolve = null;   // assignment hides file selector
+      this.fs.resolve = null;   // reset hides file selector
       resolve (path);
     };
     return await fileselector_promise;

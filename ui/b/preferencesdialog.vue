@@ -140,6 +140,9 @@ export default {
   watch: {
     shown (vnew, vold) { if (vnew && this.prefrefresh) this.prefrefresh(); },
   },
+  mounted () {
+    this.all_prefs = true;
+  },
   methods: {
     augment (p) { return augment_property.call (this, p); },
     close_button_click (event)

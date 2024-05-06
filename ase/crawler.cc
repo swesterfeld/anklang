@@ -17,6 +17,12 @@ namespace Fs = std::filesystem;
 
 namespace Ase {
 
+// == ResourceCrawler ==
+ResourceCrawler::ResourceCrawler() :
+  folder (this, "folder"),
+  entries (this, "entries")
+{}
+
 // == FileCrawler ==
 JSONIPC_INHERIT (FileCrawler, ResourceCrawler);
 
@@ -24,7 +30,7 @@ FileCrawler::FileCrawler (const String &cwd, bool constraindir, bool constrainfi
   cwd_ ("/"), constraindir_ (constraindir), constrainfile_ (constrainfile)
 {
   if (!cwd.empty())
-    assign (encodefs (cwd), false);
+    assign_ (encodefs (cwd), false, false);
 }
 
 /// List all entries in the current folder.
@@ -58,7 +64,7 @@ FileCrawler::list_entries ()
       Resource r {
         .type = is_dir ? ResourceType::FOLDER : ResourceType::FILE,
         .label = displayfs (encodefs (de->d_name)),
-        .uri = encodefs (cwdfile + de->d_name),
+        .uri = encodefs (cwdfile + de->d_name) + (is_dir ? "/" : ""),
         .mtime = mtime };
       r.size = is_dir && size > 0 ? -size : size;
       rs.push_back (r);
@@ -99,38 +105,82 @@ FileCrawler::current_folder ()
   return r;
 }
 
+bool
+FileCrawler::folder_ (const Resource *n, Resource *q)
+{
+  if (n)
+    assign_ (n->uri, false);
+  if (q)
+    *q = current_folder();
+  return true;
+}
+
+bool
+FileCrawler::entries_ (const ResourceS *n, ResourceS *q)
+{
+  if (n)
+    ; // assignment not supported
+  if (q)
+    *q = list_entries();
+  return true;
+}
+
 /// Open a new folder and make it the current folder.
-void
-FileCrawler::assign (const String &utf8path, bool notify)
+FileCrawler::String2
+FileCrawler::assign_ (const String &utf8path, bool existingfile, bool notify)
 {
   String dir = decodefs (utf8path);
-  if (dir.find ("/") == dir.npos) // relative navigation features special expansions
+  // tilde + uppercase features some special directory expansions
+  if (dir[0] == '~' &&
+      dir.find ("/") == dir.npos &&
+      string_isupper (dir))
     {
-      dir = expand_fsdir (dir);
+      if (dir == "~DEMO")
+        dir = Path::dir_terminate (anklang_runpath (RPath::DEMODIR));
+      else
+        dir = Path::xdg_dir (&dir[1]);
       if (dir.empty() || dir == "/") // failed to expand special word
         dir = decodefs (utf8path);
     }
-  cwd_ = canonify_fspath (cwd_, dir.empty() ? "." : dir + "/", constraindir_, constrainfile_);
+  // ~USER expansion
+  Fs::path p = Path::expand_tilde (dir);
+  // make absolute
+  if (!p.is_absolute())
+    {
+      Fs::path root = cwd_;
+      p = root / p;
+    }
+  // normalize, remove /// /./ ..
+  p = p.lexically_normal();
+  // return existing file or dir with slash
+  String filename = "";
+  if (Path::check (p, "d"))             // isdir?
+    cwd_ = Path::dir_terminate (p);
+  else if (Path::check (p, "e")) {      // exists?
+    filename = p.filename();
+    cwd_ = p.parent_path();
+  } else if (constraindir_) {           // find existing dir
+    while (p.string().size() > 1 &&
+           !Path::check (p, "d")) {
+      filename = !existingfile || Path::check (p, "e") ? p.filename() : "";
+      p = p.parent_path();
+    }
+    cwd_ = p;
+  } else {
+    filename = !existingfile || Path::check (p, "e") ? p.filename() : "";
+    cwd_ = p.parent_path();
+  }
+  // strip terminating slashes from cwd_
   while (cwd_.size() > 1 && cwd_.back() == '/')
     cwd_.resize (cwd_.size() - 1);
   if (notify)
     {
+      folder.notify();
+      entries.notify();
       emit_notify ("current");
       emit_notify ("entries");
     }
-}
-
-/// Canonify a UTF-8 path name, optionally constraining it to a folder or file.
-Resource
-FileCrawler::canonify (const String &utf8cwd, const String &utf8fragment, bool constraindir, bool constrainfile)
-{
-  const String utf8path = encodefs (canonify_fspath (decodefs (utf8cwd), decodefs (utf8fragment), constraindir, constrainfile));
-  Resource r {
-    .type = string_endswith (utf8path, "/") ? ResourceType::FOLDER : ResourceType::FILE,
-    .label = displayfs (utf8path),
-    .uri = utf8path,
-    .mtime = 0 };
-  return r;
+  return { cwd_, filename };
 }
 
 /// Canonify a path (file system encoding), optionally constraining it to a directory or file.
@@ -167,6 +217,19 @@ FileCrawler::canonify_fspath (const String &fscwd, const String &fsfragment, boo
   if (Path::check (p, "d"))
     return Path::dir_terminate (p);
   return p;
+}
+
+/// Canonify a UTF-8 path name, optionally constraining it to a folder or file.
+Resource
+FileCrawler::canonify (const String &utf8cwd, const String &utf8fragment, bool constraindir, bool constrainfile)
+{
+  const String utf8path = encodefs (canonify_fspath (decodefs (utf8cwd), decodefs (utf8fragment), constraindir, constrainfile));
+  Resource r {
+    .type = string_endswith (utf8path, "/") ? ResourceType::FOLDER : ResourceType::FILE,
+    .label = displayfs (utf8path),
+    .uri = utf8path,
+    .mtime = 0 };
+  return r;
 }
 
 } // Ase
