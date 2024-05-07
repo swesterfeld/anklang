@@ -133,8 +133,13 @@ public:
 
 /// A Property allows querying, setting and monitoring of an object property.
 class Property : public virtual Emittable {
+  bool            name_          (const String *n, String *q);
+  bool            value_         (const Value *n, Value *q);
+  bool            metadata_      (const StringS *n, StringS *q);
 protected:
-  virtual         ~Property       () = 0;
+  explicit        Property       ();
+  virtual StringS get_metadata   () const = 0;
+  virtual        ~Property       () = 0;
 public:
   virtual String  ident          () const = 0;         ///< Unique name (per owner) of this Property.
   virtual String  label          () const = 0;         ///< Preferred user interface name.
@@ -152,11 +157,13 @@ public:
   virtual bool    set_text       (String v) = 0;       ///< Set the current property value as a text String.
   virtual bool    is_numeric     () const = 0;         ///< Whether the property settings can be represented as a floating point number.
   virtual ChoiceS choices        () const = 0;         ///< Enumerate choices for choosable properties.
-  virtual StringS metadata       () const = 0;         ///< Get the list of additional metadata for a property.
   String          hints          () const;             ///< Hints for parameter handling (metadata).
   String          blurb          () const;             ///< Short description for user interface tooltips (metadata).
   String          descr          () const;             ///< Elaborate description, e.g. for help dialogs (metadata).
   String          group          () const;             ///< Group name for parameters of similar function (metadata).
+  Member<&Property::name_>     name [[no_unique_address]];
+  Member<&Property::value_>    value [[no_unique_address]];
+  Member<&Property::metadata_> metadata [[no_unique_address]];
 };
 
 /// Base type for classes with Property interfaces.
