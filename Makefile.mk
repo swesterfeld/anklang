@@ -391,6 +391,7 @@ compile_commands.json: Makefile.mk
 	$(QGEN)
 	$Q rm -f $>/*/*.o $>/*/*/*.o
 	bear -- $(MAKE) CC=clang CXX=clang++ -j
+CLEANFILES += compile_commands.json
 
 # == all rules ==
 all: $(ALL_TARGETS) $(ALL_TESTS)
