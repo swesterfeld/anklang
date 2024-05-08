@@ -6,29 +6,6 @@ import * as Wrapper from './wrapper.js';
 import * as Mouse from './mouse.js';
 
 // == Compat fixes ==
-class FallbackResizeObserver {
-  constructor (resize_handler) {
-    this.observables = new Set();
-    this.resizer = () => resize_handler.call (null, [], this);
-  }
-  disconnect() {
-    this.observables.clear();
-    window.removeEventListener ('resize', this.resizer);
-  }
-  observe (ele) {
-    if (!this.observables.size)
-      window.addEventListener ('resize', this.resizer);
-    this.observables.add (ele);
-  }
-  unobserve (ele) {
-    this.observables.delete (ele);
-    if (!this.observables.size())
-      this.disconnect();
-  }
-}
-/** Work around FireFox 68 having ResizeObserver disabled */
-export const ResizeObserver = window.ResizeObserver || FallbackResizeObserver;
-
 /** Retrieve current time in milliseconds */
 export function now () {
   return window.Date.now();
