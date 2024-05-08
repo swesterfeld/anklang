@@ -26,15 +26,15 @@ class FallbackResizeObserver {
       this.disconnect();
   }
 }
-/// Work around FireFox 68 having ResizeObserver disabled
+/** Work around FireFox 68 having ResizeObserver disabled */
 export const ResizeObserver = window.ResizeObserver || FallbackResizeObserver;
 
-/// Retrieve current time in milliseconds.
+/** Retrieve current time in milliseconds */
 export function now () {
   return window.Date.now();
 }
 
-/// Retrieve a timestamp that is unique per (animation) frame.
+/** Retrieve a timestamp that is unique per (animation) frame */
 export function frame_stamp()
 {
   if (0 === last_frame_stamp_)
@@ -127,7 +127,7 @@ export function capture_event (eventname, callback) {
   return uncapture;
 }
 
-/// Expand pointer events into a list of possibly coalesced events.
+/** Expand pointer `event` into a list of possibly coalesced events */
 export function coalesced_events (event) {
   const pevents = event.getCoalescedEvents ? event.getCoalescedEvents() : null;
   if (!pevents || pevents.length == 0)
@@ -135,7 +135,7 @@ export function coalesced_events (event) {
   return pevents;
 }
 
-/** Get Vue component handle from element or its ancestors */
+/** Get Vue component handle from `element` or its ancestors */
 export function vue_component (element) {
   let el = element;
   while (el)
@@ -163,7 +163,7 @@ export const CANCEL = "CANCEL";
 export const MOVE = "MOVE";
 export const SCROLL = "SCROLL";
 
-/// Meld all pointer drag handling functions into a single `drag_event(event,MODE)` method.
+/** Meld all pointer drag handling functions into a single `drag_event(event,MODE)` method */
 export class PointerDrag {
   /** @param{String|Function} method */
   constructor (vuecomponent, event, method = 'drag_event', cleanup = null) {
@@ -367,7 +367,7 @@ export function request_pointer_lock (element)
   return element[unrequestpointerlock];
 }
 
-/// Ensure the root node of `element` contains a `csstext` (replaceable via `stylesheet_name`)
+/** Ensure the root node of `element` contains a `csstext` (replaceable via `stylesheet_name`) */
 export function adopt_style (element, csstext, stylesheet_name)
 {
   if (Array.isArray (csstext))
@@ -392,7 +392,7 @@ export function adopt_style (element, csstext, stylesheet_name)
     }
 }
 
-/// Ensure the root node of `element` has a `url` stylesheet link.
+/** Ensure the root node of `element` has a `url` stylesheet link */
 export function add_style_sheet (element, url)
 {
   let root = element.getRootNode();
@@ -410,13 +410,13 @@ export function add_style_sheet (element, url)
 export const vue_mixins = {};
 export const vue_directives = {};
 
-/// Retrieve CSS scope selector for vm_scope_style()
+/** Retrieve CSS scope selector for vm_scope_style() */
 export function vm_scope_selector (vm) {
   console.assert (vm.$);
   return vm.$el.nodeName + `[b-scope${vm.$.uid}]`;
 }
 
-/// Attach `css` to Vue instance `vm`, use vm_scope_selector() for the `vm` CSS scope
+/** Attach `css` to Vue instance `vm`, use vm_scope_selector() for the `vm` CSS scope */
 export function vm_scope_style (vm, css) {
   if (!vm.$el._vm_style)
     {
@@ -431,14 +431,14 @@ export function vm_scope_style (vm, css) {
     vm.$el._vm_style.innerHTML = css;
 }
 
-/// Loop over all properties in `source` and assign to `target*
+/** Loop over all properties in `source` and assign to `target` */
 export function assign_forin (target, source) {
   for (let p in source)
     target[p] = source[p];
   return target;
 }
 
-/// Loop over all elements of `source` and assign to `target*
+/** Loop over all elements of `source` and assign to `target` */
 export function assign_forof (target, source) {
   for (let e of source)
     target[e] = source[e];
@@ -464,7 +464,7 @@ export function array_index_equals (array, item) {
   return -1;
 }
 
-/// Generate map by splitting the key=value pairs in `kvarray`
+/** Generate map by splitting the key=value pairs in `kvarray` */
 export function map_from_kvpairs (kvarray) {
   let o = {};
   for (let kv of kvarray) {
@@ -475,7 +475,7 @@ export function map_from_kvpairs (kvarray) {
   return o;
 }
 
-/** Generate integers [0..`bound`[ if one arg is given or [`bound`..`end`[ by incrementing `step`. */
+/** Generate integers [0..`bound`[ if one arg is given or [`bound`..`end`[ by incrementing `step` */
 export function* range (bound, end, step = 1) {
   if (end === undefined) {
     end = bound;
@@ -626,12 +626,12 @@ if (__DEV__)
     console.assert (!eqr (a, b));
   }
 
-/** Return @a x clamped into @a min and @a max. */
+/** Return @a x clamped into @a min and @a max */
 export function clamp (x, min, max) {
   return x < min ? min : x > max ? max : x;
 }
 
-/** Create a Vue component provide() function that forwards selected properties. */
+/** Create a Vue component provide() function that forwards selected properties */
 export function fwdprovide (injectname, keys) {
   return function() {
     const proxy = {};
@@ -643,7 +643,7 @@ export function fwdprovide (injectname, keys) {
   };
 }
 
-/** Provide `$children` (and `$vue_parent`) on every component. */
+/** Provide `$children` (and `$vue_parent`) on every component */
 vue_mixins.vuechildren = {
   provide() {
     return { '$vue_parent': this };
@@ -670,7 +670,7 @@ vue_mixins.vuechildren = {
   },
 };
 
-/** Automatically add `$attrs['data-*']` to `$el`. */
+/** Automatically add `$attrs['data-*']` to `$el` */
 vue_mixins.autodataattrs = {
   mounted: function () {
     autodataattrs_apply.call (this);
@@ -832,7 +832,7 @@ vue_mixins.dom_updates = {
 
 const weakmaps = { ids: new WeakMap, objs: new Array, counter: 1001 };
 
-/// Fetch a unique id for any object.
+/** Fetch a unique id for any object */
 export function weakid (object) {
   if (!(object instanceof Object))
     return 0;
@@ -845,7 +845,7 @@ export function weakid (object) {
   return id;
 }
 
-/// Find an object from its unique id.
+/** Find an object from its unique id */
 export function weakid_lookup (id) {
   const weakref = weakmaps.objs[id];
   if (weakref) {
@@ -857,7 +857,7 @@ export function weakid_lookup (id) {
   return undefined;
 }
 
-/// Get a universally unique name for any object.
+/** Get a universally unique name for any object */
 export function uuname (object) {
   const id = weakid (object);
   const weakref = weakmaps.objs[id];
@@ -879,7 +879,7 @@ export function uuname (object) {
   return undefined;
 }
 
-/// Join strings and arrays of class lists from `args`.
+/** Join strings and arrays of class lists from `args` */
 export function join_classes (...args) {
   const cs = new Set();
   for (const arg of args)
@@ -899,7 +899,7 @@ export function join_classes (...args) {
   return cs.size ? Array.from (cs).join (' ') : undefined;
 }
 
-/// Assign `obj[k] = v` for all `k of keys, v of values`.
+/** Assign `obj[k] = v` for all `k of keys, v of values` */
 export function object_zip (obj, keys, values) {
   const kl = keys.length, vl = values.length;
   for (let i = 0; i < kl; i++)
@@ -907,7 +907,7 @@ export function object_zip (obj, keys, values) {
   return obj;
 }
 
-/// Await and reassign all object fields.
+/** Await and reassign all object fields */
 export async function object_await_values (obj) {
   return object_zip (obj, Object.keys (obj), await Promise.all (Object.values (obj)));
 }
@@ -985,7 +985,7 @@ export async function extend_property (prop, disconnector = undefined, augment =
   return xprop;
 }
 
-/// Extract the promise `p` state as one of: 'pending', 'fulfilled', 'rejected'
+/** Extract the promise `p` state as one of: 'pending', 'fulfilled', 'rejected' */
 export function promise_state (p) {
   const t = {}; // dummy, acting as fulfilled
   return Promise.race ([p, t])
@@ -993,8 +993,9 @@ export function promise_state (p) {
 		       v => 'rejected');
 }
 
-/// Turn a JS `$event` handler expression into a function.
-/// This yields a factory function that binds the scope to create an expression handler.
+/** Turn a JS `$event` handler expression into a function.
+ * This yields a factory function that binds the scope to create an expression handler.
+ */
 export function compile_expression (expression, context) {
   const cache = compile_expression.cache || (compile_expression.cache = new Map());
   let mkfunc = cache.get (expression);
@@ -1038,7 +1039,7 @@ export function VueifyObject (object = {}, vue_options = {}) {
   return new Vue (voptions);
 }
 
-/** Copy PropertyDescriptors from source to target, optionally binding handlers against closure. */
+/** Copy PropertyDescriptors from source to target, optionally binding handlers against closure */
 export const clone_descriptors = (target, source, closure) => {
   // See also: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign completeAssign()
   const descriptors = Object.getOwnPropertyNames (source).reduce ((descriptors, pname) => {
@@ -1064,7 +1065,7 @@ export const clone_descriptors = (target, source, closure) => {
   // Usage: clone_descriptors (window, fakewin.__proto__, fakewin);
 };
 
-/** Produce hash code from a String, using an FNV-1a variant. */
+/** Produce hash code from a String, using an FNV-1a variant */
 export function fnv1a_hash (str) {
   let hash = 0x811c9dc5;
   for (let i = 0; i < str.length; ++i) {
@@ -1075,7 +1076,7 @@ export function fnv1a_hash (str) {
   return hash;
 }
 
-/** Split a string when encountering a comma, while preserving quoted or parenthesized segments. */
+/** Split a string when encountering a comma, while preserving quoted or parenthesized segments */
 export function split_comma (str) {
   let result = [], item = '', sdepth = 0, ddepth = 0, pdepth = 0, kdepth = 0, cdepth = 0, bslash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -1103,12 +1104,12 @@ export function split_comma (str) {
   return result;
 }
 
-/// Properly escape test into `&amp;` and related sequences.
+/** Properly escape test into `&amp;` and related sequences */
 export function escape_html (unsafe) {
   return unsafe.replaceAll ('&', '&amp;').replaceAll ('<', '&lt;').replaceAll ('>', '&gt;').replaceAll ('"', '&quot;').replaceAll("'", '&#039;');
 }
 
-/** Parse hexadecimal CSS color with 3 or 6 digits into [ R, G, B ]. */
+/** Parse hexadecimal CSS color with 3 or 6 digits into [ R, G, B ] */
 export function parse_hex_color (colorstr) {
   if (colorstr.substr (0, 1) == '#') {
     let hex = colorstr.substr (1);
@@ -1121,34 +1122,34 @@ export function parse_hex_color (colorstr) {
   return undefined;
 }
 
-/** Parse hexadecimal CSS color into luminosity. */
+/** Parse hexadecimal CSS color into luminosity */
 // https://en.wikipedia.org/wiki/Relative_luminance
 export function parse_hex_luminosity (colorstr) {
   const rgb = parse_hex_color (colorstr);
   return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
 }
 
-/** Parse hexadecimal CSS color into brightness. */
+/** Parse hexadecimal CSS color into brightness */
 // https://www.w3.org/TR/AERT/#color-contrast
 export function parse_hex_brightness (colorstr) {
   const rgb = parse_hex_color (colorstr);
   return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
 }
 
-/** Parse hexadecimal CSS color into perception corrected grey. */
+/** Parse hexadecimal CSS color into perception corrected grey */
 // http://alienryderflex.com/hsp.html
 export function parse_hex_pgrey (colorstr) {
   const rgb = parse_hex_color (colorstr);
   return Math.sqrt (0.299 * rgb[0] * rgb[0] + 0.587 * rgb[1] * rgb[1] + 0.114 * rgb[2] * rgb[2]);
 }
 
-/** Parse hexadecimal CSS color into average grey. */
+/** Parse hexadecimal CSS color into average grey */
 export function parse_hex_average (colorstr) {
   const rgb = parse_hex_color (colorstr);
   return 0.3333 * rgb[0] + 0.3333 * rgb[1] + 0.3333 * rgb[2];
 }
 
-/** Parse CSS colors (via invisible DOM element) and yield an array of rgba tuples. */
+/** Parse CSS colors (via invisible DOM element) and yield an array of rgba tuples */
 export function parse_colors (colorstr) {
   let result = [];
   if (!parse_colors.span) {
@@ -1237,7 +1238,7 @@ export function swallow_event (type, timeout = 0) {
   setTimeout (() => document.removeEventListener (type, prevent_event, true), timeout);
 }
 
-/// Prevent default or any propagation for a possible event.
+/** Prevent default or any propagation for a possible event */
 export function prevent_event (event_or_null)
 {
   if (!event_or_null || !event_or_null.preventDefault)
@@ -1249,7 +1250,7 @@ export function prevent_event (event_or_null)
   return false; // no-default
 }
 
-/// Close dialog on backdrop clicks via hiding at mousedown
+/** Close dialog on backdrop clicks via hiding at mousedown */
 function dialog_backdrop_mousedown (ev)
 {
   const dialog = this;
@@ -1266,7 +1267,7 @@ function dialog_backdrop_mousedown (ev)
     }
 }
 
-/// Close dialog on backdrop clicks via actual closing at mouseup
+/** Close dialog on backdrop clicks via actual closing at mouseup */
 function dialog_backdrop_mouseup (ev)
 {
   const dialog = this;
@@ -1280,7 +1281,7 @@ function dialog_backdrop_mouseup (ev)
   prevent_event (ev);
 }
 
-/// Install handlers to close a dialog on backdrop clicks.
+/** Install handlers to close a dialog on backdrop clicks */
 export function dialog_backdrop_autoclose (dialog, install_or_remove)
 {
   console.assert (dialog instanceof HTMLDialogElement);
@@ -1396,7 +1397,7 @@ export function hstippleRect (ctx, x, y, width, height, stipple) {
     ctx.fillRect (s, y, stipple, height);
 }
 
-/** Fill and stroke a canvas rectangle with rounded corners. */
+/** Fill and stroke a canvas rectangle with rounded corners */
 export function roundRect (ctx, x, y, width, height, radius, fill = true, stroke = true) {
   if (typeof radius === 'number')
     radius = [ radius, radius, radius, radius ];
@@ -1500,7 +1501,7 @@ export function discard_remote (aseobject) {
   console.log ("TODO: Ase: implement discard:", aseobject);
 }
 
-/// Align integer value to 8.
+/** Align integer value to 8 */
 function align8 (int) {
   return (int / 8 |0) * 8;
 }
@@ -1578,7 +1579,7 @@ function telemetry_reschedule() {
   }
 }
 
-/// Call `fun` for telemtry updates, returns unsubscribe handler.
+/** Call `fun` for telemtry updates, returns unsubscribe handler */
 export function telemetry_subscribe (fun, telemetryfields) {
   if (telemetryfields.length < 1)
     return null;
@@ -1611,7 +1612,7 @@ export function telemetry_subscribe (fun, telemetryfields) {
   return telemetryobject;
 }
 
-/// Call `fun` for telemtry updates, returns unsubscribe handler.
+/** Call `fun` for telemtry updates, returns unsubscribe handler */
 export function telemetry_unsubscribe (telemetryobject) {
   if (array_remove (telemetry_objects, telemetryobject)) {
     telemetry_reschedule();
@@ -1639,19 +1640,19 @@ export function format_title (prgname, entity = undefined, infos = undefined, ex
 
 let keyboard_click_state = { inclick: 0 };
 
-/// Check if the current click event originates from keyboard activation.
+/** Check if the current click event originates from keyboard activation */
 export function in_keyboard_click()
 {
   return keyboard_click_state.inclick > 0;
 }
 
-/// Retrieve event that triggers keyboard_click().
+/** Retrieve event that triggers keyboard_click() */
 export function keyboard_click_event (fallback = undefined) {
   return keyboard_click_current_event[0] || fallback;
 }
 const keyboard_click_current_event = [ undefined ];
 
-/// Trigger element click via keyboard.
+/** Trigger element click via keyboard */
 export function keyboard_click (element, event, callclick = true)
 {
   if (element instanceof Element)
@@ -1694,7 +1695,7 @@ export function matches_forof (element, iteratable)
   return false;
 }
 
-/// Extract filtered text nodes from Element.
+/** Extract filtered text nodes from Element */
 export function element_text (element, filter)
 {
   let texts = [];
@@ -1713,7 +1714,7 @@ export function element_text (element, filter)
   return texts.join ('');
 }
 
-/// Clone a menuitem icon via its `uri`.
+/** Clone a menuitem icon via its `uri` */
 export function clone_menu_icon (menu, uri, title = '')
 {
   const menuitem = menu?.find_menuitem (uri);
@@ -1743,13 +1744,13 @@ async function refresh_keyboard_map () {
     navigator.keyboard.addEventListener ("layoutchange", () => refresh_keyboard_map());
 }) ();
 
-/// Retrieve user-printable name for a keyboard button, useful to describe KeyboardEvent.code.
+/** Retrieve user-printable name for a keyboard button, useful to describe KeyboardEvent.code */
 export function keyboard_map_name (keyname) {
   const name = keyboard_map.get (keyname);
   return name || keyname;
 }
 
-/// Check if `ancestor` is an ancestor of `node`, maybe including shadowRoot elements.
+/** Check if `ancestor` is an ancestor of `node`, maybe including shadowRoot elements */
 export function has_ancestor (node, ancestor, escape_shadowdom = true)
 {
   while (node)
@@ -1765,7 +1766,7 @@ export function has_ancestor (node, ancestor, escape_shadowdom = true)
   return false;
 }
 
-/// Find the closest element or parent matching `selector`, traversing shadow DOMs.
+/** Find the closest element or parent matching `selector`, traversing shadow DOMs */
 export function closest (element, selector)
 {
   while (element)
@@ -1789,7 +1790,7 @@ export function root_ancestor (element) {
   return element;
 }
 
-/// Find an element at `(x,y)` for which `predicate (element)` is true.
+/** Find an element at `(x,y)` for which `predicate (element)` is true */
 export function find_element_from_point (root, x, y, predicate, visited = new Set())
 {
   for (const el of root.elementsFromPoint (x, y))
@@ -1864,7 +1865,7 @@ export function assign_async_cleanup (map, key, cleaner) {
     oldcleaner();
 }
 
-/** Method to be added to a `observable_from_getters()` result to force updates. */
+/** Method to be added to a `observable_from_getters()` result to force updates */
 export function observable_force_update () {
   // This method works as a tag for observable_from_getters()
 }
@@ -2018,13 +2019,13 @@ export function zero_pad (string, n = 2) {
   return string;
 }
 
-/// Strip whitespace from start and end of string.
+/** Strip whitespace from start and end of string */
 export function lrstrip (str)
 {
   return str.replaceAll (/^[\s\t\f]+|[\s\t\f]+$/g, '');
 }
 
-/// Gather text content from `node_or_array`.
+/** Gather text content from `node_or_array` */
 export function collect_text_content (node_or_array)
 {
   const asarray = Array.isArray (node_or_array) ? node_or_array : node_or_array ? [ node_or_array ] : [];
@@ -2049,7 +2050,7 @@ export function fmt_date (datelike) {
 
 const default_seed = Math.random() * 4294967295 >>> 0;
 
-/// Generate 53-Bit hash from `key`.
+/** Generate 53-Bit hash from `key` */
 export function hash53 (key, seed = default_seed) {
   // https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript/52171480#52171480
   let h1 = 0xcc9e2d51 ^ seed, h2 = 0x1b873593 ^ seed;
@@ -2093,7 +2094,7 @@ export function raster_line (x0, y0, x1, y1)
 
 const destroycallbacks = Symbol ('call_destroy_callbacks');
 
-/// Add a `callback` to `this` to be called from `call_destroy_callbacks()`.
+/** Add a `callback` to `this` to be called from `call_destroy_callbacks()` */
 export function add_destroy_callback (callback)
 {
   console.assert (this instanceof Object);
@@ -2104,7 +2105,7 @@ export function add_destroy_callback (callback)
     callbacks.push (callback);
 }
 
-/// Remove a `callback` from `this`, previously added via `add_destroy_callback()`.
+/** Remove a `callback` from `this`, previously added via `add_destroy_callback()` */
 export function del_destroy_callback (callback)
 {
   console.assert (this instanceof Object);
@@ -2113,7 +2114,7 @@ export function del_destroy_callback (callback)
   return callbacks && array_remove (callbacks, callback);
 }
 
-/// Call destroy callbacks of `this`, clears the callback list.
+/** Call destroy callbacks of `this`, clears the callback list */
 export function call_destroy_callbacks()
 {
   console.assert (this instanceof Object);
