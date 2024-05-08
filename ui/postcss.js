@@ -208,6 +208,7 @@ const test_rules = {
   'h { lchcolor: lch(62% 54 63); }':			'h{ lchcolor:rgb(205, 132, 63);', // match only first part to allow display-p3 extension
   't { --cd-5: div(5,2) div(5s,2) div(5km,2h); }':	'--cd-5:2.5 2.5s 2.5km/h;',
   'tn { font-variant-numeric:tabular-nums; }':		'tn{ font-variant-numeric:tabular-nums; }', // preprocessors must NOT reset font-feature-settings here
+  'tw { @apply m-4; }':					'tw{ margin:1rem; }',
   // add_import ('imp.css', '$importval: "imported";');
   // '@import "imp.css"; i { --importval: $importval; }': 'i { --importval: "imported"; }',
 };
