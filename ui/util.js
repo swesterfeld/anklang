@@ -1792,30 +1792,6 @@ export function create_note (text, timeout = undefined) {
   return App.shell.create_note (text, timeout);
 }
 
-/** Generate `element.innerHTML` from `markdown_text` */
-export function markdown_to_html (element, markdown_text) {
-  const MarkdownIt = require ('markdown-it');
-  // configure Markdown generator
-  const config = { linkify: true };
-  const md = new MarkdownIt (config);
-  // add target=_blank to all links
-  const orig_link_open = md.renderer.rules.link_open || function (tokens, idx, options, env, self) {
-    return self.renderToken (tokens, idx, options); // default renderer
-  };
-  md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
-    const aIndex = tokens[idx].attrIndex ('target'); // attribute could be present already
-    if (aIndex >= 0)
-      tokens[idx].attrs[aIndex][1] = '_blank';       // override when present
-    else
-      tokens[idx].attrPush (['target', '_blank']);   // or add new attribute
-    return orig_link_open (tokens, idx, options, env, self); // resume
-  };
-  // render HTML
-  const html = md.render (markdown_text);
-  element.classList.add ('b-markdown-it-outer');
-  element.innerHTML = html;
-}
-
 /** Assign `map[key] = cleaner`, while awaiting and calling any previously existing cleanup function */
 export function assign_async_cleanup (map, key, cleaner) {
   const oldcleaner = map[key];
