@@ -80,8 +80,8 @@ $>/.ui-build-stamp: $>/ui/zcam-js.mjs
 $>/ui/colors.js: $>/ui/zcam-js.mjs
 
 # == ui/index.html ==
-$>/ui/index.html: ui/index.html $>/ui/global.css $>/ui/vue-styles.css node_modules/.npm.done		| $>/ui/
-	@ $(eval ui/csshash != cat $>/ui/global.css $>/ui/vue-styles.css | sha256sum | sed 's/ *-//')
+$>/ui/index.html: ui/index.html $>/ui/global.css node_modules/.npm.done		| $>/ui/
+	@ $(eval ui/csshash != cat $>/ui/global.css | sha256sum | sed 's/ *-//')
 	$(QGEN)
 	$Q rm -f $>/ui/doc && ln -s ../doc $>/ui/doc # do here, b/c MAKE is flaky in tracking symlink timestamps
 	$Q echo '    { "config": { $(strip $(PACKAGE_VERSIONS)),'				> $>/ui/config.json
@@ -135,23 +135,6 @@ $(ui/b/vuejs.targets): $>/%.js: %.vue			| $>/ui/b/ node_modules/.npm.done
 	$Q node ui/sfc-compile.js --debug -I $>/ui/ $< -O $(@D)
 $>/.ui-reload-stamp: $(ui/b/vuejs.targets)
 
-# == vue-styles.css ==
-ui/b/vuecss.targets ::= $(ui/vue.wildcards:%.vue=$>/%.vuecss)
-$(ui/b/vuecss.targets): $(ui/b/vuejs.targets) ;
-$>/ui/vue-styles.css: $(ui/b/vuecss.targets) ui/stylelintrc.cjs ui/Makefile.mk
-	$(QGEN)
-	$Q echo '@charset "UTF-8";'					>  $@.vuecss
-	$Q echo "@import 'mixins.scss';"				>> $@.vuecss
-	$Q for f in $(ui/b/vuecss.targets:$>/ui/b/%=%) ; do		\
-		echo "@import 'b/$${f}';"				>> $@.vuecss \
-		|| exit 1 ; done
-	$Q node ui/postcss.js --test $V # CHECK transformations
-	$Q cd $>/ui/ && node $(abspath ui/postcss.js) --map -Dthemename_scss=dark.scss -I ../../ui/ -i $(@F).vuecss $(@F).tmp
-	-$Q cd $>/ && $(abspath node_modules/.bin/stylelint) $${INSIDE_EMACS:+-f unix} -c $(abspath ui/stylelintrc.cjs) ui/b/*.vuecss \
-	|& sed -r 's|/[^ :]*/(ui/b/[^ /:]+)\.vuecss:|\1.vue:|'
-	$Q $(RM) $@.vuecss && mv $@.tmp $@
-$>/.ui-reload-stamp: $>/ui/vue-styles.css
-
 # == UI/GLOBALSCSS_IMPORTS ==
 UI/GLOBALSCSS_IMPORTS =
 # Material-Icons
@@ -195,20 +178,22 @@ $>/ui/spinner.scss: ui/assets/spinner.svg
 UI/GLOBALSCSS_IMPORTS += $>/ui/spinner.scss
 
 # == ui/global.css ==
+ui/b/vuecss.targets ::= $(ui/vue.wildcards:%.vue=$>/%.vuecss)
+$(ui/b/vuecss.targets): $(ui/b/vuejs.targets) ;
 ui/b/js.files := $(wildcard ui/b/*.js)
 ui/tailwind.inputs := $(wildcard ui/*.html ui/*.css ui/*.scss ui/*.js ui/b/*.js ui/b/*.vue $(ui/b/js.files))
-$>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) ui/jsextract.js ui/stylelintrc.cjs $(UI/GLOBALSCSS_IMPORTS)	| $>/ui/b/
+$>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) ui/jsextract.js ui/stylelintrc.cjs $(UI/GLOBALSCSS_IMPORTS) $(ui/b/vuecss.targets)	| $>/ui/ $>/extract/ui/b/
 	$(QGEN)
-	$Q $(CP) $< $>/ui/global.scss
-	$Q node ui/jsextract.js -O $>/ui/b/ $(ui/b/js.files)		# do node ui/jsextract.js $$f -O "$>/$${f%/*}"
-	$Q for f in $(ui/b/js.files:$>/ui/%=%) ; do \
-		echo "@import '../$$f""css';" >> $>/ui/global.scss || exit 1 ; done
-	$Q node ui/postcss.js --test $V # CHECK transformations
-	$Q node ui/postcss.js --map -Dthemename_scss=dark.scss -I ui/ $>/ui/global.scss $@.tmp
-	-$Q node_modules/.bin/stylelint $${INSIDE_EMACS:+-f unix} -c ui/stylelintrc.cjs $(wildcard ui/*.*css)
-	-$Q cd $>/ && $(abspath node_modules/.bin/stylelint) $${INSIDE_EMACS:+-f unix} -c $(abspath ui/stylelintrc.cjs) ui/b/*.jscss \
-	|& sed -r 's|/[^ :]*/(ui/b/[^ /:]+)\.jscss:|\1.js:|'
-	$Q rm -f $>/ui/*.jscss $>/ui/b/*.jscss $>/ui/global.scss
+	$Q echo '@charset "UTF-8";'				>  $@.imp
+	$Q echo "@import 'global.scss';"			>> $@.imp
+	$Q for f in $(ui/b/vuecss.targets:$>/ui/b/%=%) ; do		\
+	    echo "@import 'b/$${f}';" || exit 1 ; done		>> $@.imp
+	$Q node ui/jsextract.js -O $>/extract/ui/b/ $(ui/b/js.files)
+	$Q for f in $(ui/b/js.files:$>/ui/%=%); do \
+	    echo "@import '$>/extract/$$f';" || exit 1 ; done	>> $@.imp
+	$Q (cd $>/extract/ && $(abspath node_modules/.bin/stylelint) $${INSIDE_EMACS:+-f unix} -c $(abspath ui/stylelintrc.cjs) ui/b/*.js) & \
+	node_modules/.bin/postcss --config ui/ < $@.imp > $@.tmp && wait
+	$Q rm -f -r $>/extract/ $@.imp
 	$Q mv $@.tmp $@
 $>/.ui-reload-stamp: $>/ui/global.css
 
