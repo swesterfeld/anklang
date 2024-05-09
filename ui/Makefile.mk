@@ -257,26 +257,15 @@ $>/ui/InterVariable.woff2: external/blobs4anklang/fonts/InterVariable.woff2	| $>
 	$Q $(CP) $< $@
 $>/.ui-build-stamp: $>/ui/InterVariable.woff2
 
-# == $>/ui/browserified.js ==
-$>/ui/browserified.js: node_modules/.npm.done	| ui/Makefile.mk $>/ui/
+# == $>/ui/markdown-it.mjs ==
+$>/ui/markdown-it.mjs: node_modules/.npm.done	| $>/ui/
 	$(QGEN)
-	$Q: # bundle and re-export module for the browser
-	$Q mkdir -p $>/ui/tmp-browserify/
-	$Q echo "const modules = {"								>  $>/ui/tmp-browserify/requires.js
-	$Q for mod in \
-		markdown-it \
-		; do \
-		echo "  '$${mod}': require ('$$mod')," ; done					>> $>/ui/tmp-browserify/requires.js
-	$Q echo "};"										>> $>/ui/tmp-browserify/requires.js
-	$Q echo "const browserify_require = m => modules[m] || console.error ('Unknown module:', m);"	>> $>/ui/tmp-browserify/requires.js
-	$Q echo "Object.defineProperty (window, 'require', { value: browserify_require });"		>> $>/ui/tmp-browserify/requires.js
-	$Q echo "window.require.modules = modules;"						>> $>/ui/tmp-browserify/requires.js
-	$Q node_modules/.bin/browserify --debug -o $>/ui/tmp-browserify/browserified.long.js $>/ui/tmp-browserify/requires.js
-	$Q node_modules/.bin/terser --source-map content=inline --comments false $>/ui/tmp-browserify/browserified.long.js -o $>/ui/tmp-browserify/browserified.min.js
-	$Q mv $>/ui/tmp-browserify/browserified.min.js.map $@.map
-	$Q mv $>/ui/tmp-browserify/browserified.min.js $@
-	$Q rm -r $>/ui/tmp-browserify/
-$>/.ui-build-stamp: $>/ui/browserified.js
+	$q echo 'import dflt from "markdown-it"; export default dflt;' > $@.js	\
+	&& node_modules/.bin/rollup -f es --sourcemap \
+		-p @rollup/plugin-node-resolve -p "terser={output:{beautify:false}}" \
+		-o $@ $@.js \
+	&& rm -f $@.js
+$>/.ui-build-stamp: $>/ui/markdown-it.mjs
 
 # == $>/ui/favicon.ico ==
 $>/ui/favicon.ico: ui/assets/favicon.svg node_modules/.npm.done ui/Makefile.mk	| $>/ui/
