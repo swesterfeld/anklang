@@ -574,7 +574,7 @@ export function equals_recursively (a, b) {
 	  break;
 	if (!(va === vb || equals_recursively (va, vb)))
 	  return false;
-      } while (true);	// eslint-disable-line no-constant-condition
+      } while (true);
     }
   return true;
   // TODO: equals_recursively() busy loops for object reference cycles
@@ -1134,7 +1134,7 @@ export function parse_colors (colorstr) {
     parse_colors.span.style.display = 'none';
     document.body.appendChild (parse_colors.span);
   }
-  for (const c of exports.split_comma (colorstr)) {
+  for (const c of split_comma (colorstr)) {
     parse_colors.span.style.color = c;
     const style = getComputedStyle (parse_colors.span);
     let m = style.color.match (/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
