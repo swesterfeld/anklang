@@ -99,7 +99,7 @@ function write_style (filename, ofile, config, stylestring) {
   if (!with_sass)
     return fs.writeFileSync (ofile + '.vuecss', stylestring);
   // write CSS after SASS processing
-  const sass = require ('sass');
+  const sass = null; // require ('sass');
   const result = sass.renderSync ({
     data: stylestring,
     file: filename,
