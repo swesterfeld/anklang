@@ -185,6 +185,7 @@ ui/tailwind.inputs := $(wildcard ui/*.html ui/*.css ui/*.scss ui/*.js ui/b/*.js 
 $>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) ui/jsextract.js ui/stylelintrc.cjs $(UI/GLOBALSCSS_IMPORTS) $(ui/b/vuecss.targets)	| $>/ui/ $>/extract/ui/b/
 	$(QGEN)
 	$Q echo '@charset "UTF-8";'				>  $@.imp
+	$Q echo "@import 'dark.scss';"				>> $@.imp
 	$Q echo "@import 'global.scss';"			>> $@.imp
 	$Q for f in $(ui/b/vuecss.targets:$>/ui/b/%=%) ; do		\
 	    echo "@import 'b/$${f}';" || exit 1 ; done		>> $@.imp
