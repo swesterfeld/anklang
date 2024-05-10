@@ -203,6 +203,7 @@ $b-singlebutton-bgd:  zmod($b-singlebutton-bg, Jz-=7.2);
 $b-singlebutton-lg:   linear-gradient(to top, $b-singlebutton-bgd, $b-singlebutton-bgl);
 $b-singlebutton-dark: linear-gradient(to bottom, zmod($b-singlebutton-bgd, Jz-=1.7), $b-singlebutton-bgd);
 $b-singlebutton-border-color: zmod($b-singlebutton-bg, Jz-=32.5);
+$focus-outline-col: $b-glow-control;
 @mixin b-singlebutton($vpad: 5px, $hpad: 5px) {
   background: $b-singlebutton-lg;
   color: $b-singlebutton-fg;
@@ -219,7 +220,6 @@ $b-singlebutton-border-color: zmod($b-singlebutton-bg, Jz-=32.5);
     box-shadow: inset 500px 500px rgba(0, 0, 0, 0.05);
   }
   &:focus {
-    $focus-outline-col: $b-glow-control;
     outline: none;
     box-shadow: 0 0 0 1px $focus-outline-col;
     &.active, &:active, &[data-contextmenu="true"] {
