@@ -5,7 +5,7 @@
   "scripts": {
     "serve": "exec run-p sound-engine monitor",
     "sound-engine": "exec out/lib/AnklangSynthEngine $ASEOPT",
-    "monitor": "exec nodemon --ext '*' --watch ui/ --delay 1000ms --on-change-only --exec 'npm run -s ui/rebuild' --exitcrash",
+    "monitor": "exec nodemon --ext '*' --watch ui/ --delay 370ms --on-change-only --exec 'npm run -s ui/rebuild' --exitcrash",
     "ui/rebuild": "exec make ui/rebuild -j`nproc`"
   },
   "dependencies": {
