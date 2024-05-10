@@ -1,47 +1,5 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 
-// == Color Theme ==
-$b-main-foreground: 	#f3f1f5;
-$b-main-background: 	lgrey(13%);
-$b-color-active:	#00e5ea; // #ff8811;
-$b-panel-foreground:	$b-main-foreground;
-$b-panel-background:	lgrey(36%); // also panel border
-$b-panel-focus:		lgrey(50%); // focused panel border
-$b-panel-borderwidth:	2px;
-$b-panel-border:	$b-panel-borderwidth solid $b-panel-background;
-$b-panel-spacing:	$b-panel-borderwidth;
-$b-devicepanel-bg:	lgrey(3%);
-$b-device-bg:		$b-panel-background;
-$b-device-handle:	lgrey(26%); // or, device-handle
-$b-device-area1:	lgrey(24%);
-$b-device-area2:	lgrey(28%);
-$b-choice-0-bg:		lgrey(50%);
-$b-choice-0-bh:		zmod($b-choice-0-bg, Jz+=12.5); // highlight
-$b-choice-0-bl:		zmod($b-choice-0-bg, Jz+=8); // light
-$b-choice-0-bd:		zmod($b-choice-0-bg, Jz-=7.5);  // dark
-$b-toggle-0-bg:		$b-choice-0-bg;
-$b-toggle-0-bh:		$b-choice-0-bh;
-$b-toggle-0-bl:		$b-choice-0-bl;
-$b-toggle-0-bd:		$b-choice-0-bd;
-$b-toggle-1-bg:		zmod($b-color-active, Jz=63%);
-$b-toggle-1-bh:		zmod($b-toggle-1-bg, Jz+=11.5); // highlight
-$b-toggle-1-bl:		zmod($b-toggle-1-bg, Jz+=7.845); // light
-$b-toggle-1-bd:		zmod($b-toggle-1-bg, Jz-=8);  // dark
-$b-trackrow-height:	3em;
-$b-tracklist-bg:	$b-device-area1;
-$b-tracklist-parts-bg:	$b-device-area2;
-$b-scroll-shadow-blur:  3px;
-$b-clipthumb-width:	6em;
-$b-clip-play-fg:	#bbbd;
-$b-clip-play-bg:	#0003;
-$b-modal-foreground:	lgrey(98.7%);
-$b-modal-background:	lgrey(18%);
-$b-modal-bordercol:	lgrey(36%);
-$b-scrollbar-size:      13px; // tweaked to match supported Firefox scrollbar size
-$b-scrollbar-bg:	#111; // track
-$b-scrollbar-dd:	#222; // inactive slider
-$b-scrollbar-fg:	#777; // hovered slider
-
 // == Status Bar ==
 $b-statusbar-bg: $b-main-background;
 $b-statusbar-field-spacing: 0.5em;
@@ -56,38 +14,6 @@ $b-statusbar-icon-scaleup: 1.1;    // enlarge active
   border-left:  1px solid $groove-shade;
   border-right: 1px solid $groove-tint;
 }
-
-// == Basic Colors ==
-$b-base-foreground: 		#f0f0f0 !default;
-$b-base-background: 		#202020 !default;
-$b-menu-foreground: 		#fcfcfc !default;
-$b-menu-fill:	 		zmod($b-menu-foreground, Jz-=15%) !default;
-$b-menu-background: 		#333333 !default;
-$b-menu-disabled: 		#808080 !default;
-$b-menu-disabled-fill: 		zmod($b-menu-disabled, Jz-=10%) !default;
-$b-menu-separator: 		#909090 !default;
-$b-menu-focus-bg: 		#dddddd !default;
-$b-menu-focus-fg: 		$b-menu-background !default;
-$b-menu-active-bg: 		$b-menu-foreground !default;
-$b-menu-active-fg: 		$b-menu-background !default;
-$b-menu-padding: 		0.3em;
-$b-menu-spacing: 		0.75em;	// icon spacing
-$b-menu-tightspace: 		0.3em;	// icon spacing when packed
-$b-menu-box-shadow: 		0 0 13px 1px #0005;
-$b-menu-vpad:			5px;	// vertical border/margin around a menuitem
-$b-menu-hpad:			1em;	// horizontal border/margin around a menuitem
-$b-style-focus-color:		#0080ff !default;
-$b-style-light-foreground:	$b-main-foreground !default;
-$b-style-dark-outline:		#181818 !default;
-$b-style-modal-overlay:		#0000008c;
-
-$b-style-fg-secondary: #ccc !default;			// secondary foreground, for details / fineprint
-$b-style-fg-warning:   #f80 !default;
-$b-style-fg-notice:    #fc0 !default;
-$b-style-fg-filter:    brightness(66%) !default;	// adjust style-fg in inverted focus/active contexts
-
-// == BrowserWindow Defaults ==
-$b-default-background-color:	$b-main-background;	// #rrggbb needed
 
 // == Animations ==
 $b-transition-fast-slide: 0.15s !default;
