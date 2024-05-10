@@ -3,6 +3,7 @@
 
 import { JsExtract } from '../little.js';
 import * as Util from '../util.js';
+import * as Dom from "../dom.js";
 
 /** @class DataBubbleImpl
  * @description
@@ -18,6 +19,7 @@ $b-data-bubble-fg:  hsl($b-data-bubble-hue, 100%, 1%);
 $b-data-bubble-bg:  hsl($b-data-bubble-hue, 100%, 90%);
 $b-data-bubble-bg2: zmod($b-data-bubble-bg, Jz+=3%);
 $b-data-bubble-br:  $b-data-bubble-bg2;
+$fsf: 1.05; //* font size factor */
 
 /* Tooltips via CSS, using the data-bubble="" attribute */
 .b-data-bubble {
@@ -52,7 +54,6 @@ $b-data-bubble-br:  $b-data-bubble-bg2;
   /* markdown styling for data-bubble */
   .b-markdown-it-outer {
     @include b-markdown-it-inlined;
-    $fsf: 1.05; //* font size factor */
     h1 { font-size: calc(pow($fsf, 6) * 1em); }
     h2 { font-size: calc(pow($fsf, 5) * 1em); }
     h3 { font-size: calc(pow($fsf, 4) * 1em); }
@@ -179,7 +180,7 @@ class DataBubbleImpl {
 	else if (newtext != this.lasttext)
 	  {
 	    this.lasttext = newtext;
-	    Util.markdown_to_html (this.bubblediv, this.lasttext);
+	    Dom.markdown_to_html (this.bubblediv, this.lasttext);
 	  }
       }
   }
