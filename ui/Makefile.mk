@@ -177,25 +177,37 @@ $>/ui/spinner.scss: ui/assets/spinner.svg
 	$Q sed -rn '/@keyframe/,$${ p; /^\s*}\s*$$/q; }' $< > $@
 UI/GLOBALSCSS_IMPORTS += $>/ui/spinner.scss
 
+# == ext/ui/b/*.js ==
+ui/b/js.files     := $(wildcard ui/b/*.js)
+ext/ui/b/js.files := $(ui/b/js.files:%=$>/ext/%)
+$(ext/ui/b/js.files): $>/ext/ui/b/.stamp
+$>/ext/ui/b/.stamp: $(ui/b/js.files) ui/jsextract.js			| $>/ext/ui/b/
+	$(QECHO) EXTRACT 'ext/ui/b/*.js'
+	$Q node ui/jsextract.js -O $>/ext/ui/b/ $(ui/b/js.files)
+	$Q touch $@
+ext/ui/lint: $>/ext/ui/b/.stamp
+	-$Q cd $>/ext/ \
+	&& $(abspath node_modules/.bin/stylelint) -c $(abspath ui/stylelintrc.cjs) \
+		$${INSIDE_EMACS:+-f unix} $(ext/ui/b/js.files:$>/ext/%=%) |& \
+		sed -r 's|^/[^ :]*/(ui/b/)|\1|'
+.PHONY: ext/ui/lint
+ui/lint: ext/ui/lint
+
 # == ui/global.css ==
 ui/b/vuecss.targets ::= $(ui/vue.wildcards:%.vue=$>/%.vuecss)
 $(ui/b/vuecss.targets): $(ui/b/vuejs.targets) ;
-ui/b/js.files := $(wildcard ui/b/*.js)
 ui/tailwind.inputs := $(wildcard ui/*.html ui/*.css ui/*.scss ui/*.js ui/b/*.js ui/b/*.vue $(ui/b/js.files))
-$>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) ui/jsextract.js ui/stylelintrc.cjs $(UI/GLOBALSCSS_IMPORTS) $(ui/b/vuecss.targets)	| $>/ui/ $>/extract/ui/b/
+$>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) $(ext/ui/b/js.files) ui/stylelintrc.cjs $(UI/GLOBALSCSS_IMPORTS) $(ui/b/vuecss.targets)	| $>/ui/
 	$(QGEN)
 	$Q echo '@charset "UTF-8";'				>  $@.imp
 	$Q echo "@import 'dark.scss';"				>> $@.imp
 	$Q echo "@import 'global.scss';"			>> $@.imp
 	$Q for f in $(ui/b/vuecss.targets:$>/ui/b/%=%) ; do		\
 	    echo "@import 'b/$${f}';" || exit 1 ; done		>> $@.imp
-	$Q node ui/jsextract.js -O $>/extract/ui/b/ $(ui/b/js.files)
-	$Q for f in $(ui/b/js.files:$>/ui/%=%); do \
-	    echo "@import '$>/extract/$$f';" || exit 1 ; done	>> $@.imp
-	$Q (cd $>/extract/ && $(abspath node_modules/.bin/stylelint) $${INSIDE_EMACS:+-f unix} -c $(abspath ui/stylelintrc.cjs) ui/b/*.js) & \
-	node_modules/.bin/postcss --config ui/ < $@.imp > $@.tmp && wait
-	$Q rm -f -r $>/extract/ $@.imp
-	$Q mv $@.tmp $@
+	$Q for f in $(ext/ui/b/js.files); do \
+	    echo "@import '$$f';" || exit 1 ; done		>> $@.imp
+	$Q node_modules/.bin/postcss --config ui/ < $@.imp > $@.tmp
+	$Q rm -f $@.imp && mv $@.tmp $@
 $>/.ui-reload-stamp: $>/ui/global.css
 
 # == all-components.js ==
