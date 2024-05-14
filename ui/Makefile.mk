@@ -23,7 +23,6 @@ ui/cjs.wildcards ::= $(wildcard		\
 )
 ui/nocopy.wildcards ::= $(wildcard	\
 	ui/*css				\
-	ui/postcss.js			\
 	ui/sfc-compile.js		\
 	ui/slashcomment.js		\
 )
