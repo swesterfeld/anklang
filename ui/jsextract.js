@@ -27,7 +27,7 @@ function process_file (filename, config) {
   // split CSS blocks
   const parts = string.split (re_jscss);
   // convert CSS blocks
-  let jscss_string = `/* ${filename} */ @charset "UTF-8";`;
+  let jscss_string = `/* ${filename} */ `;
   for (let i = 1; i < parts.length; i += 2)
     {
       const prefix_newlines = count_newlines (parts[i - 1]);
