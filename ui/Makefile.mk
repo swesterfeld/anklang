@@ -208,7 +208,7 @@ ui/lint: ext/ui/lint
 ui/b/vuecss.targets ::= $(ui/vue.wildcards:%.vue=$>/%.vuecss)
 $(ui/b/vuecss.targets): $(ui/b/vuejs.targets) ;
 ui/tailwind.inputs := $(wildcard ui/*.html ui/*.css ui/*.scss ui/*.js ui/b/*.js ui/b/*.vue $(ui/b/js.files))
-$>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) $(ext/ui/b/js.files) ui/stylelintrc.cjs $(UI/GLOBALSCSS_IMPORTS) $(ui/b/vuecss.targets)	| $>/ui/
+$>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) $(ext/ui/b/js.files) ui/stylelintrc.cjs ui/postcss.config.mjs $(UI/GLOBALSCSS_IMPORTS) $(ui/b/vuecss.targets)	| $>/ui/
 	$(QGEN)
 	$Q echo '@charset "UTF-8";'				>  $@.imp
 	$Q echo "@import 'dark.scss';"				>> $@.imp
@@ -217,6 +217,7 @@ $>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) $(ext/ui/b/js.files) ui/s
 	    echo "@import 'b/$${f}';" || exit 1 ; done		>> $@.imp
 	$Q for f in $(ext/ui/b/js.files); do \
 	    echo "@import '$$f';" || exit 1 ; done		>> $@.imp
+	$Q test -r ui/postcss.config.mjs || { echo 'ui/postcss.config.mjs: not readable'; false; }
 	$Q node_modules/.bin/postcss --config ui/ < $@.imp > $@.tmp
 	$Q rm -f $@.imp && mv $@.tmp $@
 $>/.ui-reload-stamp: $>/ui/global.css
