@@ -78,6 +78,18 @@ $>/ui/zcam-js.mjs: node_modules/.npm.done				| $>/ui/
 $>/.ui-build-stamp: $>/ui/zcam-js.mjs
 $>/ui/colors.js: $>/ui/zcam-js.mjs
 
+# == ui/b/*.js ==
+ui/js.internal := $(strip \
+	ui/colors.js ui/sfc-compile.js ui/jsextract.js ui/stylelintrc.cjs ui/eslintrc.js \
+	ui/tailwind.config.mjs ui/xbcomments.js \
+)
+ui/js.sources = $(filter-out $(ui/js.internal), $(filter ui/%.js, $(LS_TREE_LST)))
+ui/js.targets = $(ui/js.sources:%=$>/%)
+$>/ui/%.js: ui/%.js								| $>/ui/
+	$(QECHO) COPY $@
+	$Q cp $< $@
+$>/ui/index.html: $(ui/js.targets)
+
 # == ui/index.html ==
 $>/ui/index.html: ui/index.html $>/ui/global.css node_modules/.npm.done		| $>/ui/
 	@ $(eval ui/csshash != cat $>/ui/global.css | sha256sum | sed 's/ *-//')
@@ -226,13 +238,6 @@ $>/ui/all-components.js: ui/Makefile.mk $(ui/b/vuejs.targets) $(wildcard ui/b/*)
 	$Q cat $@.tmp2 >> $@.tmp && $(RM) $@.tmp2
 	$Q mv $@.tmp $@
 $>/.ui-reload-stamp: $>/ui/all-components.js
-
-# == File Copies ==
-ui/copy.targets ::= $(ui/copy.files:%=$>/%)
-$(ui/copy.targets): $>/ui/%: ui/%	| $>/ui/b/
-	$(QECHO) COPY $@
-	$Q $(CP) $< --parents $>/
-$>/.ui-reload-stamp: $(ui/copy.targets)
 
 # == Copies to ui/ ==
 ui/public.targets ::= $(ui/public.wildcards:ui/%=$>/ui/%)
