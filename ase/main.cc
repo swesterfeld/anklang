@@ -110,6 +110,8 @@ print_usage (bool help)
   printout ("  --jsbin          Print Javascript IPC & binary messages\n");
   printout ("  --jsipc          Print Javascript IPC messages\n");
   printout ("  --list-drivers   Print PCM and MIDI drivers\n");
+  printout ("  -P pcmdriver     Force use of <pcmdriver>\n");
+  printout ("  -M mididriver    Force use of <mididriver>\n");
   printout ("  --norc           Prevent loading of any rc files\n");
   printout ("  -o wavfile       Capture output to OPUS/FLAC/WAV file\n");
   printout ("  --play-autostart Automatically start playback of `project.anklang`\n");
@@ -201,6 +203,16 @@ parse_args (int *argcp, char **argv)
         config.jsonapi_logflags |= jsbin_logflags;
       else if (strcmp ("--list-drivers", argv[i]) == 0)
         config.list_drivers = true;
+      else if (strcmp ("-M", argv[i])  == 0 && i + 1 < size_t (argc))
+        {
+          argv[i++]  = nullptr;
+          config.midi_override = argv[i];
+        }
+      else if (strcmp ("-P", argv[i]) == 0  && i  + 1  < size_t (argc))
+        {
+          argv[i++]  = nullptr;
+          config.pcm_override  = argv[i];
+        }
       else if (strcmp ("-h", argv[i]) == 0 ||
                strcmp ("--help", argv[i]) == 0)
         {
