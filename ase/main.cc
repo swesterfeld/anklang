@@ -100,6 +100,7 @@ print_usage (bool help)
   printout ("Usage: %s [OPTIONS] [project.anklang]\n", executable_name());
   printout ("  --check          Run integrity tests\n");
   printout ("  --test[=test]    Run specific tests\n");
+  printout ("  --list-tests     List all test names\n");
   printout ("  --class-tree     Print exported class tree\n");
   printout ("  --disable-randomization Test mode for deterministic tests\n");
   printout ("  --embed <fd>     Parent process socket for embedding\n");
@@ -163,6 +164,13 @@ parse_args (int *argcp, char **argv)
         {
           config.mode = MainConfig::CHECK_INTEGRITY_TESTS;
           ase_fatal_warnings = assertion_failed_fatal = true;
+          printerr ("CHECK_INTEGRITY_TESTS…\n");
+        }
+      else if (strcmp ("--list-tests", argv[i]) == 0)
+        {
+          for (const auto &t : Test::list_tests())
+            printout ("%s\n", t.ident);
+          exit (0);
         }
       else if (strcmp ("--test", argv[i]) == 0 || strncmp ("--test=", argv[i], 7) == 0)
         {
@@ -270,7 +278,6 @@ make_auth_string()
 static void
 run_tests_and_quit ()
 {
-  printerr ("CHECK_INTEGRITY_TESTS…\n");
   if (check_test_names.empty())
     Test::run();
   else
