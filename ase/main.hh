@@ -14,6 +14,7 @@ namespace Ase {
 // == MainConfig ==
 struct MainConfig {
   AudioEngine *engine = nullptr;
+  String pcm_override, midi_override;
   WebSocketServer *web_socket_server = nullptr;
   const char         *outputfile = nullptr;
   std::vector<String> args;
