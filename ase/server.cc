@@ -217,20 +217,8 @@ ase_error_blurb (Error error)
 {
   switch (error)
     {
-      // errno aliases
+      // errno aliases are left to strerror
     case Error::NONE:			return _("OK");
-    case Error::PERMS:
-    case Error::IO:
-    case Error::NO_MEMORY:
-    case Error::NO_SPACE:
-    case Error::NO_FILES:
-    case Error::MANY_FILES:
-    case Error::RETRY:
-    case Error::NOT_DIRECTORY:
-    case Error::FILE_NOT_FOUND:
-    case Error::FILE_IS_DIR:
-    case Error::FILE_EXISTS:
-    case Error::FILE_BUSY:              break; // fallback to strerror
       // Ase specific errors
     case Error::INTERNAL:		return _("Internal error (please report)");
       // file errors
@@ -269,47 +257,19 @@ ase_error_blurb (Error error)
     case Error::INVALID_PROPERTY:	return _("Invalid object property");
     case Error::INVALID_MIDI_CONTROL:	return _("Invalid MIDI control type");
     case Error::OPERATION_BUSY:		return _("Operation already in prgress");
+    default:
+      return strerror (int (error));
     }
-  return strerror (int (error));
 }
 
 // Map errno onto Ase::Error.
 Error
 ase_error_from_errno (int sys_errno, Error fallback)
 {
-  switch (sys_errno)
-    {
-    case 0:             return Ase::Error::NONE;
-    case ELOOP:
-    case ENAMETOOLONG:
-    case ENOENT:        return Ase::Error::FILE_NOT_FOUND;
-    case EISDIR:        return Ase::Error::FILE_IS_DIR;
-    case EROFS:
-    case EPERM:
-    case EACCES:        return Ase::Error::PERMS;
-#ifdef ENODATA  /* GNU/kFreeBSD lacks this */
-    case ENODATA:
-#endif
-    case ENOMSG:        return Ase::Error::FILE_EOF;
-    case ENOMEM:        return Ase::Error::NO_MEMORY;
-    case ENOSPC:        return Ase::Error::NO_SPACE;
-    case ENFILE:        return Ase::Error::NO_FILES;
-    case EMFILE:        return Ase::Error::MANY_FILES;
-    case EFBIG:
-    case ESPIPE:
-    case EIO:           return Ase::Error::IO;
-    case EEXIST:        return Ase::Error::FILE_EXISTS;
-    case ETXTBSY:
-    case EBUSY:         return Ase::Error::FILE_BUSY;
-    case EAGAIN:
-    case EINTR:         return Ase::Error::RETRY;
-    case EFAULT:        return Ase::Error::INTERNAL;
-    case EBADF:
-    case ENOTDIR:
-    case ENODEV:
-    case EINVAL:
-    default:            return fallback;
-    }
+  if (sys_errno < int (Error::INTERNAL))
+    return Error (sys_errno); // Error includes errnos
+  else
+    return fallback;
 }
 
 String
