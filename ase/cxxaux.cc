@@ -43,16 +43,15 @@ string_demangle_cxx (const char *mangled_identifier) noexcept
 std::string
 backtrace_command()
 {
-  bool allow_ptrace = false;
-#ifdef  __linux__
+  bool allow_ptrace = true;
+#if 0 && defined (__linux__)
+  // disabling this check, so the debugger can showman appropriate error message
   const char *const ptrace_scope = "/proc/sys/kernel/yama/ptrace_scope";
   int fd = open (ptrace_scope, 0);
   char b[8] = { 0 };
   if (read (fd, b, 8) > 0)
     allow_ptrace = b[0] == '0';
   close (fd);
-#else
-  allow_ptrace = true;
 #endif
   if (!allow_ptrace)
     return "";
@@ -61,7 +60,6 @@ backtrace_command()
   if (access (usr_bin_lldb, X_OK) == 0) {
     snprintf (cmd, sizeof (cmd),
               "%s -Q -x --batch -p %u "
-              "-o 'settings set frame-format \"#${frame.index}: ${ansi.fg.yellow}${function.name-without-args}${ansi.normal} in{ ${module.file.basename}{@${function.name-with-args}{${frame.no-debug}${function.pc-offset}}}}{ at ${ansi.fg.cyan}${line.file.basename}${ansi.normal}:${ansi.fg.yellow}${line.number}${ansi.normal}{:${ansi.fg.yellow}${line.column}${ansi.normal}}}{${function.is-optimized} [opt]}{${frame.is-artificial} [artificial]}\\n\" ' "
               "-o 'bt all'",
               usr_bin_lldb, gettid());
     return cmd;
