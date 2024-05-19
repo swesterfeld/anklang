@@ -82,7 +82,6 @@ export default {
       filter: string => !string.endsWith ('.css'),
       path: [ 'ui/', 'out/ui/' ],
     },
-    'postcss-normalize-charset': {},
     'postcss-discard-comments': { remove: comment => true },
     'postcss-advanced-variables': { importFilter: string => false, },
 

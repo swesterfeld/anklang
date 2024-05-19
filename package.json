@@ -58,7 +58,6 @@
     "postcss-functions": "^4.0.2",
     "postcss-lab-function": "^6.0.16",
     "postcss-nested": "^6.0.1",
-    "postcss-normalize-charset": "^7.0.0",
     "postcss-scss": "^4.0.9",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.14",
