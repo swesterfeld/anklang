@@ -14,11 +14,11 @@
 #define WITH_MIDI_POLL  0
 
 #define alsa_alloca0(struc)     ({ struc##_t *ptr = (struc##_t*) alloca (struc##_sizeof()); memset (ptr, 0, struc##_sizeof()); ptr; })
-#define return_error(reason, ERRMEMB) do {      \
-  Ase::debug ("alsa", "%s: %s: %s",             \
-    alsadev_, reason,                           \
-    ase_error_blurb (Ase::Error::ERRMEMB));     \
-  return Ase::Error::ERRMEMB;                   \
+#define return_error(reason, aerror, ERRMEMB)           do {    \
+    const Error __ase_error = ase_error_from_errno (-aerror, Ase::Error::ERRMEMB); \
+    Ase::debug ("alsa", "%s: %s: %s", alsadev_, reason,                 \
+                ase_error_blurb (__ase_error));                         \
+    return __ase_error;                                                 \
   } while (0)
 
 /* Notes on the ALSA API:
@@ -456,8 +456,10 @@ public:
     if (!error && (!read_handle_ || !write_handle_))
       PDEBUG ("OPEN: %s: %s: mix=%.1fHz n=%d period=%d", alsadev_,
               read_handle_ ? "READONLY" : "WRITEONLY", mix_freq_, n_periods_, period_size_);
-    if (!error && snd_pcm_prepare (read_handle_ ? read_handle_ : write_handle_) < 0)
-      error = Error::FILE_OPEN_FAILED;
+    if (!error) {
+      aerror = snd_pcm_prepare (read_handle_ ? read_handle_ : write_handle_);
+      error = !aerror ? Error::NONE : ase_error_from_errno (-aerror, Error::FILE_OPEN_FAILED);
+    }
     // finish opening or shutdown
     if (!error)
       {
@@ -482,22 +484,24 @@ public:
   alsa_device_setup (snd_pcm_t *phandle, uint latency_ms, uint *mix_freq, uint *n_periodsp, uint *period_sizep)
   {
     // turn on blocking behaviour since we may end up in read() with an unfilled buffer
-    if (snd_pcm_nonblock (phandle, 0) < 0)
-      return_error ("snd_pcm_nonblock", FILE_OPEN_FAILED);
+    if (int aerror = snd_pcm_nonblock (phandle, 0); aerror < 0)
+      return_error ("snd_pcm_nonblock", aerror, FILE_OPEN_FAILED);
     // setup hardware configuration
     snd_pcm_hw_params_t *hparams = alsa_alloca0 (snd_pcm_hw_params);
-    if (snd_pcm_hw_params_any (phandle, hparams) < 0)
-      return_error ("snd_pcm_hw_params_any", FILE_OPEN_FAILED);
-    if (snd_pcm_hw_params_set_channels (phandle, hparams, n_channels_) < 0)
-      return_error ("snd_pcm_hw_params_set_channels", DEVICE_CHANNELS);
-    if (snd_pcm_hw_params_set_access (phandle, hparams, SND_PCM_ACCESS_RW_INTERLEAVED) < 0)
-      return_error ("snd_pcm_hw_params_set_access", DEVICE_FORMAT);
-    if (snd_pcm_hw_params_set_format (phandle, hparams, SND_PCM_FORMAT_S16_LE) < 0)
-      return_error ("snd_pcm_hw_params_set_format", DEVICE_FORMAT);
+    if (int aerror = snd_pcm_hw_params_any (phandle, hparams); aerror < 0) // alsa=pulse returns aerror=+1
+      return_error ("snd_pcm_hw_params_any", aerror, FILE_OPEN_FAILED);
+    if (int aerror = snd_pcm_hw_params_set_channels (phandle, hparams, n_channels_); aerror < 0)
+      return_error ("snd_pcm_hw_params_set_channels", aerror, DEVICE_CHANNELS);
+    if (int aerror = snd_pcm_hw_params_set_access (phandle, hparams, SND_PCM_ACCESS_RW_INTERLEAVED); aerror < 0)
+      return_error ("snd_pcm_hw_params_set_access", aerror, DEVICE_FORMAT);
+    if (int aerror = snd_pcm_hw_params_set_format (phandle, hparams, SND_PCM_FORMAT_S16_LE); aerror < 0)
+      return_error ("snd_pcm_hw_params_set_format", aerror, DEVICE_FORMAT);
     // sample_rate
     uint rate = *mix_freq;
-    if (snd_pcm_hw_params_set_rate (phandle, hparams, rate, 0) < 0 || rate != *mix_freq)
-      return_error ("snd_pcm_hw_params_set_rate", DEVICE_FREQUENCY);
+    if (int aerror = snd_pcm_hw_params_set_rate (phandle, hparams, rate, 0); aerror < 0)
+      return_error ("snd_pcm_hw_params_set_rate", aerror, DEVICE_FREQUENCY);
+    if (rate != *mix_freq)
+      return_error ("snd_pcm_hw_params_set_rate", -EINVAL, DEVICE_FREQUENCY);
     PDEBUG ("SETUP: %s: rate: %d", alsadev_, rate);
     // fragment size
     snd_pcm_uframes_t period_min = 2, period_max = 1048576;
@@ -512,48 +516,51 @@ public:
     period_size = CLAMP (period_size, period_min, period_max);
     period_size = MIN (period_size, *period_sizep); // MAX_BLOCK_SIZE constraint
     int dir = 0;
-    if (snd_pcm_hw_params_set_period_size_near (phandle, hparams, &period_size, &dir) < 0)
-      return_error ("snd_pcm_hw_params_set_period_size_near", DEVICE_LATENCY);
+    if (int aerror = snd_pcm_hw_params_set_period_size_near (phandle, hparams, &period_size, &dir); aerror < 0)
+      return_error ("snd_pcm_hw_params_set_period_size_near", aerror, DEVICE_LATENCY);
     PDEBUG ("SETUP: %s: period_size: %d (dir=%+d, min=%d max=%d)", alsadev_,
             period_size, dir, period_min, period_max);
     // fragment count
     const uint want_nperiods = latency_ms == 0 ? 2 : CLAMP (latency_frames / period_size, 2, 1023) + 1;
     uint nperiods = want_nperiods;
-    if (snd_pcm_hw_params_set_periods_near (phandle, hparams, &nperiods, nullptr) < 0)
-      return_error ("snd_pcm_hw_params_set_periods", DEVICE_LATENCY);
+    if (int aerror = snd_pcm_hw_params_set_periods_near (phandle, hparams, &nperiods, nullptr); aerror < 0)
+      return_error ("snd_pcm_hw_params_set_periods", aerror, DEVICE_LATENCY);
     PDEBUG ("SETUP: %s: n_periods: %d (requested: %d)", alsadev_, nperiods, want_nperiods);
-    if (snd_pcm_hw_params (phandle, hparams) < 0)
-      return_error ("snd_pcm_hw_params", FILE_OPEN_FAILED);
+    if (int aerror = snd_pcm_hw_params (phandle, hparams); aerror < 0)
+      return_error ("snd_pcm_hw_params", aerror, FILE_OPEN_FAILED);
     // verify hardware settings
     snd_pcm_uframes_t buffer_size_min = 0, buffer_size_max = 0, buffer_size = 0;
-    if (snd_pcm_hw_params_get_buffer_size_min (hparams, &buffer_size_min) < 0 ||
-        snd_pcm_hw_params_get_buffer_size_max (hparams, &buffer_size_max) < 0 ||
-        snd_pcm_hw_params_get_buffer_size (hparams, &buffer_size) < 0)
-      return_error ("snd_pcm_hw_params_get_buffer_size", DEVICE_BUFFER);
+    if (int aerror = snd_pcm_hw_params_get_buffer_size (hparams, &buffer_size); aerror < 0)
+      return_error ("snd_pcm_hw_params_get_buffer_size", aerror, DEVICE_BUFFER);
+    if (int aerror = snd_pcm_hw_params_get_buffer_size_min (hparams, &buffer_size_min); aerror < 0)
+      return_error ("snd_pcm_hw_params_get_buffer_size_min", aerror, DEVICE_BUFFER);
+    if (int aerror = snd_pcm_hw_params_get_buffer_size_max (hparams, &buffer_size_max); aerror < 0)
+      return_error ("snd_pcm_hw_params_get_buffer_size_max", aerror, DEVICE_BUFFER);
     PDEBUG ("SETUP: %s: buffer_size: %d (min=%d, max=%d)", alsadev_, buffer_size, buffer_size_min, buffer_size_max);
     // setup software configuration
     snd_pcm_sw_params_t *sparams = alsa_alloca0 (snd_pcm_sw_params);
-    if (snd_pcm_sw_params_current (phandle, sparams) < 0)
-      return_error ("snd_pcm_sw_params_current", FILE_OPEN_FAILED);
-    if (snd_pcm_sw_params_set_start_threshold (phandle, sparams, (buffer_size / period_size) * period_size) < 0)
-      return_error ("snd_pcm_sw_params_set_start_threshold", DEVICE_BUFFER);
+    if (int aerror = snd_pcm_sw_params_current (phandle, sparams); aerror < 0)
+      return_error ("snd_pcm_sw_params_current", aerror, FILE_OPEN_FAILED);
+    if (int aerror = snd_pcm_sw_params_set_start_threshold (phandle, sparams, (buffer_size / period_size) * period_size); aerror < 0)
+      return_error ("snd_pcm_sw_params_set_start_threshold", aerror, DEVICE_BUFFER);
     snd_pcm_uframes_t availmin = 0;
-    if (snd_pcm_sw_params_set_avail_min (phandle, sparams, period_size) < 0 ||
-        snd_pcm_sw_params_get_avail_min (sparams, &availmin) < 0)
-      return_error ("snd_pcm_sw_params_set_avail_min", DEVICE_LATENCY);
+    if (int aerror = snd_pcm_sw_params_set_avail_min (phandle, sparams, period_size); aerror < 0)
+      return_error ("snd_pcm_sw_params_set_avail_min", aerror, DEVICE_LATENCY);
+    if (int aerror = snd_pcm_sw_params_get_avail_min (sparams, &availmin); aerror < 0)
+      return_error ("snd_pcm_sw_params_get_avail_min", aerror, DEVICE_LATENCY);
     PDEBUG ("SETUP: %s: avail_min: %d", alsadev_, availmin);
-    if (snd_pcm_sw_params_set_stop_threshold (phandle, sparams, LONG_MAX) < 0) // keep going on underruns
-      return_error ("snd_pcm_sw_params_set_stop_threshold", DEVICE_BUFFER);
+    if (int aerror = snd_pcm_sw_params_set_stop_threshold (phandle, sparams, LONG_MAX); aerror < 0) // keep going on underruns
+      return_error ("snd_pcm_sw_params_set_stop_threshold", aerror, DEVICE_BUFFER);
     snd_pcm_uframes_t stopthreshold = 0;
-    if (snd_pcm_sw_params_get_stop_threshold (sparams, &stopthreshold) < 0)
-      return_error ("snd_pcm_sw_params_get_stop_threshold", DEVICE_BUFFER);
+    if (int aerror = snd_pcm_sw_params_get_stop_threshold (sparams, &stopthreshold); aerror < 0)
+      return_error ("snd_pcm_sw_params_get_stop_threshold", aerror, DEVICE_BUFFER);
     PDEBUG ("SETUP: %s: stop_threshold: %d", alsadev_, stopthreshold);
-    if (snd_pcm_sw_params_set_silence_threshold (phandle, sparams, 0) < 0)   // avoid early dropouts
-      return_error ("snd_pcm_sw_params_set_silence_threshold", DEVICE_BUFFER);
-    if (snd_pcm_sw_params_set_silence_size (phandle, sparams, LONG_MAX) < 0) // silence past frames
-      return_error ("snd_pcm_sw_params_set_silence_size", DEVICE_BUFFER);
-    if (snd_pcm_sw_params (phandle, sparams) < 0)
-      return_error ("snd_pcm_sw_params", FILE_OPEN_FAILED);
+    if (int aerror = snd_pcm_sw_params_set_silence_threshold (phandle, sparams, 0); aerror < 0)   // avoid early dropouts
+      return_error ("snd_pcm_sw_params_set_silence_threshold", aerror, DEVICE_BUFFER);
+    if (int aerror = snd_pcm_sw_params_set_silence_size (phandle, sparams, LONG_MAX); aerror < 0) // silence past frames
+      return_error ("snd_pcm_sw_params_set_silence_size", aerror, DEVICE_BUFFER);
+    if (int aerror = snd_pcm_sw_params (phandle, sparams); aerror < 0)
+      return_error ("snd_pcm_sw_params", aerror, FILE_OPEN_FAILED);
     // return values
     *mix_freq = rate;
     *n_periodsp = nperiods;
@@ -581,7 +588,7 @@ public:
     // prepare for playback/capture
     int aerror = snd_pcm_prepare (read_handle_ ? read_handle_ : write_handle_);
     if (aerror)   // this really should not fail
-      printerr ("ALSA: %s: failed to prepare for io: %s\n", __func__, snd_strerror (aerror));
+      printerr ("ALSA: %s: failed to prepare for io: %s\n", __func__, snd_strerror (-aerror));
     // fill playback buffer with silence
     if (write_handle_)
       {
@@ -786,7 +793,7 @@ public:
     if (!aerror)
       aerror = snd_seq_drain_output (seq_);
     if (aerror)
-      MDEBUG ("SndSeq: %s: initialization failed: %s", myname, snd_strerror (aerror));
+      MDEBUG ("SndSeq: %s: initialization failed: %s", myname, snd_strerror (-aerror));
     else
       MDEBUG ("SndSeq: %s: queue started: %.5f", myname, queue_now());
     return ase_error_from_errno (-aerror, Error::FILE_OPEN_FAILED);
