@@ -3,7 +3,7 @@
 #define __ASE_UTILS_HH__
 
 #include <ase/defs.hh>
-#include <ase/strings.hh>
+#include <ase/logging.hh>
 #include <experimental/type_traits>
 #include <any>
 
