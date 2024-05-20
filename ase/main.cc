@@ -99,8 +99,6 @@ print_usage (bool help)
     }
   printout ("Usage: %s [OPTIONS] [project.anklang]\n", executable_name());
   printout ("  --check          Run integrity tests\n");
-  printout ("  --test[=test]    Run specific tests\n");
-  printout ("  --list-tests     List all test names\n");
   printout ("  --class-tree     Print exported class tree\n");
   printout ("  --disable-randomization Test mode for deterministic tests\n");
   printout ("  --embed <fd>     Parent process socket for embedding\n");
@@ -110,14 +108,17 @@ print_usage (bool help)
   printout ("  --jsbin          Print Javascript IPC & binary messages\n");
   printout ("  --jsipc          Print Javascript IPC messages\n");
   printout ("  --list-drivers   Print PCM and MIDI drivers\n");
-  printout ("  -P pcmdriver     Force use of <pcmdriver>\n");
-  printout ("  -M mididriver    Force use of <mididriver>\n");
+  printout ("  --list-tests     List all test names\n");
+  printout ("  --log2file       Enable logging to ~/.cache/anklang/ instead of stderr\n");
   printout ("  --norc           Prevent loading of any rc files\n");
-  printout ("  -o wavfile       Capture output to OPUS/FLAC/WAV file\n");
   printout ("  --play-autostart Automatically start playback of `project.anklang`\n");
   printout ("  --rand64         Produce 64bit random numbers on stdout\n");
-  printout ("  -t <time>        Automatically play and stop after <time> has passed\n"); // -t <time>[{,|;}tailtime]
+  printout ("  --test[=test]    Run specific tests\n");
   printout ("  --version        Print program version\n");
+  printout ("  -M mididriver    Force use of <mididriver>\n");
+  printout ("  -P pcmdriver     Force use of <pcmdriver>\n");
+  printout ("  -o wavfile       Capture output to OPUS/FLAC/WAV file\n");
+  printout ("  -t <time>        Automatically play and stop after <time> has passed\n"); // -t <time>[{,|;}tailtime]
 }
 
 // 1:ERROR 2:FAILED+REJECT 4:IO 8:MESSAGE 16:GET 256:BINARY
@@ -137,7 +138,7 @@ parse_args (int *argcp, char **argv)
       config.jsonapi_logflags |= debug_key_enabled ("jsipc") ? jsipc_logflags : 0;
     }
 
-  bool norc = false;
+  config.norc = false;
   bool sep = false; // -- separator
   const uint argc = *argcp;
   for (uint i = 1; i < argc; i++)
@@ -149,7 +150,9 @@ parse_args (int *argcp, char **argv)
       else if (strcmp ("--disable-randomization", argv[i]) == 0)
         config.allow_randomization = false;
       else if (strcmp ("--norc", argv[i]) == 0)
-        norc = true;
+        config.norc = true;
+      else if (strcmp ("--log2file", argv[i]) == 0)
+        config.log2file = true;
       else if (strcmp ("--rand64", argv[i]) == 0)
         {
           FastRng prng;
@@ -264,9 +267,6 @@ parse_args (int *argcp, char **argv)
           }
       *argcp = e;
     }
-  // load preferences unless --norc was given
-  if (!norc)
-    Preference::load_preferences (true);
   return config;
 }
 
@@ -326,6 +326,7 @@ handle_autostop (const LoopState &state)
     case LoopState::PREPARE:    return seen_autostop;
     case LoopState::CHECK:      return seen_autostop;
     case LoopState::DISPATCH:
+      loginf ("stopping playback (auto)");
       atquit_run (0);
       return true; // keep alive
     default: ;
@@ -441,12 +442,16 @@ main (int argc, char *argv[])
   main_loop = MainLoop::create();
   // handle loft preallocation needs
   main_loop->exec_dispatcher (dispatch_loft_lowmem, EventLoop::PRIORITY_CEILING);
-  // handle automatic shutdown
-  main_loop->exec_dispatcher (handle_autostop);
 
-  // setup thread and handle args and config (needs main_loop)
+  // parse args and config (needs main_loop)
   main_config_ = parse_args (&argc, argv);
   const MainConfig &config = main_config_;
+  // configure logging
+  log_setup (!config.log2file, config.log2file);
+
+  // load preferences unless --norc was given
+  if (!config.norc)
+    Preference::load_preferences (true);
 
   const auto B1 = color (BOLD);
   const auto B0 = color (BOLD_OFF);
@@ -530,6 +535,7 @@ main (int argc, char *argv[])
       Error error = Error::NO_MEMORY;
       if (preload_project)
         error = preload_project->load_project (filename);
+      loginf ("load project: %s: %s", filename, ase_error_blurb (error));
       if (!!error)
         warning ("%s: failed to load project: %s", filename, ase_error_blurb (error));
     }
@@ -545,18 +551,31 @@ main (int argc, char *argv[])
   const int xport = embedding_fd >= 0 ? 0 : 1777;
   const String subprotocol = xport ? "" : make_auth_string();
   jsonapi_require_auth (subprotocol);
-  if (main_config.mode == MainConfig::SYNTHENGINE)
-    wss->listen ("127.0.0.1", xport, [] () { main_loop->quit (-1); });
+  if (main_config.mode == MainConfig::SYNTHENGINE) {
+    const char *host = "127.0.0.1";
+    wss->listen (host, xport, [] () { main_loop->quit (-1); });
+    loginf ("listen on: %s:%u", host, xport);
+  }
   const String url = wss->url() + (subprotocol.empty() ? "" : "?subprotocol=" + subprotocol);
   if (embedding_fd < 0 && !url.empty())
     printout ("%sLISTEN:%s %s\n", B1, B0, url);
 
-  // run atquit handler on SIGINT
-  main_loop->exec_usignal (SIGINT, [] (int8 sig) { atquit_run (-1); return false; });
-  USignalSource::install_sigaction (SIGINT);
+  // run atquit handler on SIGHUP SIGINT
+  for (int sigid : { SIGHUP, SIGINT }) {
+    main_loop->exec_usignal (sigid, [] (int8 sig) {
+      loginf ("got signal %d: aborting", sig);
+      atquit_run (-1);
+      return false;
+    });
+    USignalSource::install_sigaction (sigid);
+  }
 
   // catch SIGUSR2 to close sockets
-  main_loop->exec_usignal (SIGUSR2, [wss] (int8) { wss->reset(); return true; });
+  main_loop->exec_usignal (SIGUSR2, [wss] (int8 sig) {
+    loginf ("got signal %d: reset WebSocket", sig);
+    wss->reset();
+    return true;
+  });
   USignalSource::install_sigaction (SIGUSR2);
 
   // monitor and allow auth over keep-alive-fd
@@ -568,8 +587,7 @@ main (int argc, char *argv[])
           {
             ssize_t n = read (embedding_fd, &msg[0], msg.size()); // flush input
             msg.resize (n > 0 ? n : 0);
-            if (!msg.empty())
-              printerr ("Embedder: %s%s", msg, msg.back() == '\n' ? "" : "\n");
+            loginf ("Embedder Msg: %s", msg);
           }
         if (string_strip (msg) == "QUIT" || (pfd.revents & (PollFD::ERR | PollFD::HUP | PollFD::NVAL)))
           wss->shutdown();
@@ -588,6 +606,7 @@ main (int argc, char *argv[])
   if (config.outputfile)
     {
       std::shared_ptr<CallbackS> callbacks = std::make_shared<CallbackS>();
+      loginf ("Start caputure: %s", config.outputfile);
       config.engine->queue_capture_start (*callbacks, config.outputfile, true);
       auto job = [callbacks] () {
         for (const auto &callback : *callbacks)
@@ -598,7 +617,12 @@ main (int argc, char *argv[])
 
   // start auto play
   if (config.play_autostart && preload_project)
-    main_loop->exec_idle ([preload_project] () { preload_project->start_playback (config.play_autostop); });
+    main_loop->exec_idle ([preload_project] () {
+      loginf ("starting playback (auto)");
+      preload_project->start_playback (config.play_autostop);
+    });
+  // handle automatic shutdown
+  main_loop->exec_dispatcher (handle_autostop);
 
   // run test suite
   if (main_config.mode == MainConfig::CHECK_INTEGRITY_TESTS)
@@ -607,6 +631,7 @@ main (int argc, char *argv[])
   // run main event loop and catch SIGUSR2
   const int exitcode = main_loop->run();
   assert_return (main_loop, -1); // ptr must be kept around
+  loginf ("main loop quit (code=%d)", exitcode);
 
   // cleanup
   wss->shutdown(); // close socket, allow no more calls
@@ -619,6 +644,7 @@ main (int argc, char *argv[])
   main_loop->iterate_pending();
   main_config_.engine = nullptr;
 
+  loginf ("exiting: %d", exitcode);
   return exitcode;
 }
 

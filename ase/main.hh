@@ -20,6 +20,8 @@ struct MainConfig {
   std::vector<String> args;
   uint16 websocket_port = 0;
   int    jsonapi_logflags = 1;
+  bool   norc = true;
+  bool   log2file = false;
   bool   allow_randomization = true;
   bool   list_drivers = false;
   bool   play_autostart = false;
