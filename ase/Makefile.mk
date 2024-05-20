@@ -206,6 +206,12 @@ lint: ase/lint
 
 # == Check Integrity Tests ==
 check-ase-tests: $(lib/AnklangSynthEngine)
+	$(eval xargs_parallel != P=`parallel --help 2>/dev/null` && \
+	  [[ $$$$P =~ GNU.[Pp]arallel ]] && echo parallel || \
+	  { echo xargs -n1; echo "$$$$0: missing 'GNU parallel', falling back to 'xargs'" >&2; } )
 	$(QGEN)
-	$Q $(lib/AnklangSynthEngine) --check
+	$Q : $(lib/AnklangSynthEngine) --check
+	$Q set -Eeuo pipefail \
+	&& $(lib/AnklangSynthEngine) --list-tests \
+	|  $(xargs_parallel) $(lib/AnklangSynthEngine) --norc -P null -M null --test
 CHECK_TARGETS += check-ase-tests

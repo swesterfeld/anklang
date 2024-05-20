@@ -100,6 +100,7 @@ print_usage (bool help)
   printout ("Usage: %s [OPTIONS] [project.anklang]\n", executable_name());
   printout ("  --check          Run integrity tests\n");
   printout ("  --test[=test]    Run specific tests\n");
+  printout ("  --list-tests     List all test names\n");
   printout ("  --class-tree     Print exported class tree\n");
   printout ("  --disable-randomization Test mode for deterministic tests\n");
   printout ("  --embed <fd>     Parent process socket for embedding\n");
@@ -109,6 +110,8 @@ print_usage (bool help)
   printout ("  --jsbin          Print Javascript IPC & binary messages\n");
   printout ("  --jsipc          Print Javascript IPC messages\n");
   printout ("  --list-drivers   Print PCM and MIDI drivers\n");
+  printout ("  -P pcmdriver     Force use of <pcmdriver>\n");
+  printout ("  -M mididriver    Force use of <mididriver>\n");
   printout ("  --norc           Prevent loading of any rc files\n");
   printout ("  -o wavfile       Capture output to OPUS/FLAC/WAV file\n");
   printout ("  --play-autostart Automatically start playback of `project.anklang`\n");
@@ -163,6 +166,13 @@ parse_args (int *argcp, char **argv)
         {
           config.mode = MainConfig::CHECK_INTEGRITY_TESTS;
           ase_fatal_warnings = assertion_failed_fatal = true;
+          printerr ("CHECK_INTEGRITY_TESTS…\n");
+        }
+      else if (strcmp ("--list-tests", argv[i]) == 0)
+        {
+          for (const auto &t : Test::list_tests())
+            printout ("%s\n", t.ident);
+          exit (0);
         }
       else if (strcmp ("--test", argv[i]) == 0 || strncmp ("--test=", argv[i], 7) == 0)
         {
@@ -193,6 +203,16 @@ parse_args (int *argcp, char **argv)
         config.jsonapi_logflags |= jsbin_logflags;
       else if (strcmp ("--list-drivers", argv[i]) == 0)
         config.list_drivers = true;
+      else if (strcmp ("-M", argv[i])  == 0 && i + 1 < size_t (argc))
+        {
+          argv[i++]  = nullptr;
+          config.midi_override = argv[i];
+        }
+      else if (strcmp ("-P", argv[i]) == 0  && i  + 1  < size_t (argc))
+        {
+          argv[i++]  = nullptr;
+          config.pcm_override  = argv[i];
+        }
       else if (strcmp ("-h", argv[i]) == 0 ||
                strcmp ("--help", argv[i]) == 0)
         {
@@ -270,7 +290,6 @@ make_auth_string()
 static void
 run_tests_and_quit ()
 {
-  printerr ("CHECK_INTEGRITY_TESTS…\n");
   if (check_test_names.empty())
     Test::run();
   else

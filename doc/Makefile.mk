@@ -102,7 +102,7 @@ $>/doc/class-tree.md: $(lib/AnklangSynthEngine) doc/Makefile.mk
 	$Q echo ''						>> $@.tmp
 	$Q echo '```'						>> $@.tmp
 	$Q ASAN_OPTIONS=detect_leaks=0 \
-	   $(lib/AnklangSynthEngine) --class-tree		>> $@.tmp
+	   $(lib/AnklangSynthEngine) --norc --class-tree	>> $@.tmp
 	$Q echo '```'						>> $@.tmp
 	$Q mv $@.tmp $@
 

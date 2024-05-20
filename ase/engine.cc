@@ -950,8 +950,13 @@ apply_driver_preferences ()
   static uint engine_driver_set_timerid = 0;
   main_loop->exec_once (97, &engine_driver_set_timerid,
                         []() {
+                          String pcm_driver = pcm_driver_pref.gets();
+                          if (!main_config.pcm_override.empty())
+                            pcm_driver = main_config.pcm_override;
                           StringS midis = { midi1_driver_pref.gets(), midi2_driver_pref.gets(), midi3_driver_pref.gets(), midi4_driver_pref.gets(), };
-                          main_config.engine->update_drivers (pcm_driver_pref.gets(), synth_latency_pref.getn(), midis);
+                          if (!main_config.midi_override.empty())
+                            midis = { main_config.midi_override, "null", "null", "null", };
+                          main_config.engine->update_drivers (pcm_driver, synth_latency_pref.getn(), midis);
                         });
 }
 
