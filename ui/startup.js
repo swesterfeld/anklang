@@ -58,6 +58,7 @@ const Jsonapi = {
 
 // Bootup, called after onload
 async function bootup () {
+  // install window.Electron
   if (window.__Electron__)
     {
       window.Electron = Object.assign ({}, // setup extensible window.Electron context
