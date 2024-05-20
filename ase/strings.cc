@@ -1623,6 +1623,20 @@ text_convert (const String &to_charset,
 
 }
 
+/// Get POSIX locale strerror.
+const char*
+strerror (int errno_num)
+{
+  const int old_errno = errno;
+  const char *result;
+  {
+    Lib::ScopedPosixLocale posix_locale_scope; // pushes POSIX/C locale for this scope
+    result = ::strerror (errno_num);
+  }
+  errno = old_errno;
+  return result;
+}
+
 const char*
 strerror()
 {
