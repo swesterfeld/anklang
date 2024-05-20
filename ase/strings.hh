@@ -182,8 +182,8 @@ bool    text_convert    (const String &to_charset,
                          const String &output_mark = "");
 
 // == C strings ==
-using         ::strerror;       // introduce (const char* strerror (int))
-const char*     strerror ();    // simple wrapper for strerror (errno)
+const char*     strerror (int errno_num); // POSIX locale
+const char*     strerror ();              // wrapper for strerror (errno)
 
 // == Implementations ==
 #define ASE_STRING_VECTOR_FROM_ARRAY(ConstCharArray)               ({ \

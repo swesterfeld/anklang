@@ -413,6 +413,11 @@ main (int argc, char *argv[])
 
   // SIGPIPE init: needs to be done before any child thread is created
   init_sigpipe();
+
+  // apply user locale
+  if (!setlocale (LC_ALL, ""))
+    perror ("setlocale: locale not supported by libc");
+
   // prepare main event loop (needed before parse_args)
   main_loop = MainLoop::create();
   // handle loft preallocation needs
