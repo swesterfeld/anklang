@@ -19,7 +19,7 @@ b-tracklist {
   .grid {
     display: grid; flex-grow: 1;
     position: relative; inset: 0;
-    padding: 0 calc(0.5 * $scroll-shadow-inset);
+    padding: 0 3px; // 0.5*$scroll-shadow-inset
     align-items: stretch;
     grid-template-columns: min-content 3fr 2fr;
     grid-template-rows: min-content 1fr min-content;

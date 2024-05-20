@@ -23,7 +23,6 @@ ui/cjs.wildcards ::= $(wildcard		\
 )
 ui/nocopy.wildcards ::= $(wildcard	\
 	ui/*css				\
-	ui/postcss.js			\
 	ui/sfc-compile.js		\
 	ui/slashcomment.js		\
 )
@@ -79,9 +78,21 @@ $>/ui/zcam-js.mjs: node_modules/.npm.done				| $>/ui/
 $>/.ui-build-stamp: $>/ui/zcam-js.mjs
 $>/ui/colors.js: $>/ui/zcam-js.mjs
 
+# == ui/b/*.js ==
+ui/js.internal := $(strip \
+	ui/colors.js ui/sfc-compile.js ui/jsextract.js ui/stylelintrc.cjs ui/eslintrc.js \
+	ui/tailwind.config.mjs ui/xbcomments.js \
+)
+ui/js.sources = $(filter-out $(ui/js.internal), $(filter ui/%.js, $(LS_TREE_LST)))
+ui/js.targets = $(ui/js.sources:%=$>/%)
+$>/ui/%.js: ui/%.js								| $>/ui/
+	$(QECHO) COPY $@
+	$Q cp $< $@
+$>/ui/index.html: $(ui/js.targets)
+
 # == ui/index.html ==
-$>/ui/index.html: ui/index.html $>/ui/global.css $>/ui/vue-styles.css node_modules/.npm.done		| $>/ui/
-	@ $(eval ui/csshash != cat $>/ui/global.css $>/ui/vue-styles.css | sha256sum | sed 's/ *-//')
+$>/ui/index.html: ui/index.html $>/ui/global.css node_modules/.npm.done		| $>/ui/
+	@ $(eval ui/csshash != cat $>/ui/global.css | sha256sum | sed 's/ *-//')
 	$(QGEN)
 	$Q rm -f $>/ui/doc && ln -s ../doc $>/ui/doc # do here, b/c MAKE is flaky in tracking symlink timestamps
 	$Q echo '    { "config": { $(strip $(PACKAGE_VERSIONS)),'				> $>/ui/config.json
@@ -135,23 +146,6 @@ $(ui/b/vuejs.targets): $>/%.js: %.vue			| $>/ui/b/ node_modules/.npm.done
 	$Q node ui/sfc-compile.js --debug -I $>/ui/ $< -O $(@D)
 $>/.ui-reload-stamp: $(ui/b/vuejs.targets)
 
-# == vue-styles.css ==
-ui/b/vuecss.targets ::= $(ui/vue.wildcards:%.vue=$>/%.vuecss)
-$(ui/b/vuecss.targets): $(ui/b/vuejs.targets) ;
-$>/ui/vue-styles.css: $(ui/b/vuecss.targets) ui/stylelintrc.cjs ui/Makefile.mk
-	$(QGEN)
-	$Q echo '@charset "UTF-8";'					>  $@.vuecss
-	$Q echo "@import 'mixins.scss';"				>> $@.vuecss
-	$Q for f in $(ui/b/vuecss.targets:$>/ui/b/%=%) ; do		\
-		echo "@import 'b/$${f}';"				>> $@.vuecss \
-		|| exit 1 ; done
-	$Q node ui/postcss.js --test $V # CHECK transformations
-	$Q cd $>/ui/ && node $(abspath ui/postcss.js) --map -Dthemename_scss=dark.scss -I ../../ui/ -i $(@F).vuecss $(@F).tmp
-	-$Q cd $>/ && $(abspath node_modules/.bin/stylelint) $${INSIDE_EMACS:+-f unix} -c $(abspath ui/stylelintrc.cjs) ui/b/*.vuecss \
-	|& sed -r 's|/[^ :]*/(ui/b/[^ /:]+)\.vuecss:|\1.vue:|'
-	$Q $(RM) $@.vuecss && mv $@.tmp $@
-$>/.ui-reload-stamp: $>/ui/vue-styles.css
-
 # == UI/GLOBALSCSS_IMPORTS ==
 UI/GLOBALSCSS_IMPORTS =
 # Material-Icons
@@ -194,22 +188,38 @@ $>/ui/spinner.scss: ui/assets/spinner.svg
 	$Q sed -rn '/@keyframe/,$${ p; /^\s*}\s*$$/q; }' $< > $@
 UI/GLOBALSCSS_IMPORTS += $>/ui/spinner.scss
 
+# == ext/ui/b/*.js ==
+ui/b/js.files     := $(wildcard ui/b/*.js)
+ext/ui/b/js.files := $(ui/b/js.files:%=$>/ext/%)
+$(ext/ui/b/js.files): $>/ext/ui/b/.stamp
+$>/ext/ui/b/.stamp: $(ui/b/js.files) ui/jsextract.js			| $>/ext/ui/b/
+	$(QECHO) EXTRACT 'ext/ui/b/*.js'
+	$Q node ui/jsextract.js -O $>/ext/ui/b/ $(ui/b/js.files)
+	$Q touch $@
+ext/ui/lint: $>/ext/ui/b/.stamp
+	-$Q cd $>/ext/ \
+	&& $(abspath node_modules/.bin/stylelint) -c $(abspath ui/stylelintrc.cjs) \
+		$${INSIDE_EMACS:+-f unix} $(ext/ui/b/js.files:$>/ext/%=%) |& \
+		sed -r 's|^/[^ :]*/(ui/b/)|\1|'
+.PHONY: ext/ui/lint
+ui/lint: ext/ui/lint
+
 # == ui/global.css ==
-ui/b/js.files := $(wildcard ui/b/*.js)
+ui/b/vuecss.targets ::= $(ui/vue.wildcards:%.vue=$>/%.vuecss)
+$(ui/b/vuecss.targets): $(ui/b/vuejs.targets) ;
 ui/tailwind.inputs := $(wildcard ui/*.html ui/*.css ui/*.scss ui/*.js ui/b/*.js ui/b/*.vue $(ui/b/js.files))
-$>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) ui/jsextract.js ui/stylelintrc.cjs $(UI/GLOBALSCSS_IMPORTS)	| $>/ui/b/
+$>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) $(ext/ui/b/js.files) ui/stylelintrc.cjs ui/postcss.config.mjs $(UI/GLOBALSCSS_IMPORTS) $(ui/b/vuecss.targets)	| $>/ui/
 	$(QGEN)
-	$Q $(CP) $< $>/ui/global.scss
-	$Q node ui/jsextract.js -O $>/ui/b/ $(ui/b/js.files)		# do node ui/jsextract.js $$f -O "$>/$${f%/*}"
-	$Q for f in $(ui/b/js.files:$>/ui/%=%) ; do \
-		echo "@import '../$$f""css';" >> $>/ui/global.scss || exit 1 ; done
-	$Q node ui/postcss.js --test $V # CHECK transformations
-	$Q node ui/postcss.js --map -Dthemename_scss=dark.scss -I ui/ $>/ui/global.scss $@.tmp
-	-$Q node_modules/.bin/stylelint $${INSIDE_EMACS:+-f unix} -c ui/stylelintrc.cjs $(wildcard ui/*.*css)
-	-$Q cd $>/ && $(abspath node_modules/.bin/stylelint) $${INSIDE_EMACS:+-f unix} -c $(abspath ui/stylelintrc.cjs) ui/b/*.jscss \
-	|& sed -r 's|/[^ :]*/(ui/b/[^ /:]+)\.jscss:|\1.js:|'
-	$Q rm -f $>/ui/*.jscss $>/ui/b/*.jscss $>/ui/global.scss
-	$Q mv $@.tmp $@
+	$Q echo '@charset "UTF-8";'				>  $@.imp
+	$Q echo "@import 'dark.scss';"				>> $@.imp
+	$Q echo "@import 'global.scss';"			>> $@.imp
+	$Q for f in $(ui/b/vuecss.targets:$>/ui/b/%=%) ; do		\
+	    echo "@import 'b/$${f}';" || exit 1 ; done		>> $@.imp
+	$Q for f in $(ext/ui/b/js.files); do \
+	    echo "@import '$$f';" || exit 1 ; done		>> $@.imp
+	$Q test -r ui/postcss.config.mjs || { echo 'ui/postcss.config.mjs: not readable'; false; }
+	$Q node_modules/.bin/postcss --config ui/ < $@.imp > $@.tmp
+	$Q rm -f $@.imp && mv $@.tmp $@
 $>/.ui-reload-stamp: $>/ui/global.css
 
 # == all-components.js ==
@@ -229,13 +239,6 @@ $>/ui/all-components.js: ui/Makefile.mk $(ui/b/vuejs.targets) $(wildcard ui/b/*)
 	$Q cat $@.tmp2 >> $@.tmp && $(RM) $@.tmp2
 	$Q mv $@.tmp $@
 $>/.ui-reload-stamp: $>/ui/all-components.js
-
-# == File Copies ==
-ui/copy.targets ::= $(ui/copy.files:%=$>/%)
-$(ui/copy.targets): $>/ui/%: ui/%	| $>/ui/b/
-	$(QECHO) COPY $@
-	$Q $(CP) $< --parents $>/
-$>/.ui-reload-stamp: $(ui/copy.targets)
 
 # == Copies to ui/ ==
 ui/public.targets ::= $(ui/public.wildcards:ui/%=$>/ui/%)
@@ -257,26 +260,15 @@ $>/ui/InterVariable.woff2: external/blobs4anklang/fonts/InterVariable.woff2	| $>
 	$Q $(CP) $< $@
 $>/.ui-build-stamp: $>/ui/InterVariable.woff2
 
-# == $>/ui/browserified.js ==
-$>/ui/browserified.js: node_modules/.npm.done	| ui/Makefile.mk $>/ui/
+# == $>/ui/markdown-it.mjs ==
+$>/ui/markdown-it.mjs: node_modules/.npm.done	| $>/ui/
 	$(QGEN)
-	$Q: # bundle and re-export module for the browser
-	$Q mkdir -p $>/ui/tmp-browserify/
-	$Q echo "const modules = {"								>  $>/ui/tmp-browserify/requires.js
-	$Q for mod in \
-		markdown-it \
-		; do \
-		echo "  '$${mod}': require ('$$mod')," ; done					>> $>/ui/tmp-browserify/requires.js
-	$Q echo "};"										>> $>/ui/tmp-browserify/requires.js
-	$Q echo "const browserify_require = m => modules[m] || console.error ('Unknown module:', m);"	>> $>/ui/tmp-browserify/requires.js
-	$Q echo "Object.defineProperty (window, 'require', { value: browserify_require });"		>> $>/ui/tmp-browserify/requires.js
-	$Q echo "window.require.modules = modules;"						>> $>/ui/tmp-browserify/requires.js
-	$Q node_modules/.bin/browserify --debug -o $>/ui/tmp-browserify/browserified.long.js $>/ui/tmp-browserify/requires.js
-	$Q node_modules/.bin/terser --source-map content=inline --comments false $>/ui/tmp-browserify/browserified.long.js -o $>/ui/tmp-browserify/browserified.min.js
-	$Q mv $>/ui/tmp-browserify/browserified.min.js.map $@.map
-	$Q mv $>/ui/tmp-browserify/browserified.min.js $@
-	$Q rm -r $>/ui/tmp-browserify/
-$>/.ui-build-stamp: $>/ui/browserified.js
+	$q echo 'import dflt from "markdown-it"; export default dflt;' > $@.js	\
+	&& node_modules/.bin/rollup -f es --sourcemap \
+		-p @rollup/plugin-node-resolve -p "terser={output:{beautify:false}}" \
+		-o $@ $@.js \
+	&& rm -f $@.js
+$>/.ui-build-stamp: $>/ui/markdown-it.mjs
 
 # == $>/ui/favicon.ico ==
 $>/ui/favicon.ico: ui/assets/favicon.svg node_modules/.npm.done ui/Makefile.mk	| $>/ui/
@@ -290,9 +282,9 @@ $>/.ui-build-stamp: $>/ui/favicon.ico $>/ui/anklang.png
 
 # == eslint ==
 ui/eslint.files ::= $(wildcard ui/*.html ui/*.js ui/b/*.js ui/b/*.vue)
-$>/.eslint.done: ui/eslintrc.cjs $(ui/eslint.files) ui/Makefile.mk node_modules/.npm.done	| $>/ui/
+$>/.eslint.done: ui/eslintrc.js $(ui/eslint.files) ui/Makefile.mk node_modules/.npm.done	| $>/ui/
 	$(QECHO) RUN eslint
-	$Q node_modules/.bin/eslint --no-eslintrc -c ui/eslintrc.cjs -f unix --cache --cache-location $>/.eslintcache \
+	$Q node_modules/.bin/eslint -c ui/eslintrc.js -f unix --cache --cache-location $>/.eslintcache \
 		$(abspath $(ui/eslint.files) jsonipc/jsonipc.js) \
 	|& ./misc/colorize.sh
 	$Q touch $@

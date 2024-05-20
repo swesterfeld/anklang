@@ -1,5 +1,6 @@
 /.cache/
 /.dlcache
+/.dir-locals.el
 /.submodule-stamp
 /.vscode/
 /BACKLOG.md

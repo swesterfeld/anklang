@@ -1,6 +1,5 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 
-import './browserified.js';	// provides require() and browserified modules
 import './b/basics.js';		// Register basic components first
 import { LitComponent, html, css, docs, lit_update_all } from './little.js';
 import * as String from './strings.js';
@@ -59,6 +58,7 @@ const Jsonapi = {
 
 // Bootup, called after onload
 async function bootup () {
+  // install window.Electron
   if (window.__Electron__)
     {
       window.Electron = Object.assign ({}, // setup extensible window.Electron context

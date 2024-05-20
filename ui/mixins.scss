@@ -1,36 +1,7 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 
-// Basic Theme, SCSS variables
-@import $themename_scss;
-
-// Legacy definitions
-@import 'theme.scss';
-
 // == Variables ==
 // Only put *!default* definitions here, so `theme.scss` takes precedence.
-
-// theme basics
-$b-theme-foreground: 		$b-main-foreground;
-$b-theme-background: 		$b-main-background;
-$b-main-border-light:		zmod($b-base-background, Jz+=9%) !default;	// used for modal border
-$b-main-border-dark:		zmod($b-base-background, Jz-=9%) !default;
-$b-toolbar-background:		#606060 !default;
-$b-toolbar-background-lg:	linear-gradient(to bottom, #666666 0%, #5a5a5a 100%) !default;
-$b-button-foreground:   	#dddddd !default;
-$b-button-light:   		#999999 !default;
-$b-button-lg:      		linear-gradient(to bottom, #777777 0%, #707070 45%, #606060 55%, #555555 100%) !default;
-$b-button-dark:    		#444444 !default;
-$b-button-border:   		#333333 !default;
-$b-button-hover:		fade(#ffffff, 10%) !default;
-$b-button-active:		fade(#000000, 20%) !default;
-$b-button-active-fg:		#bbbbbb !default;
-$b-button-active-lg:     	linear-gradient(to bottom, #606060 0%, #707070 50%, #606060 100%) !default;
-$b-button-active-border:	#555555 !default;
-$b-glow-control:		$b-style-focus-color;
-$b-switch-inactive:		#999999 !default;
-$b-switch-active:		#2080f0 !default;
-$b-switch-knob:		$b-button-foreground !default;
-$b-boxshadow-color:		fade(#000000, 30%) !default;
 
 // == h-flex ==
 @mixin h-flex() {

@@ -39,7 +39,6 @@ module.exports = {
     'scss/at-rule-no-unknown':     [ true, { ignoreAtRules: [ 'tailwind', 'apply', 'variants', 'responsive', 'screen' ] } ],
     'scss/dollar-variable-colon-space-after': null,
     'scss/dollar-variable-empty-line-before': null,
-    'scss/dollar-variable-empty-line-before': null,
     'scss/dollar-variable-pattern': null,
     'scss/double-slash-comment-empty-line-before': null,
     'scss/double-slash-comment-whitespace-inside': null,

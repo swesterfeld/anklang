@@ -66,6 +66,7 @@
 <script>
 import * as Envue from './envue.js';
 import * as Util from "../util.js";
+import * as Dom from "../dom.js";
 
 class Noteboard extends Envue.Component {
   TIMEOUT = 15 * 1000;	// time for note to last
@@ -85,10 +86,10 @@ class Noteboard extends Envue.Component {
     note.classList.add ('note-board-note');
     note.classList.add ('note-board-fadein');
     // setup content
-    if (Util.markdown_to_html)
+    if (Dom.markdown_to_html)
       {
 	note.classList.add ('note-board-markdown');
-	Util.markdown_to_html (note, text);
+	Dom.markdown_to_html (note, text);
       }
     else
       {

@@ -18,7 +18,7 @@ const re_jscss = /^\s*JsExtract\s*\.\s*s?css\s*`(.*?)`;/mgs;
 // Extract strings from JsExtract markers.
 function process_file (filename, config) {
   // determine output file
-  const jscss_filename = filename.replace (/\.(vue|sfc|mjs|cjs|js)$/, '') + '.jscss';
+  const jscss_filename = filename; // .replace (/\.(vue|sfc|mjs|cjs|js)$/, '') + '.jscss';
   let ofile = jscss_filename;
   if (arg_config.odir)
     ofile = path.join (config.odir, path.basename (jscss_filename));
@@ -27,7 +27,7 @@ function process_file (filename, config) {
   // split CSS blocks
   const parts = string.split (re_jscss);
   // convert CSS blocks
-  let jscss_string = `/* ${filename} */ @charset "UTF-8";`;
+  let jscss_string = `/* ${filename} */ `;
   for (let i = 1; i < parts.length; i += 2)
     {
       const prefix_newlines = count_newlines (parts[i - 1]);

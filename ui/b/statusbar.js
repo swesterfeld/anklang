@@ -8,6 +8,7 @@
 
 import { LitComponent, html, JsExtract, ref, docs } from '../little.js';
 import * as Util from "../util.js";
+import * as Dom from "../dom.js";
 
 // == STYLE ==
 JsExtract.css`
@@ -123,7 +124,7 @@ class BStatusBar extends LitComponent {
 	const dtel = Util.find_element_from_point (document, event.clientX, event.clientY, el => !!el.getAttribute ('data-tip'));
         const rawmsg = dtel ? dtel.getAttribute ('data-tip') : '';
         if (rawmsg != this.status_)
-          Util.markdown_to_html (this.statusbar_text, this.status_ = rawmsg);
+          Dom.markdown_to_html (this.statusbar_text, this.status_ = rawmsg);
         const rawkbd = !dtel ? '' : dtel.getAttribute ('data-kbd') || dtel.getAttribute ('data-hotkey');
         if (rawkbd != this.kbd_)
           this.kbd_ = rawkbd;

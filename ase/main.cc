@@ -109,6 +109,7 @@ print_usage (bool help)
   printout ("  --jsbin          Print Javascript IPC & binary messages\n");
   printout ("  --jsipc          Print Javascript IPC messages\n");
   printout ("  --list-drivers   Print PCM and MIDI drivers\n");
+  printout ("  --norc           Prevent loading of any rc files\n");
   printout ("  -o wavfile       Capture output to OPUS/FLAC/WAV file\n");
   printout ("  --play-autostart Automatically start playback of `project.anklang`\n");
   printout ("  --rand64         Produce 64bit random numbers on stdout\n");
