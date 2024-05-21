@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <sys/types.h>
 #include <pwd.h>                // getpwuid_r
+#include <algorithm>
 
 #if defined __APPLE__
 #include <mach-o/dyld.h>        // _NSGetExecutablePath

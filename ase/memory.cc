@@ -4,6 +4,7 @@
 #include <ase/testing.hh>
 #include <sys/mman.h>
 #include <unistd.h>     // _SC_PAGESIZE
+#include <algorithm>
 #include <shared_mutex>
 #include <atomic>
 

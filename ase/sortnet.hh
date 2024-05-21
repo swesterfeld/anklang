@@ -3,6 +3,7 @@
 #define __ASE_SORTNET_HH__
 
 #include <functional>
+#include <algorithm>
 
 namespace Ase {
 

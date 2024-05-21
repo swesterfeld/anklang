@@ -7,6 +7,7 @@
 #include <libintl.h>
 #include <iconv.h>
 #include <errno.h>
+#include <algorithm>
 
 #include <glib.h>       // g_unichar_*
 

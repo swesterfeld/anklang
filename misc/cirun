@@ -36,7 +36,7 @@ while test $# -ne 0 ; do
 done
 
 # Check for existing docker image
-if $FORCE_BUILD || ! docker image inspect --format=1 cirun:focal >/dev/null 2>&1; then
+if $FORCE_BUILD || ! docker image inspect --format=1 cirun:$CITAG >/dev/null 2>&1; then
   # Utilize $CICACHE when present
   CACHETYPE=
   if test -n "${CICACHE:-}" ; then

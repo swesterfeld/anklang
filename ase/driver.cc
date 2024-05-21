@@ -4,6 +4,7 @@
 #include "platform.hh"
 #include "datautils.hh"
 #include "internal.hh"
+#include <algorithm>
 
 #define DDEBUG(...)     Ase::debug ("driver", __VA_ARGS__)
 
