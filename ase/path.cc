@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <algorithm>
 #include <cstring>      // strchr
 #include <glob.h>       // glob
 #include <mutex>
