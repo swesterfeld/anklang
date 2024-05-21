@@ -3,6 +3,7 @@
 #define __ASE_EVENTLIST_HH__
 
 #include <ase/utils.hh>
+#include <algorithm>
 #include <any>
 
 namespace Ase {

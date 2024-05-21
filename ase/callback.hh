@@ -3,6 +3,7 @@
 #define __ASE_CALLBACK_HH__
 
 #include <ase/defs.hh>
+#include <algorithm>
 
 namespace Ase {
 
