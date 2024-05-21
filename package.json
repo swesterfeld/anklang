@@ -39,6 +39,7 @@
     "eslint-plugin-unused-imports": "^3.2.0",
     "eslint-plugin-vue": "^9.25.0",
     "fork-awesome": "^1.2.0",
+    "globals": "^15.3.0",
     "icon-gen": "^4.0.0",
     "jsdoc": "^4.0.3",
     "jsdoc-api": "^8.0.0",
