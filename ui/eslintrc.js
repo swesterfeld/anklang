@@ -76,7 +76,7 @@ export default [
     //"unused-imports/no-unused-vars": [ "warn", { args: "none", varsIgnorePattern: "^_.*" } ],
     //"unused-imports/no-unused-imports": OFF,
     "no-unreachable": [ "warn" ],
-    semi: [ "error", "always" ],
+    semi: [ "warn", "always" ],
     "no-extra-semi": [ "warn" ],
     "no-console": [ OFF ],
     "no-constant-condition": [ OFF ],

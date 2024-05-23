@@ -173,8 +173,8 @@ html.b-shell-during-drag .b-app {
       </b-dialog>
     </div>
 
-    <!-- Noteboard -->
-    <b-noteboard ref="noteboard" style="z-index: 95" />
+    <!-- Noticeboard -->
+    <b-noticeboard ref="noticeboard" style="z-index: 95" />
 
     <!-- Bubbles -->
     <div class="-fullcoverage" style="z-index: 96" id="b-shell-bubble-layer" ></div>
@@ -275,13 +275,7 @@ class ShellClass extends Envue.Component {
       }, !onof);
   }
   usernote (user_note_event) {
-    this.create_note (user_note_event.text);
-  }
-  /// Display notice to the user
-  create_note (...args)
-  {
-    const noteboard = Util.envue_object (this.$vm.$refs.noteboard);
-    return noteboard?.create_note (...args);
+    App.show_notice (user_note_event.text);
   }
   f1_help (event)
   {

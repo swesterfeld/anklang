@@ -56,10 +56,10 @@ b-crawlerdialog {
     @apply grid grow grid-flow-col justify-start justify-items-start gap-0.5 border border-solid border-[#222] text-[#eee];
     gap: 5px 10px;
     overflow: scroll hidden;
-    background: #111;
     grid-template-rows: repeat(auto-fit, 1.5em);
     grid-auto-columns: max-content;
-    background: #111; color: #eee;
+    background: #111;
+    color: #eee;
   }
   .-entry-grid > button {
     @apply m-0 inline-block cursor-pointer inline-flex flex-col truncate rounded-none border-[none] p-0 pr-1 text-[unset] no-underline;

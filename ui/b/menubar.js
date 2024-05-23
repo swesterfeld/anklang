@@ -307,7 +307,7 @@ async function save_project (asnew = false) {
       filename = await Data.project.saved_filename();
       let msg = '### Project Saved\n';
       msg += '  \n  \nProject saved to: ``' + displayfs (filename) + '``\n';
-      Util.create_note (msg);
+      App.show_notice (msg);
       return true;
     }
   await App.async_button_dialog ("File IO Error",

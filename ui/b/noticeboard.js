@@ -1,12 +1,18 @@
-<!-- This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0 -->
+// This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
+// @ts-check
 
-<docs>
-  # B-NOTEBOARD
-  Noteboard to post notifications for end users.
-</docs>
+import { LitComponent, html, JsExtract, docs } from '../little.js';
+import * as Util from "../util.js";
+import * as Dom from "../dom.js";
 
-<style lang="scss">
-.b-noteboard {
+/** @class BNoticeboard
+ * @description
+ * Noticeboard to post notifications for end users.
+ */
+
+// == STYLE ==
+JsExtract.css`
+b-noticeboard {
   position: fixed; inset: 0;
   display: flex; flex-flow: column wrap-reverse;
   align-items: flex-end; align-content: end;
@@ -20,7 +26,7 @@
     pointer-events: all;
     padding: var(--note-board-padding); margin: 0 0 var(--note-board-padding) var(--note-board-padding);
     border-radius: calc(var(--note-board-padding) / 2);
-    transition: all 0.233s ease-in-out; // see Util.NoteBoard.FADING
+    transition: all 0.233s ease-in-out; // see Util.Noticeboard.FADING
     overflow: hidden; max-height: 100vh;
     &.note-board-fadein {
       transform: translateY(100vh);
@@ -35,7 +41,7 @@
       color: transparent;           // hide text reflow artefacts
       z-index: -1;                  // transition *behind* siblings
       transform: translateY(-33vh); // visual slide-up effect
-      transition: all 0.283s ease-out 0.05s, transform 0.233s ease-in; // see Util.NoteBoard.FADING
+      transition: all 0.283s ease-out 0.05s, transform 0.233s ease-in; // see Util.Noticeboard.FADING
     }
     // style close button
     .note-board-note-close {
@@ -55,34 +61,27 @@
     h4 { color: #09b; } //* Debug */
     p { margin-top: 0.5em; }
   }
-}
+}`;
 
-</style>
-
-<template>
-  <v-flex class="b-noteboard"></v-flex>
-</template>
-
-<script>
-import * as Envue from './envue.js';
-import * as Util from "../util.js";
-import * as Dom from "../dom.js";
-
-class Noteboard extends Envue.Component {
+// == SCRIPT ==
+class BNoticeboard extends LitComponent {
+  createRenderRoot() { return this; }
   TIMEOUT = 15 * 1000;	// time for note to last
   FADING = 233;		// fade in/out in milliseconds, see app.scss
-  constructor (vm) {
-    super (vm);
+ connectedCallback()
+  {
+    super.connectedCallback();
   }
   create_note (text, timeout) {
     const h53 = Util.hash53 (text);
     const dupselector = ".note-board-note[data-hash53='" + h53 + "']";
-    for (const dup of this.$vm.$el.querySelectorAll (dupselector))
+    for (const dup of this.querySelectorAll (dupselector))
       if (dup && dup.__popdown) // deduplicate existing messages
 	dup.__popdown();
     // create note with FADEIN
     const note = document.createElement ('div');
-    note.setAttribute ('data-hash53', h53);
+    note.setAttribute ('data-hash53', '' + h53);
+    note.setAttribute ('role', 'status');
     note.classList.add ('note-board-note');
     note.classList.add ('note-board-fadein');
     // setup content
@@ -114,8 +113,8 @@ class Noteboard extends Envue.Component {
     close.onclick = popdown;
     // show note with delay and throttling
     const popup = () => {
-      note.setAttribute ('data-timestamp', Util.now());
-      this.$vm.$el.appendChild (note);
+      note.setAttribute ('data-timestamp', '' + Util.now());
+      this.appendChild (note);
       setTimeout (() => {
 	note.classList.remove ('note-board-fadein');
 	if (!(timeout < 0))
@@ -123,11 +122,9 @@ class Noteboard extends Envue.Component {
       }, this.FADING);
     };
     popup();
-    if (this.$vm.$el.nextSibling) // raise noteboard
-      this.$vm.$el.parentNode.insertBefore (this.$vm.$el, null);
+    if (this.nextSibling) // raise noticeboard
+      this.parentNode.insertBefore (this, null);
     return popdown;
   }
 }
-export default Noteboard.vue_export ({ sfc_template });
-
-</script>
+customElements.define ('b-noticeboard', BNoticeboard);
