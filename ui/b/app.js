@@ -173,6 +173,13 @@ export class AppClass {
     };
     return this.shell.async_modal_dialog (dialog_setup);
   }
+  /** Show a notification notice, with adequate default timeout */
+  show_notice (text, timeout = undefined) {
+     /**@type{any}*/
+    const b_noticeboard = document.body.querySelector ('b-noticeboard');
+    console.assert (b_noticeboard);
+    b_noticeboard.create_note (text, timeout);
+  }
   zmoves_add = Mouse.zmove_add;
   zmove = Mouse.zmove_trigger;
   zmove_last = Mouse.zmove_last;
