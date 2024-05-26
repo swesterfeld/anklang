@@ -331,8 +331,16 @@ WebSocketConnection::nickname ()
         hh = "CR";
       else if (Re::search (R"(\bSafari/)", ua) >= 0)
         hh = "Sa";
+      else if (Re::search (R"(\bWget/)", ua) >= 0)
+        hh = "Wg";
+      else if (Re::search (R"(\bw3m/)", ua) >= 0)
+        hh = "W3";
+      else if (Re::search (R"(\bLynx/)", ua) >= 0)
+        hh = "Ly";
+      else if (Re::search (R"(\bPython-urllib/)", ua) >= 0)
+        hh = "Py";
       else
-        hh = "Uk";
+        hh = "NA";
       internals_.nickname_ = string_format ("%s-%08x:%x", hh, uint32_t (hash ^ (hash >> 32)), info.rport);
     }
   return internals_.nickname_;
