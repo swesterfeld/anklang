@@ -365,6 +365,7 @@ WebSocketConnection::http_request ()
 {
   if (internals_.server->dir_.empty())
     return;
+  Info info = get_info();
   WppConnectionP cp = internals_.wppconp();
   const auto &parts = string_split (cp->get_resource(), "?");
 
@@ -376,8 +377,10 @@ WebSocketConnection::http_request ()
     filepath = Path::join (filepath, "index.html");
 
   // serve existing files
+  const bool canzip = nullptr != string_find_word (info.header ("Accept-Encoding").c_str(), "gzip");
   websocketpp::http::status_code::value status;
-  if (!filepath.empty() && Path::check (filepath, "fr"))
+  bool fp = false, fz = false;
+  if (!filepath.empty() && ((fp = Path::check (filepath, "fr")) || (fz = canzip && Path::check (filepath + ".gz", "fr"))))
     {
       const char *ext = strrchr (filepath.c_str(), '.');
       const String mimetype = WebSocketServer::mime_type (ext ? ext + 1 : "", true);
@@ -398,6 +401,10 @@ WebSocketConnection::http_request ()
       case CACHE_FOREVER:       // keep content forever in cache
         cp->append_header ("Cache-Control", "max-age=31536000, public, immutable");
         break;
+      }
+      if (fz) {
+        filepath = filepath + ".gz";
+        cp->append_header ("Content-Encoding", "gzip");
       }
       Blob blob = Blob::from_file (filepath);
       cp->set_body (blob.string());
