@@ -20,6 +20,12 @@ extern inline unichar   totitle (unichar uc)    { return g_unichar_totitle (uc);
 } // Unicode
 
 // === String ===
+static inline bool
+c_isalnum (uint8 c)
+{
+  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+}
+
 /// Reproduce a string @a s for @a count times.
 String
 string_multiply (const String &s,
@@ -509,6 +515,19 @@ strrstr (const char *haystack, const char *needle)
   return nullptr;
 }
 
+/// Find occurance of `word` in `haystack`.
+const char*
+string_find_word (const char *haystack, const char *word)
+{
+  return_unless (haystack && word, nullptr);
+  const size_t l = strlen (word);
+  // loop over all positions where `word` is found in `haystack`
+  for (const char *p = strstr (haystack, word); p; p = strstr (p + 1, word))
+    if ((p == haystack || !c_isalnum (p[-1])) && !c_isalnum (p[l]))
+      return p;
+  return nullptr;
+}
+
 /// Convert a boolean value into a string.
 String
 string_from_bool (bool value)
@@ -854,12 +873,6 @@ string_endswith (const String &string, const StringS &fragments)
     if (string_endswith (string, frag))
       return true;
   return false;
-}
-
-static inline bool
-c_isalnum (uint8 c)
-{
-  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
 }
 
 static inline char
@@ -1774,6 +1787,9 @@ string_tests()
   TCMP (string_url_decode ("x%20%2B%20z"), ==, "x + z");
   TCMP (string_url_decode ("x+%2B+z"), ==, "x+++z");
   TCMP (string_url_decode ("x+%2B+z", true), ==, "x + z");
+  TASSERT (string_find_word ("mygzip", "gzip") == nullptr);
+  TASSERT (string_find_word ("gzip2", "gzip") == nullptr);
+  TASSERT (string_find_word ("mygzip,gzip-2", "gzip") != nullptr);
 }
 
 } // Anon
