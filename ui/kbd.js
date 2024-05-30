@@ -151,15 +151,16 @@ export function list_focusables (element)
 {
   element = element || document.body;
   const candidates = [
+    '[contenteditable]:not([contenteditable="false"])',
+    '[tabindex]',
     'a[href]',
     'audio[controls]',
     'button',
     'input:not([type="radio"]):not([type="hidden"])',
     'select',
+    'summary',
     'textarea',
     'video[controls]',
-    '[contenteditable]:not([contenteditable="false"])',
-    '[tabindex]',
   ];
   const excludes = ':not([disabled]):not([tabindex="-1"])';
   const candidate_selector = candidates.map (e => e + excludes).join (', ');
