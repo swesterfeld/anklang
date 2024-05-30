@@ -84,8 +84,7 @@ dialog.b-contextmenu::backdrop {
    * and second, showing a modal dialog via menu item would result in bad flickernig. */
   background: transparent;
 }
-b-contextmenu push-button,
-b-contextmenu button {
+b-contextmenu :is(button, push-button, summary) {
   @apply hflex flex-nowrap items-stretch px-4 py-1 text-left;
   background: transparent; color: $b-menu-foreground; border: 1px solid transparent;
   cursor: pointer; user-select: none; outline: none;
@@ -302,8 +301,8 @@ class BContextMenu extends LitComponent {
     const toggles = await Promise.all (proms);
     this.stop_observer();
     for (let i = 0; i < proms.length; i++) {
-      const element = proms[i]['element'], toggle = !!toggles[i];
-      element.toggleAttribute ('disabled', !toggle);
+      const element = proms[i]['element'], disabled = !toggles[i];
+      element.toggleAttribute ('disabled', disabled);
     }
     this.start_observer();
     proms.length = 0;
