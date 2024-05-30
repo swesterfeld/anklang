@@ -166,8 +166,7 @@ export function list_focusables (element)
   const candidate_selector = candidates.map (e => e + excludes).join (', ');
   const is_focusable = e => {
     // skip invisible elements
-    if (e.offsetWidth <= 0 && e.offsetHeight <= 0 &&            // 0x0 elements are still focusable
-	Util.inside_display_none (e))                           // but not within display:none
+    if (!Util.check_visibility (e))
       return false;
     // skip not focusable elements
     if (!e.matches (candidate_selector))
