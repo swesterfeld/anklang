@@ -1274,12 +1274,11 @@ export function dialog_backdrop_autoclose (dialog, install_or_remove)
   if (install_or_remove)
     {
       dialog.addEventListener ('mousedown', dialog_backdrop_mousedown, capture);
-      dialog.addEventListener ('mouseup', dialog_backdrop_mouseup, capture);
+      // ignore 'mouseup', those are not usually properly prevented
     }
   else
     {
       dialog.removeEventListener ('mousedown', dialog_backdrop_mousedown, capture);
-      dialog.removeEventListener ('mouseup', dialog_backdrop_mouseup, capture);
     }
 }
 
