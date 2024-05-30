@@ -76,11 +76,12 @@ function css_functions()
 
 // == PostCSS config ==
 export default {
+  map: { inline: false },
   syntax: 'postcss-scss',
   plugins: {
     'postcss-import': {
       filter: string => !string.endsWith ('.css'),
-      path: [ 'ui/', 'out/ui/' ],
+      path: [ '.' ], // , 'ui/', 'out/ui/' ],
     },
     'postcss-discard-comments': { remove: comment => true },
     'postcss-advanced-variables': { importFilter: string => false, },
