@@ -219,7 +219,8 @@ $>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) $(ext/ui/b/js.files) ui/s
 	    echo "@import '$>/ui/b/$${f}';" || exit 1 ; done	>> $>/ext/imports.scss
 	$Q for f in $(ext/ui/b/js.files); do \
 	    echo "@import '$$f';" || exit 1 ; done		>> $>/ext/imports.scss
-	$Q node_modules/.bin/postcss --config ui < $>/ext/imports.scss -o $>/ext/ui/global.css
+	$Q POSTCSS_IMPORT_PATH=.:$>/ext \
+	node_modules/.bin/postcss --config ui < $>/ext/imports.scss -o $>/ext/ui/global.css
 	$Q mv $>/ext/ui/global.css* $(@D)
 $>/.ui-reload-stamp: $>/ui/global.css
 

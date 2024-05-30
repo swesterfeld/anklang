@@ -1,5 +1,6 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 
+import { env } from 'node:process';
 import css_color_converter from 'css-color-converter';
 import * as Colors from './colors.js';
 
@@ -81,7 +82,7 @@ export default {
   plugins: {
     'postcss-import': {
       filter: string => !string.endsWith ('.css'),
-      path: [ '.' ], // , 'ui/', 'out/ui/' ],
+      path: env.POSTCSS_IMPORT_PATH.split (':'),
     },
     'postcss-discard-comments': { remove: comment => true },
     'postcss-advanced-variables': { importFilter: string => false, },
@@ -95,8 +96,10 @@ export default {
 
     tailwindcss: {
       content: [
-	'ui/*.html', 'ui/*.*js', 'ui/*.*css',
-	'ui/b/*.*js', 'ui/b/*.vue',
+	'ui/*.html',
+	'ui/**/*.*css',
+	'ui/**/*.*js',
+	'ui/b/*.vue',
       ],
       theme: {
 	borderColor: ({ theme }) => ({
