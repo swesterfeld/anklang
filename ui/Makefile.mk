@@ -22,7 +22,7 @@ ui/jscopy.wildcards ::= $(wildcard	\
 ui/cjs.wildcards ::= $(wildcard		\
 )
 ui/nocopy.wildcards ::= $(wildcard	\
-	ui/*css				\
+	ui/*.scss			\
 	ui/sfc-compile.js		\
 	ui/slashcomment.js		\
 )
@@ -92,7 +92,7 @@ $>/ui/index.html: $(ui/js.targets)
 
 # == ui/index.html ==
 $>/ui/index.html: ui/index.html $>/ui/global.css node_modules/.npm.done		| $>/ui/
-	@ $(eval ui/csshash != cat $>/ui/global.css | sha256sum | sed 's/ *-//')
+	@ $(eval ui/csshash != sha256sum < $>/ui/global.css | sed -r 's/^([0-9a-f]{12}).*/\1/i')
 	$(QGEN)
 	$Q rm -f $>/ui/doc && ln -s ../doc $>/ui/doc # do here, b/c MAKE is flaky in tracking symlink timestamps
 	$Q echo '    { "config": { $(strip $(PACKAGE_VERSIONS)),'				> $>/ui/config.json
@@ -146,10 +146,8 @@ $(ui/b/vuejs.targets): $>/%.js: %.vue			| $>/ui/b/ node_modules/.npm.done
 	$Q node ui/sfc-compile.js --debug -I $>/ui/ $< -O $(@D)
 $>/.ui-reload-stamp: $(ui/b/vuejs.targets)
 
-# == UI/GLOBALSCSS_IMPORTS ==
-UI/GLOBALSCSS_IMPORTS =
-# Material-Icons
-$>/ui/material-icons.css: ui/Makefile.mk		| $>/ui/ node_modules/.npm.done
+# == ui/material-icons.css ==
+$>/ui/material-icons.css: ui/Makefile.mk			| node_modules/.npm.done $>/ui/
 	$(QGEN)
 	$Q grep -q '/material-icons.woff2' node_modules/material-icons/iconfont/filled.css || \
 		{ echo "$<: failed to find font in node_modules/material-icons/iconfont/" >&2 ; false ; }
@@ -157,46 +155,50 @@ $>/ui/material-icons.css: ui/Makefile.mk		| $>/ui/ node_modules/.npm.done
 	$Q sed -re 's|\boptimizeLegibility\b|optimizelegibility|g' \
 		node_modules/material-icons/iconfont/filled.css > $@.tmp
 	$Q mv $@.tmp $@
-UI/GLOBALSCSS_IMPORTS += $>/ui/material-icons.css
-# AnklangIcons
+$>/.ui-reload-stamp: $>/ui/material-icons.css
+
+# == ui/assets/AnklangIcons.css ==
 $>/ui/assets/AnklangIcons.css: ui/Makefile.mk			| $>/ui/assets/
 	$(QGEN)
 	$Q rm -fr $>/ui/anklangicons/ && tar xf external/blobs4anklang/icons/anklangicons-201123.1.tgz -C $>/ui/
 	$Q cd $>/ui/anklangicons/ && $(CP) AnklangIcons.woff2 ../assets/ && $(CP) AnklangIcons.css ../assets/AnklangIcons.css.tmp
 	$Q sed -e 's|@font-face *{|@font-face { font-display: block; |' -i $>/ui/assets/AnklangIcons.css.tmp
 	$Q rm -r $>/ui/anklangicons/ && mv $@.tmp $@
-UI/GLOBALSCSS_IMPORTS += $>/ui/assets/AnklangIcons.css
-# Fork-Awesome
-$>/ui/assets/fork-awesome.css: ui/Makefile.mk		| node_modules/.npm.done $>/ui/assets/
+$>/.ui-reload-stamp: $>/ui/assets/AnklangIcons.css
+
+# == ui/assets/fork-awesome.css ==
+$>/ui/assets/fork-awesome.css: ui/Makefile.mk			| node_modules/.npm.done $>/ui/assets/
 	$(QGEN)
 	$Q $(CP) node_modules/fork-awesome/fonts/forkawesome-webfont.woff2 $>/ui/assets/
 	$Q sed  -e "/^ *src: *url/s,src: *url(.*);,src: url('forkawesome-webfont.woff2');," \
 		-e 's|@font-face *{|@font-face { font-display: block; |' \
 		node_modules/fork-awesome/css/fork-awesome.css > $@.tmp
 	$Q mv $@.tmp $@
-UI/GLOBALSCSS_IMPORTS += $>/ui/assets/fork-awesome.css
-# ui/cursors/
+$>/.ui-reload-stamp: $>/ui/assets/fork-awesome.css
+
+# == ui/cursors/cursors.css ==
 $>/ui/cursors/cursors.css: $(wildcard ui/cursors/*) Makefile.mk		| $>/ui/cursors/
 	$(QECHO) COPY $<
 	$Q for SVG in `sed -n "/url.'cursors\//{ s/.*('//; s/').*//; p }" ui/cursors/cursors.css` ; do \
 		$(CP) ui/"$$SVG" $>/ui/cursors/ || break ; done
 	$Q $(CP) ui/cursors/cursors.css $@
-UI/GLOBALSCSS_IMPORTS += $>/ui/cursors/cursors.css
-# ui/spinner.svg
-$>/ui/spinner.scss: ui/assets/spinner.svg
+$>/.ui-reload-stamp: $>/ui/cursors/cursors.css
+
+# == ext/spinner.scss ==
+$>/ext/spinner.scss: ui/assets/spinner.svg				| $>/ext/ui/assets/
 	$(QGEN)
 	$Q sed -rn '/@keyframe/,$${ p; /^\s*}\s*$$/q; }' $< > $@
-UI/GLOBALSCSS_IMPORTS += $>/ui/spinner.scss
+$>/ui/global.css: $>/ext/spinner.scss
 
 # == ext/ui/b/*.js ==
 ui/b/js.files     := $(wildcard ui/b/*.js)
 ext/ui/b/js.files := $(ui/b/js.files:%=$>/ext/%)
-$(ext/ui/b/js.files): $>/ext/ui/b/.stamp
-$>/ext/ui/b/.stamp: $(ui/b/js.files) ui/jsextract.js			| $>/ext/ui/b/
+$(ext/ui/b/js.files): $>/ext/ui/b/.jsstamp
+$>/ext/ui/b/.jsstamp: $(ui/b/js.files) ui/jsextract.js			| $>/ext/ui/b/
 	$(QECHO) EXTRACT 'ext/ui/b/*.js'
 	$Q node ui/jsextract.js -O $>/ext/ui/b/ $(ui/b/js.files)
 	$Q touch $@
-ext/ui/lint: $>/ext/ui/b/.stamp
+ext/ui/lint: $>/ext/ui/b/.jsstamp
 	-$Q cd $>/ext/ \
 	&& $(abspath node_modules/.bin/stylelint) -c $(abspath ui/stylelintrc.cjs) \
 		$${INSIDE_EMACS:+-f unix} $(ext/ui/b/js.files:$>/ext/%=%) |& \
@@ -207,19 +209,18 @@ ui/lint: ext/ui/lint
 # == ui/global.css ==
 ui/b/vuecss.targets ::= $(ui/vue.wildcards:%.vue=$>/%.vuecss)
 $(ui/b/vuecss.targets): $(ui/b/vuejs.targets) ;
-ui/tailwind.inputs := $(wildcard ui/*.html ui/*.css ui/*.scss ui/*.js ui/b/*.js ui/b/*.vue $(ui/b/js.files))
+ui/tailwind.inputs := $(wildcard ui/*.html ui/*.*css ui/*.*js ui/b/*.*js ui/b/*.vue)
 $>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) $(ext/ui/b/js.files) ui/stylelintrc.cjs ui/postcss.config.mjs $(UI/GLOBALSCSS_IMPORTS) $(ui/b/vuecss.targets)	| $>/ui/
 	$(QGEN)
-	$Q echo '@charset "UTF-8";'				>  $@.imp
-	$Q echo "@import 'dark.scss';"				>> $@.imp
-	$Q echo "@import 'global.scss';"			>> $@.imp
+	$Q echo '@charset "UTF-8";'				>  $>/ext/imports.scss
+	$Q echo "@import 'ui/dark.scss';"			>> $>/ext/imports.scss
+	$Q echo "@import 'ui/global.scss';"			>> $>/ext/imports.scss
 	$Q for f in $(ui/b/vuecss.targets:$>/ui/b/%=%) ; do		\
-	    echo "@import 'b/$${f}';" || exit 1 ; done		>> $@.imp
+	    echo "@import '$>/ui/b/$${f}';" || exit 1 ; done	>> $>/ext/imports.scss
 	$Q for f in $(ext/ui/b/js.files); do \
-	    echo "@import '$$f';" || exit 1 ; done		>> $@.imp
-	$Q test -r ui/postcss.config.mjs || { echo 'ui/postcss.config.mjs: not readable'; false; }
-	$Q node_modules/.bin/postcss --config ui/ < $@.imp > $@.tmp
-	$Q rm -f $@.imp && mv $@.tmp $@
+	    echo "@import '$$f';" || exit 1 ; done		>> $>/ext/imports.scss
+	$Q node_modules/.bin/postcss --config ui < $>/ext/imports.scss -o $>/ext/ui/global.css
+	$Q mv $>/ext/ui/global.css* $(@D)
 $>/.ui-reload-stamp: $>/ui/global.css
 
 # == all-components.js ==
