@@ -152,6 +152,7 @@ class BKnob extends LitComponent {
   }
   disconnectedCallback()
   {
+    super.disconnectedCallback();
     this.clear_notify_cb?.();
     this.clear_notify_cb = undefined;
   }

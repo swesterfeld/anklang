@@ -64,7 +64,7 @@
 	      data-tip="**CLICK** Add New Elements" />
       <b-contextmenu ref="devicepanelcmenu" id="g-devicepanelcmenu" :activate.prop="activate" :isactive.prop="isactive" >
 	<b-menutitle> Devices </b-menutitle>
-	<b-treeselector :tree="devicetypes" :defaultcollapse="false"> </b-treeselector>
+	<b-treebrowser :tree="devicetypes" :defaultexpand="false"> </b-treebrowser>
       </b-contextmenu>
     </h-flex>
     <span class="b-devicepanel-after-scroller"></span>
@@ -87,7 +87,7 @@ async function list_device_types () {
   const list = [];
   for (const c of Object.keys (cats).sort())
     list.push (cats[c]);
-  return Object.freeze ({ entries: list });
+  return Object.freeze (list);
 }
 
 function observable_device_data () {
@@ -118,7 +118,7 @@ export default {
     async activate (uri)
     {
       // close popup to remove focus guards
-      if (this.chain_ && !uri.startsWith ('DevicePanel:')) // assuming b-treeselector.devicetypes
+      if (this.chain_ && !uri.startsWith ('DevicePanel:')) // assuming b-treebrowser.devicetypes
 	{
 	  const sibling = this.menu_origin?.sibling;
 	  let newdev;
@@ -136,7 +136,7 @@ export default {
     {
       if (!this.track)
 	return false;
-      return false;
+      return true;
     },
     menuopen (event)
     {

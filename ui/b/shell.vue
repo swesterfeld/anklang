@@ -126,7 +126,7 @@ html.b-shell-during-drag .b-app {
     <!-- browser -->
     <v-flex class="b-shell-sidebar -row28 -col1" style="width:10em" >
       Browser <br />
-      <b-treeselector :tree="m.filetree" v-show="Data.panel3 == 'b'" ></b-treeselector>
+      <b-treebrowser :tree="m.filetree" v-show="Data.panel3 == 'b'" ></b-treebrowser>
       <span v-show="Data.panel3 == 'i'" ><a href="">Info Panel</a></span>
     </v-flex>
 

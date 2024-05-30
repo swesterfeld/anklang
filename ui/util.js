@@ -1161,13 +1161,16 @@ export function compute_style_properties (el, obj) {
   return props;
 }
 
-/** Check if `element` or any parentElement has `display:none` */
-export function inside_display_none (element) {
+/** Check visibility of `element` */
+export function check_visibility (element)
+{
   // detect display=="none" without getComputedStyle which is often expensive
-  if (element.offsetWidth * element.offsetHeight == 0)
-    return true;
-  else
+  if (element.offsetWidth <= 0 || element.offsetHeight <= 0)
     return false;
+  // Chrome leaves offsetHeight>0 for children of collapsed <details/>
+  if (element.checkVisibility && !element.checkVisibility())
+    return false;
+  return true;
 }
 
 /** Check if `element` is displayed (has width/height assigned) */
@@ -1271,12 +1274,11 @@ export function dialog_backdrop_autoclose (dialog, install_or_remove)
   if (install_or_remove)
     {
       dialog.addEventListener ('mousedown', dialog_backdrop_mousedown, capture);
-      dialog.addEventListener ('mouseup', dialog_backdrop_mouseup, capture);
+      // ignore 'mouseup', those are not usually properly prevented
     }
   else
     {
       dialog.removeEventListener ('mousedown', dialog_backdrop_mousedown, capture);
-      dialog.removeEventListener ('mouseup', dialog_backdrop_mouseup, capture);
     }
 }
 

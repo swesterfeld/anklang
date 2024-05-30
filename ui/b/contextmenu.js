@@ -84,8 +84,7 @@ dialog.b-contextmenu::backdrop {
    * and second, showing a modal dialog via menu item would result in bad flickernig. */
   background: transparent;
 }
-b-contextmenu push-button,
-b-contextmenu button {
+b-contextmenu :is(button, push-button, summary) {
   @apply hflex flex-nowrap items-stretch px-4 py-1 text-left;
   background: transparent; color: $b-menu-foreground; border: 1px solid transparent;
   cursor: pointer; user-select: none; outline: none;
@@ -302,8 +301,8 @@ class BContextMenu extends LitComponent {
     const toggles = await Promise.all (proms);
     this.stop_observer();
     for (let i = 0; i < proms.length; i++) {
-      const element = proms[i]['element'], toggle = !!toggles[i];
-      element.toggleAttribute ('disabled', !toggle);
+      const element = proms[i]['element'], disabled = !toggles[i];
+      element.toggleAttribute ('disabled', disabled);
     }
     this.start_observer();
     proms.length = 0;
@@ -341,7 +340,7 @@ class BContextMenu extends LitComponent {
     if (!popup_options)
       popup_options = { origin: null };
     const origin = popup_options.origin === null ? null : popup_options.origin?.$el || popup_options.origin || event?.currentTarget;
-    if (origin instanceof Element && Util.inside_display_none (origin))
+    if (origin instanceof Element && !Util.check_visibility (origin))
       return false;     				// cannot popup around hidden origin
     this.toggle_force_children (false);			// add [disabled] attribute to chldren
     const toggles = this.toggle_active_children();	// concurrently, enable active children
@@ -393,22 +392,22 @@ class BContextMenu extends LitComponent {
     // event is this.click, not bubbeling
     if (this.allowed_click === event)
       return;
+    const target = event.target;
+    const uri = get_uri (target);
+    // ignore clicks on non-menuitem elements
+    if (target && !valid_uri (uri))
+      return;
     // prevent any further bubbeling
     Util.prevent_event (event);
     // allows one click activation per frame
     if (Util.frame_stamp() == this.menudata.menu_stamp)
       return;
     // turn bubbled click into menu activation
-    const target = event.target;
-    const uri = get_uri (target);
-    if (target && valid_uri (uri))
-      {
-	const isactive = !target.check_isactive ? true : target.check_isactive (false);
-	if (isactive instanceof Promise)
-	  return (async () => (await isactive) && this.click (uri)) ();
-	if (isactive)
-	  return this.click (uri);
-      }
+    const isactive = !target.check_isactive ? true : target.check_isactive (false);
+    if (isactive instanceof Promise)
+      return (async () => (await isactive) && this.click (uri)) ();
+    if (isactive)
+      return this.click (uri);
   }
   click (uri)
   {

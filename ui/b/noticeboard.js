@@ -64,11 +64,12 @@ b-noticeboard {
 }`;
 
 // == SCRIPT ==
+const POPDOWN = Symbol.for ('b_noticeboard_POPDOWN');
 class BNoticeboard extends LitComponent {
   createRenderRoot() { return this; }
   TIMEOUT = 15 * 1000;	// time for note to last
   FADING = 233;		// fade in/out in milliseconds, see app.scss
- connectedCallback()
+  connectedCallback()
   {
     super.connectedCallback();
   }
@@ -76,8 +77,8 @@ class BNoticeboard extends LitComponent {
     const h53 = Util.hash53 (text);
     const dupselector = ".note-board-note[data-hash53='" + h53 + "']";
     for (const dup of this.querySelectorAll (dupselector))
-      if (dup && dup.__popdown) // deduplicate existing messages
-	dup.__popdown();
+      if (dup && dup[POPDOWN]) // deduplicate existing messages
+	dup[POPDOWN]();
     // create note with FADEIN
     const note = document.createElement ('div');
     note.setAttribute ('data-hash53', '' + h53);
@@ -109,7 +110,7 @@ class BNoticeboard extends LitComponent {
 	  note.parentNode.removeChild (note);
       }, this.FADING + 1);
     };
-    note.__popdown = popdown;
+    note[POPDOWN] = popdown;
     close.onclick = popdown;
     // show note with delay and throttling
     const popup = () => {

@@ -1089,11 +1089,39 @@ void
 USignalSource::destroy()
 {}
 
+static std::array<char,12>
+write_uint (uint32_t i)
+{
+  std::array<char,12> a;
+  char *c = &a.back();
+  ASE_ASSERT (c>=&a[0] && c<&a[a.size()]);
+  *c-- = 0;
+  *c = '0' + (i % 10);
+  i /= 10;
+  while (i != 0) {
+    *(--c) = '0' + (i % 10);
+    i /= 10;
+  }
+  if (c > &a[0])
+    memmove (&a[0], c, &a.back() + 1 - c);
+  ASE_ASSERT (c>=&a[0] && c<&a[a.size()]);
+  return a;
+}
+
 void
 USignalSource::install_sigaction (int8 signum)
 {
   struct sigaction action;
-  action.sa_handler = [] (int signum) { fputs ("sighandler", stdout); USignalSource::raise (signum); };
+  action.sa_handler = [] (int signum) {
+    constexpr size_t N = 1024;
+    char buf[N] = __FILE__ ":";
+    strncat (buf, &write_uint (__LINE__)[0], N);
+    strncat (buf, ": sa_handler: signal=", N);
+    strncat (buf, &write_uint (signum)[0], N);
+    strncat (buf, "\n", N);
+    ::write (2, buf, strlen (buf));
+    USignalSource::raise (signum);
+  };
   sigemptyset (&action.sa_mask);
   action.sa_flags = SA_NOMASK;
   sigaction (signum, &action, nullptr);

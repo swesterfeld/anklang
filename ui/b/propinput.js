@@ -98,6 +98,7 @@ class BPropInput extends LitComponent {
   }
   disconnectedCallback()
   {
+    super.disconnectedCallback();
     this.prop && this.prop.delnotify_ (this.request_update);
   }
   get classes() {

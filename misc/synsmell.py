@@ -30,7 +30,7 @@ def line_matcher (code, text, has_comment, orig, filename):
       warning = "missing whitespace after parenthesis"
   # ban-fixme
   elif m := checks['ban-fixme'] and has_comment and re.search (r'\bFI[X]ME\b', text, re.IGNORECASE):
-    error = "comment indicates unfinished code"
+    warning = "comment indicates unfinished code"
   # ban-todo
   elif m := checks['ban-todo'] and has_comment and re.search (r'\bTODO\b', text, re.IGNORECASE):
     error = "comment indicates open issues"

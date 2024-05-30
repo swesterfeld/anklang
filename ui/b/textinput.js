@@ -87,6 +87,7 @@ class BTextInput extends LitComponent {
   }
   disconnectedCallback()
   {
+    super.disconnectedCallback();
     this.prop && this.prop.delnotify_ (this.request_update);
   }
   handle_input (event)  	// emit 'input' with constrained value
