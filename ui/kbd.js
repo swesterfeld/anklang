@@ -308,7 +308,7 @@ export function keydown_move_focus (event) {
   const left_right = subfocus || !!Util.closest (fe, '[data-subfocus="+"]');
   let dir;
   if (event.keyCode == KeyCode.HOME)
-    dir = 'HOME';
+    dir = 'START';
   else if (event.keyCode == KeyCode.END)
     dir = 'END';
   else if (event.keyCode == KeyCode.UP)
@@ -330,11 +330,16 @@ export function keydown_move_focus (event) {
   return false;
 }
 
+export const move_focus_prev = () => move_focus (-1);
+export const move_focus_next = () => move_focus (+1);
+export const move_focus_left = () => move_focus ('LEFT');
+export const move_focus_right = () => move_focus ('RIGHT');
+
 /** Move focus to prev or next focus widget
  * @param{Number|String} dir
  */
 export function move_focus (dir = 0, subfocus = null) {
-  const home = dir == 'HOME', end = dir == 'END';
+  const home = dir == 'START', end = dir == 'END';
   const up = dir == -1, down = dir == +1;
   const left = dir == 'LEFT', right = dir == 'RIGHT';
   const updown_focus = the_focus_guard.updown_focus;
