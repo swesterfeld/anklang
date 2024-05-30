@@ -1161,13 +1161,16 @@ export function compute_style_properties (el, obj) {
   return props;
 }
 
-/** Check if `element` or any parentElement has `display:none` */
-export function inside_display_none (element) {
+/** Check visibility of `element` */
+export function check_visibility (element)
+{
   // detect display=="none" without getComputedStyle which is often expensive
-  if (element.offsetWidth * element.offsetHeight == 0)
-    return true;
-  else
+  if (element.offsetWidth <= 0 || element.offsetHeight <= 0)
     return false;
+  // Chrome leaves offsetHeight>0 for children of collapsed <details/>
+  if (element.checkVisibility && !element.checkVisibility())
+    return false;
+  return true;
 }
 
 /** Check if `element` is displayed (has width/height assigned) */
