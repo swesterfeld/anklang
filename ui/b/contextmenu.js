@@ -392,22 +392,22 @@ class BContextMenu extends LitComponent {
     // event is this.click, not bubbeling
     if (this.allowed_click === event)
       return;
+    const target = event.target;
+    const uri = get_uri (target);
+    // ignore clicks on non-menuitem elements
+    if (target && !valid_uri (uri))
+      return;
     // prevent any further bubbeling
     Util.prevent_event (event);
     // allows one click activation per frame
     if (Util.frame_stamp() == this.menudata.menu_stamp)
       return;
     // turn bubbled click into menu activation
-    const target = event.target;
-    const uri = get_uri (target);
-    if (target && valid_uri (uri))
-      {
-	const isactive = !target.check_isactive ? true : target.check_isactive (false);
-	if (isactive instanceof Promise)
-	  return (async () => (await isactive) && this.click (uri)) ();
-	if (isactive)
-	  return this.click (uri);
-      }
+    const isactive = !target.check_isactive ? true : target.check_isactive (false);
+    if (isactive instanceof Promise)
+      return (async () => (await isactive) && this.click (uri)) ();
+    if (isactive)
+      return this.click (uri);
   }
   click (uri)
   {
