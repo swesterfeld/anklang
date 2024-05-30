@@ -22,15 +22,20 @@ b-treebrowser details {
   &[disabled], &[disabled] * { color: $b-menu-disabled; }
 }
 
-b-treebrowser details > summary:first-of-type {
+b-treebrowser details > summary {
   @apply bold relative;
   list-style: none;
 }
 b-treebrowser details > summary::before {
-  @apply absolute;
+  @apply absolute inline;
   left: calc(-1 * var(--b-treebrowser-indent) + 2px);
-  content: ' ►'; }
-b-treebrowser details[open] > summary::before { content: ' ▼'; }
+  content: '►'; // ▸
+  transition: all .1s ease;
+}
+b-treebrowser details[open] > summary::before {
+  content: '▷'; // ▹ ▼
+  transform: rotate(90deg);
+}
 
 b-treebrowser button {
   @apply flex text-left;
