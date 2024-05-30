@@ -69,7 +69,7 @@ class BNoticeboard extends LitComponent {
   createRenderRoot() { return this; }
   TIMEOUT = 15 * 1000;	// time for note to last
   FADING = 233;		// fade in/out in milliseconds, see app.scss
- connectedCallback()
+  connectedCallback()
   {
     super.connectedCallback();
   }
