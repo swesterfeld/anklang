@@ -281,7 +281,7 @@ $>/ui/anklang.png: $>/ui/favicon.ico
 $>/.ui-build-stamp: $>/ui/favicon.ico $>/ui/anklang.png
 
 # == eslint ==
-ui/eslint.files ::= $(wildcard ui/*.html ui/*.js ui/b/*.js ui/b/*.vue)
+ui/eslint.files ::= $(wildcard ui/*.html ui/*.js ui/b/*.js)
 $>/.eslint.done: ui/eslintrc.js $(ui/eslint.files) ui/Makefile.mk node_modules/.npm.done	| $>/ui/
 	$(QECHO) RUN eslint
 	$Q node_modules/.bin/eslint -c ui/eslintrc.js -f unix --cache --cache-location $>/.eslintcache \
@@ -338,7 +338,7 @@ ui/rebuild:
 	@: # rebuild live reload targets
 	$(MAKE) $>/.ui-reload-stamp NPMBLOCK=y -j`nproc` |& tee $>/ui-build.log || { ( : \
 		&& echo '<html><head><title>anklang/ui: make error</title></head><body><pre>' \
-		&& cat out/ui-build.log && echo '</pre>' \
+		&& cat $>/ui-build.log && echo '</pre>' \
 		&& echo '<script>setTimeout(_=>window.location.reload(), 3000)</script></body></html>' \
 		) > $>/ui/index.html && touch --date=1990-01-01 $>/ui/index.html ; }
 	@: # close open sockets, only works if *same* executable still runs
