@@ -46,6 +46,16 @@ export function hotkey_name_from_event (event) {
 /// Match an event's key code, considering modifiers.
 export function match_key_event (event, keyname)
 {
+  if (!Array.isArray (keyname))
+    return match_key_event_1 (event, keyname);
+  for (const kn of keyname)
+    if (match_key_event_1 (event, kn))
+      return true;
+  return false;
+}
+
+function match_key_event_1 (event, keyname)
+{
   // SEE: http://unixpapa.com/js/key.html & https://developer.mozilla.org/en-US/docs/Mozilla/Gecko/Gecko_keypress_event
   // split_hotkey (hotkey)
   const rex = new RegExp (/\s*(?<!\+)[+]\s*/); // Split 'Shift+Ctrl+Q' twice, but split 'Ctrl++' once
