@@ -340,7 +340,7 @@ class BContextMenu extends LitComponent {
     if (!popup_options)
       popup_options = { origin: null };
     const origin = popup_options.origin === null ? null : popup_options.origin?.$el || popup_options.origin || event?.currentTarget;
-    if (origin instanceof Element && Util.inside_display_none (origin))
+    if (origin instanceof Element && !Util.check_visibility (origin))
       return false;     				// cannot popup around hidden origin
     this.toggle_force_children (false);			// add [disabled] attribute to chldren
     const toggles = this.toggle_active_children();	// concurrently, enable active children
