@@ -15,6 +15,7 @@ typedef std::string String;
 // == C-String ==
 bool    		       cstring_to_bool       (const char *string, bool fallback = false);
 const char*                    strrstr               (const char *haystack, const char *needle);
+const char*                    string_find_word      (const char *haystack, const char *word);
 
 // == String Formatting ==
 template<class... Args> String string_format         (const char *format, const Args &...args) ASE_PRINTF (1, 0);
