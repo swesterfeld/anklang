@@ -20,7 +20,8 @@ def line_matcher (code, text, has_comment, orig, filename):
     error = "invalid call to printf"
   # whitespace-before-parenthesis
   elif m := checks['whitespace-before-parenthesis'] and code.find ('#') < 0 and re.search (r'\s\w+[a-z0-9]\([^)]', code, re.IGNORECASE):
-    if not re.search (r'\s\.|:\s', code):               # ignore funcs in CSS rules
+    if (not re.search (r'\s\.|:\s|@import', code) and   # ignore funcs in CSS rules
+        not filename.endswith ('css')):
       m = m.end() - 2
       warning = "missing whitespace before parenthesis"
   # whitespace-after-parenthesis
