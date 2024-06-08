@@ -317,12 +317,9 @@ CLEANDIRS += $>/tscheck/
 # == ui/lint ==
 ui/lint: 									| node_modules/.npm.done
 	$(QGEN)
-	$(MAKE) --no-print-directory NPMBLOCK=y -j1 \
-		eslint tscheck $>/ui/global.css
+	$(MAKE) --no-print-directory NPMBLOCK=y -j1 eslint tscheck
 	-$Q node_modules/.bin/stylelint $${INSIDE_EMACS:+-f unix} -c ui/stylelintrc.cjs $(wildcard ui/*.*css ui/b/*.*css)
-	-$Q { TCOLOR=--color=always ; tty -s <&1 || TCOLOR=; } \
-	&& grep $$TCOLOR -nE '(/[*/]+[*/ ]*)?(FI[X]ME).*' -r ui/ --exclude '*.js'
-	$Q misc/synsmell.py --separate-body=0 ui/*js ui/b/*.js
+	$Q misc/synsmell.py --separate-body=0 ui/*.* ui/b/*.*
 .PHONY: ui/lint
 lint: ui/lint
 
