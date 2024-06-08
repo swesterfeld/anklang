@@ -24,7 +24,7 @@ as JSON messages.
 
 ### Serialization
 
-Building on [Jsonipc](#jsonipc), a small serializaiton framework provided by
+Building on [Jsonipc](#jsonipc), a small serialization framework provided by
 [ase/serialize.hh](https://github.com/tim-janik/anklang/blob/master/ase/serialize.hh)
 is used to marshal values, structs, enums and classes to/from JSON.
 This is used to store preferences and project data.

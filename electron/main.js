@@ -155,14 +155,12 @@ function start_sound_engine (config, datacb)
 	// console.error (__filename + ':', `missing "${suffix}" variant of AnklangSynthEngine`);
       }
   const { spawn, spawnSync } = require ('child_process');
-  const args = [ '--embed', '3' ];
+  const args = [ '--embed', '3', ...config.args ];
   args.push ('--log2file');
   if (config.verbose)
     args.push ('--verbose');
   if (config.binary)
     args.push ('--binary');
-  if (config.norc)
-    args.push ('--norc');
   const subproc = spawn (sound_engine, args, { stdio: [ 'pipe', 'inherit', 'inherit', 'pipe' ] });
   if (config.gdb)
     {
@@ -249,7 +247,7 @@ function usage (what, exitcode = false) {
 function parse_args (argv)
 {
   argv = argv.slice (1); // take [1,...]
-  const c = { verbose: false, binary: false, gdb: false, norc: false, };
+  const c = { verbose: false, binary: false, gdb: false, norc: false, args: [] };
   let sep = false;
   while (argv.length)
     {
@@ -281,6 +279,14 @@ function parse_args (argv)
 	  break;
 	case '--norc':
 	  c.norc = true;
+	  c.args.push (arg);
+	  break;
+	case '-P':
+	case '-M':
+	  if (argv.length) {
+	    c.args.push (arg);
+	    c.args.push (argv.splice (0, 1)[0]);
+	  }
 	  break;
 	case '-U':
 	  c.xurl = argv.splice (0, 1)[0];
