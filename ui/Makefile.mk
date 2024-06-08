@@ -34,12 +34,13 @@ ui/public.wildcards ::= $(wildcard	\
 )
 
 # == ui/lit.js ==
-$>/ui/lit.js.map: $>/ui/lit.js ;
+$>/ui/lit.js.map.gz: $>/ui/lit.js ;
 $>/ui/lit.js: ui/Makefile.mk node_modules/.npm.done					| $>/ui/
 	$(QGEN)
 	$Q rm -f $>/ui/lit.js* $@
 	$Q for mod in $(ui/lit.modules) ; do echo "export * from '$$mod';" ; done	> $>/ui/lit-all.js
 	$Q cd $>/ui/ && ../../node_modules/.bin/rollup -p @rollup/plugin-node-resolve lit-all.js -o lit.js --sourcemapFile lit.js.map -m
+	$Q gzip -f -9 $@.map
 	$Q $(RM) $>/ui/lit-all.js
 $>/.ui-build-stamp: $>/ui/lit.js
 ui/lit.modules = $(strip	\
@@ -51,12 +52,13 @@ ui/lit.modules = $(strip	\
 )
 
 # == ui/signal-polyfill.js ==
-$>/ui/signal-polyfill.js.map: $>/ui/signal-polyfill.js ;
+$>/ui/signal-polyfill.js.map.gz: $>/ui/signal-polyfill.js ;
 $>/ui/signal-polyfill.js: ui/Makefile.mk node_modules/.npm.done					| $>/ui/
 	$(QGEN)
 	$Q rm -f $>/ui/signal-polyfill.js* $@
 	$Q for mod in signal-polyfill ; do echo "export * from '$$mod';" ; done	> $>/ui/signal-all.js
 	$Q cd $>/ui/ && ../../node_modules/.bin/rollup -p @rollup/plugin-node-resolve signal-all.js -o $(@F) --sourcemapFile $(@F).map -m
+	$Q gzip -f -9 $@.map
 	$Q $(RM) $>/ui/signal-all.js
 $>/.ui-build-stamp: $>/ui/signal-polyfill.js
 
@@ -222,6 +224,7 @@ $>/ui/global.css: ui/global.scss $(ui/tailwind.inputs) $(ext/ui/b/js.files) ui/s
 	    echo "@import '$$f';" || exit 1 ; done		>> $>/ext/imports.scss
 	$Q POSTCSS_IMPORT_PATH=.:$>/ext \
 	node_modules/.bin/postcss --config ui < $>/ext/imports.scss -o $>/ext/ui/global.css
+	$Q gzip -f -9 $>/ext/ui/global.css.map
 	$Q mv $>/ext/ui/global.css* $(@D)
 $>/.ui-reload-stamp: $>/ui/global.css
 
@@ -270,6 +273,7 @@ $>/ui/markdown-it.mjs: node_modules/.npm.done	| $>/ui/
 	&& node_modules/.bin/rollup -f es --sourcemap \
 		-p @rollup/plugin-node-resolve -p "terser={output:{beautify:false}}" \
 		-o $@ $@.js \
+	&& gzip -f -9 $@.map \
 	&& rm -f $@.js
 $>/.ui-build-stamp: $>/ui/markdown-it.mjs
 
