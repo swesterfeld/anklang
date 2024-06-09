@@ -99,13 +99,13 @@ export class AppClass {
   }
   async load_project_checked (project_or_path) {
     const err = await this.load_project (project_or_path);
-    if (err !== Ase.Error.NONE)
-      App.async_button_dialog ("Project Loading Error",
-			       "Failed to open project.\n" +
-			       displayfs (project_or_path) + ":\n" +
-			       await Ase.server.error_blurb (err), [
-				 { label: 'Dismiss', autofocus: true },
-			       ], 'ERROR');
+    if (err !== Ase.Error.NONE) {
+      let errblurb = Ase.server.error_blurb (err);
+      let msg = '# File IO Error\n  \n  \n';
+      msg += 'Failed to load project:\n\n';
+      msg += '`' + displayfs (project_or_path) + ": " + await errblurb + '`';
+      App.show_notice (msg);
+    }
     return err;
   }
   async load_project (project_or_path) {
