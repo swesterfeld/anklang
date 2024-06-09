@@ -129,6 +129,7 @@ NativeDeviceImpl::remove_device (Device &sub)
       proc_->engine().async_jobs += j;
       // once job is processed, dtor runs in mainthread
     }
+  devs.notify();
 }
 
 DeviceP
@@ -157,6 +158,7 @@ NativeDeviceImpl::insert_device (const String &uri, Device *sibling, const Devic
       };
       proc_->engine().async_jobs += j;
     }
+  devs.notify();
   return devicep;
 }
 

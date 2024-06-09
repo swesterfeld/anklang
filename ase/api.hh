@@ -211,6 +211,9 @@ struct DeviceInfo {
 
 /// Interface to access Device instances.
 class Device : public virtual Gadget {
+  virtual bool devs_  (const DeviceS *n, DeviceS *q);
+protected:
+  explicit     Device ();
 public:
   // internal
   Track*                  _track             () const;          ///< Find Track in parent ancestry.
@@ -222,11 +225,13 @@ public:
   // exported
   virtual bool       is_active     () = 0;      ///< Check whether this is the active synthesis engine project.
   virtual DeviceInfo device_info   () = 0;      ///< Describe this Device type.
+  virtual DeviceS    list_devices  () = 0;      ///< List devices in order of processing, notified via "devs".
   void               remove_self   ();          ///< Remove device from its container.
   // GUI handling
   virtual void       gui_toggle    () = 0;      ///< Toggle GUI display.
   virtual bool       gui_supported () = 0;      ///< Has GUI display facilities.
   virtual bool       gui_visible   () = 0;      ///< Is GUI currently visible.
+  Member<&Device::devs_> devs [[no_unique_address]];
 };
 
 /// Interface to access NativeDevice instances.
@@ -234,7 +239,6 @@ class NativeDevice : public virtual Device {
 public:
   // subdevice handling
   virtual bool        is_combo_device   () = 0;                      ///< Retrieve wether this NativeDevice handles sub devices.
-  virtual DeviceS     list_devices      () = 0;                      ///< List devices in order of processing, notified via "devices".
   DeviceInfoS         list_device_types ();                          ///< List registered Device types with their unique uri.
   virtual void        remove_device     (Device &sub) = 0;           ///< Remove a directly contained device.
   virtual DeviceP     append_device     (const String &uri) = 0;     ///< Append a new device, see list_device_types().

@@ -15,6 +15,7 @@ protected:
 public:
   void            _activate            () override;
   void            _deactivate          () override;
+  DeviceS         list_devices         () override { return {}; }
   bool            is_active            () override { return activated_; }
   bool            gui_supported        () override { return false; }
   bool            gui_visible          () override { return false; }
