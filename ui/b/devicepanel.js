@@ -55,10 +55,9 @@ b-devicepanel {
   }
   position: relative;
   &::after {
-    position: absolute; left:0; top:0; right:0; bottom:0;
-    content: ' '; pointer-events: none;
+    @apply absolute pointer-events-none inset-0;
+    content: ' '; z-index: 9; //* raise above scrolled siblings */
     box-shadow: inset -10px 0 7px -7px #000, inset 10px 0 7px -7px #000;
-    z-index: 9; //* raise above scrolled siblings */
   }
 }`;
 
