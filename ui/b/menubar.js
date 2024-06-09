@@ -301,21 +301,18 @@ async function save_project (asnew = false) {
       if (replace != 1)
 	return false;
     }
-  const err = await App.save_project (filename);
-  if (err === Ase.Error.NONE)
-    {
-      filename = await Data.project.saved_filename();
-      let msg = '### Project Saved\n';
-      msg += '  \n  \nProject saved to: ``' + displayfs (filename) + '``\n';
-      App.show_notice (msg);
-      return true;
-    }
-  await App.async_button_dialog ("File IO Error",
-				 "Failed to save project.\n" +
-				 displayfs (filename) + ": " +
-				 await Ase.server.error_blurb (err), [
-				   { label: 'Dismiss', autofocus: true }
-				 ], 'ERROR');
-  return false;
+  let msg, err = await App.save_project (filename);
+  if (err === Ase.Error.NONE) {
+    filename = await Data.project.saved_filename(); // get canonicalized form
+    msg = '### Project Saved\n  \n  \n';
+    msg += 'Project successfully saved to:\n\n`' + displayfs (filename) + '`\n';
+  } else {
+    let errblurb = Ase.server.error_blurb (err);
+    msg = '# File IO Error\n  \n  \n';
+    msg += 'Failed to save project:\n\n';
+    msg += '`' + displayfs (filename) + ": " + await errblurb + '`';
+  }
+  App.show_notice (msg);
+  return err === Ase.Error.NONE;
 }
 let save_project_last_dir = "~MUSIC";
