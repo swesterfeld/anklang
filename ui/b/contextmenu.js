@@ -288,7 +288,8 @@ class BContextMenu extends LitComponent {
   }
   async toggle_active_children()
   {
-    const isactive = async uri => !uri || !this.isactive || await this.isactive (uri);
+    const this_isactive = this.isactive; // fetch function property *not* bound to contextmenu
+    const isactive = async uri => !uri || !this_isactive || await this_isactive (uri);
     const proms = [];
     for (let b of this.querySelectorAll ('button,push-button')) {
       /**@type{any}*/ const any = b;

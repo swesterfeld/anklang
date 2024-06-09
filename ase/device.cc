@@ -4,6 +4,23 @@
 
 namespace Ase {
 
+// == Device ==
+Device::Device() :
+  devs (this, "devs")
+{}
+
+bool
+Device::devs_ (const DeviceS *n, DeviceS *q)
+{
+  if (n) {
+    // no assignments
+    // devs.notify();
+  }
+  if (q)
+    *q = list_devices();
+  return true;
+}
+
 // == DeviceImpl ==
 void
 DeviceImpl::_set_parent (GadgetImpl *parent)

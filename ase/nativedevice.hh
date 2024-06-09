@@ -29,7 +29,7 @@ public:
   bool                 is_combo_device    () override       { return combo_ != nullptr; }
   DeviceInfo           device_info        () override       { return info_; }
   // handle sub Devices
-  DeviceS              list_devices       () override      { return children_; }
+  DeviceS              list_devices       () override       { return children_; }
   void                 remove_device      (Device &sub) override;
   DeviceP              append_device      (const String &uri) override;
   DeviceP              insert_device      (const String &uri, Device &beforesibling) override;
