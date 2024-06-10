@@ -3,10 +3,11 @@
 
 import { LitComponent, html, render, noChange, JsExtract, docs, ref } from '../little.js';
 import * as Util from "../util.js";
+import * as Dom from "../dom.js";
 
 // == HTML ==
 const HTML = (t, d) => html`
-<dialog class="floating-dialog [&:not([open])]:hidden" ${ref (h => t.dialog = h)} @cancel=${t.close_dialog} @pointerdown=${t.backdrop_click}>
+<dialog class="floating-dialog [&:not([open])]:hidden" ${ref (h => t.dialog = h)} @close=${t.close_dialog}>
   <div class="dialog-header">
     About ANKLANG
   </div>
@@ -14,7 +15,7 @@ const HTML = (t, d) => html`
     ${INFOS_HTML (t, d)}
   </c-grid>
   <div class="dialog-footer">
-    <button class="button-xl" autofocus @click=${t.close_dialog} > Close </button>
+    <button class="button-xl" autofocus @click=${e => t.dialog.close()} > Close </button>
   </div>
 </dialog>`;
 const INFOS_HTML = (t, d) =>
@@ -61,7 +62,7 @@ export class BAboutDialog extends LitComponent {
     }
     if (this.shown && !this.dialog.open && this.info_pairs.length > 0) {
       document.startViewTransition (async () => {
-	this.dialog.showModal();
+	Dom.show_modal (this.dialog);
 	await Promise.all ([this.updateComplete, info_promise]);
       });
     }
@@ -80,13 +81,6 @@ export class BAboutDialog extends LitComponent {
     if (this.dialog.open) // ensure focus is restored
       this.dialog.close();
     super.disconnectedCallback();
-  }
-  backdrop_click (event)
-  {
-    if (event.target === event.currentTarget &&                           // target must be DIALOG or backdrop
-	(event.offsetX < 0 || event.offsetX > event.target.offsetWidth || // click must be outside
-	 event.offsetY < 0 || event.offsetY > event.target.offsetHeight)) // which is backdrop
-      this.close_dialog (event);
   }
 }
 customElements.define ('b-aboutdialog', BAboutDialog);
