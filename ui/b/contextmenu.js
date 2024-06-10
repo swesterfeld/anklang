@@ -62,6 +62,7 @@ import { LitComponent, html, render, noChange, JsExtract, docs, ref } from '../l
 import * as Util from "../util.js";
 import * as Kbd from '../kbd.js';
 import { text_content, get_uri, valid_uri, has_uri } from '../dom.js';
+import * as Dom from "../dom.js";
 
 // == STYLE ==
 JsExtract.css`
@@ -362,7 +363,7 @@ class BContextMenu extends LitComponent {
     return (async () => {
       await this.updateComplete; // needed to access this.dialog
       this.reposition = true;
-      this.dialog.showModal();
+      Dom.show_modal (this.dialog);
       this.blur();
       App.zmove(); // force changes to be picked up
       // check items (and this used to handle auto-focus)
