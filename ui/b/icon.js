@@ -33,7 +33,7 @@ import * as Dom from "../dom.js";
 // == STYLE ==
 JsExtract.css`
 b-icon { // not using shadow-root here
-  display: inline-flex !important;
+  display: inline-flex;
   place-content: center center;
   flex-wrap: wrap; /* needed for align-content:center */
   &[hflip]		{ transform: scaleX(-1); }
