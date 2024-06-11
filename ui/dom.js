@@ -98,3 +98,46 @@ export function text_content (element, with_children = true)
       s += element.childNodes[i].textContent;
   return s;
 }
+
+/// Show a `dialog` via showModal() and close it on backdrop clicks.
+export function show_modal (dialog)
+{
+  if (dialog.open) return;
+  // close dialog on backdrop clicks, but:
+  // - avoid matching text-select drags that end up on backdrop area
+  // - avoid matching Enter-click event coordinates from input-submit with clientX*clientY==0
+  // - avoid matching an outside popup click, after a previous pointerdown+Escape combination
+  // - avoid re-popup by clicking on outside menu button and closing early on pointerdown
+  let pointer_outside = false; // must reset on every dialog.showModal()
+  const pointerdown = event => {
+    pointer_outside = (event.buttons && event.target === dialog && // backdrop has target==dialog
+		       (event.offsetX < 0 || event.offsetX >= event.target.offsetWidth ||
+			event.offsetY < 0 || event.offsetY >= event.target.offsetHeight));
+  };
+  const pointerup = event => {
+    if (pointer_outside && event.target === dialog && // backdrop as target is dialog
+	(event.offsetX < 0 || event.offsetX >= event.target.offsetWidth ||
+	 event.offsetY < 0 || event.offsetY >= event.target.offsetHeight))
+      dialog.close();
+    else
+      pointer_outside = false;
+  };
+  const mousedown = event => {
+    // prevent focus on the dialog itself
+    if (event.buttons)
+      event.preventDefault();
+  };
+  const capture = { capture: true };
+  const close = event => {
+    dialog.removeEventListener ('pointerdown', pointerdown, capture);
+    dialog.removeEventListener ('pointerup', pointerup);
+    dialog.removeEventListener ('mousedown', mousedown);
+    dialog.removeEventListener ('close', close);
+  };
+  dialog.addEventListener ('pointerdown', pointerdown, capture);
+  dialog.addEventListener ('pointerup', pointerup);
+  dialog.addEventListener ('mousedown', mousedown);
+  dialog.addEventListener ('close', close);
+  dialog.showModal();
+  return dialog;
+}

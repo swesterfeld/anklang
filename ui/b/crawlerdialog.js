@@ -27,6 +27,7 @@ import { Signal, State, Computed, Watcher, tracking_wrapper } from "../signal.js
 import { get_uri } from '../dom.js';
 import * as Util from "../util.js";
 import * as Kbd from "../kbd.js";
+import * as Dom from "../dom.js";
 
 // == STYLE ==
 JsExtract.css`
@@ -195,7 +196,7 @@ class BCrawlerDialog extends LitComponent {
     if (!this.shown && this.dialog.open)
       this.dialog.close();
     if (this.shown && !this.dialog.open)
-      this.dialog.showModal();
+      Dom.show_modal (this.dialog);
   }
   connectedCallback()
   {
