@@ -39,7 +39,7 @@ const HTML = (t, d) =>  html`
 	  <b-icon ic="bc-folder" ></b-icon>
 	  <b-icon ic="bc-menumore" ></b-icon>
 	</div>
-	<b-contextmenu ${ref (h => t.filemenu = h)} id="g-filemenu" .activate=${activate} .isactive=${isactive} startfocus1 >
+	<b-contextmenu ${ref (h => t.filemenu = h)} id="g-filemenu" .activate=${activate} .isactive=${isactive} >
 	  <button ic="fa-file-o"	kbd="Ctrl+N"		uri="loadnew" >	New Project		</button>
 	  <button ic="fa-file-audio-o" 	kbd="Ctrl+O"		uri="load"    >	Open Project…		</button>
 	  <button ic="mi-save_alt"     	kbd="Ctrl+S"		uri="save"    >	Save Project		</button>
@@ -57,7 +57,7 @@ const HTML = (t, d) =>  html`
 	  <b-icon ic="mi-draw" ></b-icon>
 	  <b-icon ic="bc-menumore" ></b-icon>
 	</div>
-	<b-contextmenu ${ref (h => t.editmenu = h)} id="g-editmenu" .activate=${activate} .isactive=${isactive} startfocus >
+	<b-contextmenu ${ref (h => t.editmenu = h)} id="g-editmenu" .activate=${activate} .isactive=${isactive} >
 	  <button ic="mi-undo" .disabled=${!true} kbd="Ctrl+Z"       uri="undo">	Undo	</button>
 	  <button ic="mi-redo" .disabled=${!true} kbd="Shift+Ctrl+Z" uri="redo">	Redo	</button>
 	</b-contextmenu>
@@ -69,7 +69,7 @@ const HTML = (t, d) =>  html`
 	  <b-icon ic="fa-eye" ></b-icon>
 	  <b-icon ic="bc-menumore" ></b-icon>
 	</div>
-	<b-contextmenu ${ref (h => t.viewmenu = h)} id="g-viewmenu" .activate=${activate} .isactive=${isactive} startfocus >
+	<b-contextmenu ${ref (h => t.viewmenu = h)} id="g-viewmenu" .activate=${activate} .isactive=${isactive} >
 	  <button ic="mi-fullscreen" .disabled=${!document.fullscreenEnabled}
 		  kbd="F11" uri="fullscreen">	Toggle Fullscreen	</button>
 	  ${ELECTRON_MENUITEMS (t)}
@@ -92,7 +92,7 @@ const HTML = (t, d) =>  html`
 	  <b-icon ic="fa-life-ring" ></b-icon>
 	  <b-icon ic="bc-menumore" ></b-icon>
 	</div>
-	<b-contextmenu ${ref (h => t.helpmenu = h)} id="g-helpmenu" .activate=${activate} .isactive=${isactive} startfocus >
+	<b-contextmenu ${ref (h => t.helpmenu = h)} id="g-helpmenu" .activate=${activate} .isactive=${isactive} >
 	  <button ic="mi-chrome_reader_mode"	uri="user-manual">	Anklang Manual…		</button>
 	  <button ic="mi-chrome_reader_mode"	uri="dev-manual">	Development Reference…	</button>
 	  <b-menuseparator></b-menuseparator>
@@ -185,7 +185,7 @@ async function activate (uri, event)
 				   (Electron ?
 				    [ 'Discard Changes', { label: 'Cancel', autofocus: true }, 'Save' ] :
 				    [ 'Discard Changes', { label: 'Cancel', autofocus: true },
-				      { label: 'Save', disabled: true } ]),
+				      { label: 'Save', disabled: false } ]),
 				   'QUESTION');
       v = await v;
       if (v == 0)
