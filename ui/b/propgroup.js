@@ -1,13 +1,13 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 
 /** @class B-PROPGROUP
- * A property group is a collection of properties.
+ * A property group contains a group title, several rows and each row contains a number of properties.
  * @property {string} name - Group name.
  * @property {Array<any>} props - List of properties with cached information and layout rows.
  * @property {boolean} readonly - Make this component non editable for the user.
  */
 
-import { LitComponent, html, JsExtract, docs } from '../little.js';
+import { LitComponent, html, JsExtract, docs, repeat } from '../little.js';
 import * as Util from '../util.js';
 
 // == STYLE ==
@@ -22,54 +22,72 @@ b-propgroup {
     background: $b-device-area2;
   }
   .b-propgroup-title {
-    display: flex;
-    justify-content: center;
-    text-align: center;
-    flex-grow: 1;
+    @apply flex grow justify-center text-center;
   }
-  .b-propgroup-input {
-    flex-grow: 1;
-  }
-  .b-propgroup-row {
-    justify-content: space-evenly;
-    .b-propgroup-vprop {
-      align-items: center;
-      .b-propgroup-nick {
-	font-size: 90%;
-      }
-    }
-    //* emulate: .b-propgroup-row { gap: ...; } */
-    > *:not(:last-child) { margin-right: 7px; }
-  }
-  //* emulate: .b-propgroup { gap: ...; } */
-  > *:not(:last-child) { margin-bottom: 5px; }
-  .b-propgroup-big {
-    /*max-height: 2em;*/
-  }
+  --b-prop-width: 3rem;
+  --b-prop-height: 2.5rem;
+  --b-prop-gap: calc(2 * 0.125rem);
+  .b-propgroup-row > * { @apply justify-center; }
+  .b-propgroup-row > * + * { margin-left: var(--b-prop-gap); }
+  .b-propgroup-row:not(:last-child) { margin-bottom: var(--b-prop-gap); }
+}
+.b-propgroup-row b-textinput {
+  width: calc(var(--b-prop-gap) * 4 + 5 * var(--b-prop-width));
+}
+.b-propgroup-row {
+  > * { width: var(--b-prop-width); }
+  > b-propinput { height: var(--b-prop-height); }
+  > span { margin-top: calc(2 * 0.125rem); }
 }`;
 
 // == HTML ==
-const GROUP_HTML = (t, proprows) => [
-  html`
-    <span class="b-propgroup-title"> ${t.name} </span> `,
-  proprows.map ((row, index) => html`
-    <h-flex class="b-propgroup-row" key="${index}">
-      ${row.map (prop => PROP_HTML (t, prop))}
-    </h-flex>`),
+const GROUP_HTML = (t, prop_rows) => [
+  html`<span class="b-propgroup-title"> ${t.name} </span>`,
+  repeat (prop_rows, (row_props, index) =>
+    html`
+      <div class="b-propgroup-row grid justify-evenly" style="grid-auto-flow: column dense">
+	${repeat (row_props, (prop, i) => PROP_HTML (t, prop, i))}
+      </div>`)
 ];
-const PROP_HTML = (t, prop) => html`
-  <v-flex class=${t.prop_class (prop) + " b-propgroup-vprop"}>
-    <b-propinput class="b-propgroup-input" .prop="${prop}" ?readonly=${t.readonly}></b-propinput>
-    <span class="b-propgroup-nick"> ${prop.nick_} </span>
-  </v-flex>`;
+const PROP_HTML = (t, prop) => {
+  let p;
+  if ('C' == prop_case (prop))
+    debug ("CHOICE:", prop);
+  switch (prop_case (prop)) {
+    case 'B': p = html` <b-toggle ?disabled=${prop.readonly} .value=${prop.value_.num}
+			  label="" @valuechange=${e => prop.set_normalized (!!e.target.value)} ></b-toggle> `; break;
+    case 'C': p = html` <b-choiceinput small="1" indexed="1" ?disabled=${t.readonly} .prop="${prop}"
+			  label=${prop.label_} title=${prop.title_} .choices=${prop.value_.choices}
+			  value=${prop.value_.val} @valuechange=${e => prop.apply_ (e.target.value)} ></b-choiceinput> `; break;
+    case 'K': p = html` <b-knob ?disabled=${prop.readonly} .prop="${prop}" ></b-knob> `; break;
+    case 'T': p = html` <b-textinput ?disabled=${prop.readonly} .prop=${prop}
+			  label=${prop.label_} title=${prop.title_} ></b-textinput> `; break;
+    default:  p = html` <span>${prop.nick_}</span> `; break;
+  }
+  const p_label = html` <span class="text-center text-[90%]" style="grid-row: 2/3"> ${prop.nick_} </span> `;
+  return html` ${p} \n ${p_label} `;
+};
+function prop_case (prop)
+{
+  const hints = ':' + prop.hints_ + ':';
+  if (hints.search (/:choice:/) >= 0)
+    return 'C';	// choice
+  if (hints.search (/:toggle:/) >= 0)
+    return 'B';	// toggle
+  if (hints.search (/:text:/) >= 0)
+    return 'T';	// text
+  if (prop.is_numeric_)
+    return 'K';	// knob
+  return '?';
+}
 
 // == SCRIPT ==
 class BPropGroup extends LitComponent {
   createRenderRoot() { return this; }
   render()
   {
-    const proprows = this.assign_layout_rows (this.props);
-    return GROUP_HTML (this, proprows);
+    const prop_rows = this.assign_layout_rows (this.props);
+    return GROUP_HTML (this, prop_rows);
   }
   static properties = {
     name:     { type: String, reflect: true },
@@ -86,15 +104,13 @@ class BPropGroup extends LitComponent {
   updated (changed_properties)
   {
     if (changed_properties.has ('props'))
-      ; // proprows are generated on the fly
+      ; // prop_rows are generated on the fly
   }
   prop_class (prop)
   {
     const hints = ':' + prop.hints_ + ':';
     let c = '';
-    if (prop.is_numeric_ && hints.search (/:big:/) < 0)
-      c += 'b-propgroup-big';				// TODO: actually test "big" layout
-    return c;
+    return ' ' + c + ' ';
   }
   assign_layout_rows (props)
   {
