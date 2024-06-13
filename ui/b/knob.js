@@ -52,14 +52,14 @@ b-knob {
   }
   #sprite {
     display: inline-block;
-    background: url("assets/cknob193u.png");
-    &[bidir] { background: url("assets/cknob193b.png"); }
+    background-image: url("assets/cknob193u.png");
+    &[bidir] { background-image: url("assets/cknob193b.png"); }
     background-repeat: no-repeat;
-    --pxsize: 40px;
-    background-size: calc(1.0 * var(--pxsize));
+    --b-knob-size: min(var(--b-prop-width), var(--b-prop-height));
+    background-size: calc(1.0 * var(--b-knob-size));
     will-change: background-position;
-    width:  calc(1.0 * var(--pxsize));
-    height: calc(1.0 * var(--pxsize));
+    width:  calc(1.0 * var(--b-knob-size));
+    height: calc(1.0 * var(--b-knob-size));
   }
 }`;
 
@@ -68,8 +68,8 @@ const HTML = (t,d) => html`
   <div id="sprite" ?bidir=${d.bidir}
     @wheel=${{handleEvent: e => t.wheel_event (e), passive: false }}
     @pointerdown="${t.pointerdown}"
-    @dblclick="${Util.prevent_event}"
-    style="background-position: 0px calc(-270 * var(--pxsize))"></div>
+    @dblclick="${Util.prevent_event}">
+  </div>
 `;
 
 // == SCRIPT ==
@@ -117,7 +117,7 @@ class BKnob extends LitComponent {
       return;
     const steps = 193 - 1;
     const r = Math.round (steps * this.last_);
-    /**@type{HTMLElement}*/ (this.sprite).style.backgroundPosition = "0px calc(" + -r + " * var(--pxsize))";
+    /**@type{HTMLElement}*/ (this.sprite).style.backgroundPosition = "0px calc(" + -r + " * var(--b-knob-size))";
     this.relabel_cb();
   }
   async relabel()
