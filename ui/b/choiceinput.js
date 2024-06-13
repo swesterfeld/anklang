@@ -70,7 +70,6 @@ b-choiceinput {
   }
   .b-choice-current {
     align-self: center;
-    padding-left: 0.3em;
     width: 100%;
     margin: 0;
     white-space: nowrap; overflow: hidden;
@@ -116,7 +115,7 @@ const CONTEXTMENU_HTML = (t) =>  html`
   <b-contextmenu class="b-choiceinput-contextmenu" ${ref (h => t.cmenu = h)}
     @activate=${e => t.activate (get_uri (e.detail))} @close=${e => t.need_cmenu = false} >
     <b-menutitle style=${!t.title ? 'display:none' : ''}> ${t.title} </b-menutitle>
-    ${ t.mchoices().map ((c, index) => CONTEXTMENU_ITEM (t, c) )}
+    ${ t.mchoices.map ((c, index) => CONTEXTMENU_ITEM (t, c) )}
   </b-contextmenu>
 `;
 const CONTEXTMENU_ITEM = (t, c) => html`
@@ -140,11 +139,11 @@ class BChoiceInput extends LitComponent {
     ];
   }
   static properties = {
+    prop:	{ type: Object, reflect: false },
     value:	{ type: String, },
     title:	{ type: String, },
     label:	{ type: String, },
     small:	{ type: Boolean, },
-    prop:	{ type: Object, },
     choices:	{ type: Array },
     need_cmenu: { state: true }, // internal
   };
@@ -168,6 +167,11 @@ class BChoiceInput extends LitComponent {
   }
   updated (changed_props)
   {
+    if (changed_props.has ('prop')) {
+      this.choices = [];
+      if (this.prop)
+	(async () => this.choices = await this.prop.choices()) ();
+    }
     if (changed_props.has ('small')) {
       this.classList.remove (this.small ? 'b-choice-big' : 'b-choice-small');
       this.classList.add (!this.small ? 'b-choice-big' : 'b-choice-small');
@@ -176,7 +180,7 @@ class BChoiceInput extends LitComponent {
       this.value_ = this.value; // may cause re-render
     this.setAttribute ('data-tip', this.data_tip());
   }
-  mchoices()
+  get mchoices()
   {
     const mchoices = [];
     for (let i = 0; i < this.choices.length; i++) {
@@ -187,7 +191,7 @@ class BChoiceInput extends LitComponent {
   }
   current()
   {
-    const mchoices = this.mchoices();
+    const mchoices = this.mchoices;
     for (let i = 0; i < mchoices.length; i++)
       if (mchoices[i].ident == this.value_)
 	return mchoices[i];
@@ -207,7 +211,7 @@ class BChoiceInput extends LitComponent {
   nick()
   {
     const choice = this.current();
-    return choice.label || "";
+    return choice.icon ? choice.icon : choice.label || "";
   }
   activate (uri)
   {
@@ -226,6 +230,7 @@ class BChoiceInput extends LitComponent {
       this.need_cmenu = true; // does this.requestUpdate();
       this.performUpdate();
     }
+    if (this.cmenu.open) return;
     this.pophere.focus();
     this.cmenu.popup (event, { origin: this.pophere, focus_uri: this.value });
   }
@@ -236,9 +241,8 @@ class BChoiceInput extends LitComponent {
     // allow selection changes with UP/DOWN while menu is closed
     if (event.keyCode == Util.KeyCode.DOWN || event.keyCode == Util.KeyCode.UP)
       {
-	event.preventDefault();
-	event.stopPropagation();
-	const mchoices = this.mchoices();
+	Util.prevent_event (event);
+	const mchoices = this.mchoices;
 	const choice = this.current();
 	if (choice.ident)
 	  for (let i = 0; i < mchoices.length; i++)
