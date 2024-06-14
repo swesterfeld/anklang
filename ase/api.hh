@@ -336,6 +336,8 @@ public:
   virtual bool            can_undo       () = 0;       ///< Check if any undo steps have been recorded.
   virtual void            redo           () = 0;       ///< Redo the last undo modification.
   virtual bool            can_redo       () = 0;       ///< Check if any redo steps have been recorded.
+  virtual String          match_serialized (const String &regex,
+                                            int group = 0) = 0; ///< Match `regex` against the serialized project state.
   Member<&Project::bpm_>         bpm [[no_unique_address]];
   Member<&Project::numerator_>   numerator [[no_unique_address]];
   Member<&Project::denominator_> denominator [[no_unique_address]];

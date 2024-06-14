@@ -259,6 +259,24 @@ ProjectImpl::save_project (const String &utf8filename, bool collect)
   return error;
 }
 
+Error
+ProjectImpl::snapshot_project (String &json)
+{
+  assert_return (storage_ == nullptr, Error::OPERATION_BUSY);
+  // writer setup
+  PStorage storage (&storage_); // storage_ = &storage;
+  storage_->writer_cachedir = anklang_cachedir_create();
+  if (storage_->writer_cachedir.empty() || !Path::check (storage_->writer_cachedir, "d"))
+    return Error::NO_PROJECT_DIR;
+  storage_->anklang_dir = storage_->writer_cachedir;
+  storage_->asset_hashes.clear();
+  // serialize Project
+  json = json_stringify (*this, Writ::RELAXED) + '\n';
+  // cleanup
+  anklang_cachedir_cleanup (storage_->writer_cachedir);
+  return Error::NONE;
+}
+
 String
 ProjectImpl::writer_file_name (const String &fspath) const
 {
@@ -450,6 +468,18 @@ ProjectImpl::serialize (WritNode &xs)
       if (storage_ && storage_->asset_hashes.size())
         xs["filehashes"] & storage_->asset_hashes;
     }
+}
+
+String
+ProjectImpl::match_serialized (const String &regex, int group)
+{
+  String json;
+  Error error = snapshot_project (json);
+  if (!!error) {
+    logerr ("failed to serialize project: %s\n", ase_error_blurb (error));
+    return "";
+  }
+  return Re::grep (regex, json, group);
 }
 
 UndoScope::UndoScope (ProjectImplP projectp) :

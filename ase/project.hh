@@ -44,6 +44,8 @@ protected:
   virtual bool        denominator_   (const double *n, double *q) override;
   void                serialize      (WritNode &xs) override;
   void                update_tempo   ();
+  Error               snapshot_project (String &json);
+  String              match_serialized (const String &regex, int group) override;
 public:
   void                 _activate         () override;
   void                 _deactivate       () override;
