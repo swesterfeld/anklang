@@ -50,5 +50,7 @@ $X11TEST/x11rec.sh \
   EXITSTATUS=$?
 
 # preserve exist status
+pkill -P $$ || true
+trap ''	0 HUP INT QUIT TRAP USR1 PIPE TERM ERR EXIT
 echo exit $EXITSTATUS
 exit $EXITSTATUS
