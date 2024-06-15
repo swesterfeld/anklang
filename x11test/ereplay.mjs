@@ -11,11 +11,11 @@ const localhost = "127.0.0.1";
 loginf ("import puppeteer-core");
 import puppeteer from "puppeteer-core";
 loginf ("import electron");
-import { app, BrowserWindow } from "electron";;
+import { app, BrowserWindow } from "electron";
 loginf ("import get-port");
-import getPort from "get-port";;
+import getPort from "get-port";
 loginf ("import fs");
-import fs from "fs";;
+import fs from "fs";
 
 // == loginf with line numbers ==
 const stack_line_rex = /(\d+):(\d+)\)?$/;
