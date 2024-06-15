@@ -182,8 +182,10 @@ class UnhurriedTestRunnerExtension extends PuppeteerRunnerExtension {
       msg += ': ' + step.url;
     else if (s.length)
       msg += ': ' + s[0];
-    else
-      msg += '...';
+    if (step.key)
+      msg += ` <${step.key}>`;
+    if ("string" === typeof step.value && step.value.length <= 80)
+      msg += ': ' + JSON.stringify (step.value);
     this.log (msg);
     if (click_types.indexOf (step.type) >= 0)
       await delay (BEFORE_CLICK);
