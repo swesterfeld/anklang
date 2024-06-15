@@ -190,8 +190,8 @@ class UnhurriedTestRunnerExtension extends PuppeteerRunnerExtension {
     if (click_types.indexOf (step.type) >= 0)
       await delay (AFTER_CLICK);
     const s = step.selectors ? step.selectors.flat() : [];
-    const navigate = "navigate" === step.type || s[0]?.search (/\bNew.?Project/i) >= 0;
-    if (navigate) { // Anklang may cause a page reload on "navigate" events
+    const navigate = "navigate" === step.type;
+    if (navigate) {
       this.log ("  reload delay...");
       await delay (RELOAD_DELAY);
     }
