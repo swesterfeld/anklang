@@ -131,9 +131,13 @@ async function puppeteer_newpage (settings = {})
   await window.loadURL (url);
   if (devtools)
     window.toggleDevTools(); // start with DevTools enabled
+  const handle_navigate = () => did_navigate += 1;
+  for (let k of [ 'did-start-navigation', 'did-navigate', 'did-frame-navigate', 'did-navigate-in-page' ])
+    window.webContents.on (k, handle_navigate);
 
   return puppeteer_getpage (this, window);
 }
+let did_navigate = 0;
 
 // == abort on any errors ==
 function test_error (arg) {
@@ -190,8 +194,9 @@ class UnhurriedTestRunnerExtension extends PuppeteerRunnerExtension {
     if (click_types.indexOf (step.type) >= 0)
       await delay (AFTER_CLICK);
     const s = step.selectors ? step.selectors.flat() : [];
-    const navigate = "navigate" === step.type;
-    if (navigate) {
+    // const will_navigate = "navigate" === step.type;
+    if (did_navigate) { // page reloads often take a while
+      did_navigate = 0;
       this.log ("  reload delay...");
       await delay (RELOAD_DELAY);
     }
