@@ -16,10 +16,10 @@ loginf ("import @puppeteer/replay");
 import { PuppeteerRunnerExtension, createRunner, parse } from "@puppeteer/replay";
 loginf ("import electron");
 import { app, BrowserWindow } from "electron";
-loginf ("import get-port");
-import getPort from "get-port";
 loginf ("import fs");
 import fs from "fs";
+loginf ("import node:net");
+import net from "node:net";
 
 // == loginf with line numbers ==
 const stack_line_rex = /(\d+):(\d+)\)?$/;
@@ -35,6 +35,21 @@ function loginf (...args)
   return console.log (`${file_line}:`, ...args);
 }
 
+// == get_port ==
+async function get_port (listenhost)
+{
+  const promise = new Promise ((resolve, reject) => {
+    const server = net.createServer();
+    server.on ("error", reject);
+    server.listen ({ host: listenhost, port: 0 }, () => {
+      const { port } = server.address();
+      server.close (() => resolve (port));
+    });
+    server.unref();
+  });
+  return promise;
+}
+
 // == configure electron ==
 /** Setup electron for remote debugging from puppeteer
  * @returns {number} Remote debugging port
@@ -48,7 +63,7 @@ async function electron_configure (listenhost)
       app.commandLine.getSwitchValue ("remote-debugging-port") || app.isReady())
     throw new Error ("invalid Electronjs App handle");
   loginf ("Electronjs version:", app.getVersion());
-  const port = await getPort ({ host: listenhost });
+  const port = await get_port (listenhost);
   loginf ("getPort", listenhost, port);
   // options for remote debugging
   app.commandLine.appendSwitch ("remote-debugging-address", listenhost);
