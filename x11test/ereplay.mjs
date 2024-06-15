@@ -7,6 +7,7 @@ loginf ("startup", "verbose=" + verbose);
 const quiet = process.argv.indexOf ('--quiet') >= 0;
 const devtools = process.argv.indexOf ('--devtools') >= 0;
 const localhost = "127.0.0.1";
+const WIDTH = 1920, HEIGHT = 1080;
 
 // == imports ==
 loginf ("import puppeteer-core");
@@ -77,7 +78,7 @@ async function puppeteer_connect (listenhost, port)
   loginf ("response webSocketDebuggerUrl:", response_object.webSocketDebuggerUrl);
   loginf ("await puppeteer.connect");
   const puppeteer_browser = await puppeteer.connect ({ browserWSEndpoint: response_object.webSocketDebuggerUrl,
-						       defaultViewport: { width: 1920, height: 1080 } });
+						       defaultViewport: { width: WIDTH, height: HEIGHT } });
   loginf ("browser:", puppeteer_browser);
   // monkey patch puppeteer_browser.newPage which otherwise cannot work
   puppeteer_browser.newPage = puppeteer_newpage.bind (puppeteer_browser);
@@ -224,7 +225,7 @@ async function main (argv)
 
   // run *.json scripts
   const show = true;
-  const viewport = { deviceScaleFactor: 1, isMobile: false, width: 1920, height: 1080 };
+  const viewport = { deviceScaleFactor: 1, isMobile: false, width: WIDTH, height: HEIGHT };
   for (const arg of process.argv) {
     if (!arg.endsWith ('.json')) continue;
     const json_events = JSON.parse (fs.readFileSync (arg, "utf8"));
@@ -232,8 +233,8 @@ async function main (argv)
       show,
       x:                                0,
       y:                                0,
-      width:                            1920, // calling win.maximize() causes flicker
-      height:                           1080, // using a big initial size avoids flickering
+      width:                            WIDTH, // calling win.maximize() causes flicker
+      height:                           HEIGHT, // using a big initial size avoids flickering
       backgroundColor:                  '#000',
       autoHideMenuBar:                  true,
     });
