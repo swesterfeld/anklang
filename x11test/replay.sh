@@ -35,7 +35,7 @@ trap 'pkill -P $$ '		0 HUP INT QUIT TRAP USR1 PIPE TERM ERR EXIT
 # change dir to project build dir which has node_modules/
 # find node_modules/ relative to SCRIPTNAME
 export NODE_PATH=$X11TEST/../node_modules/
-cp $X11TEST/ereplay.cjs .
+cp $X11TEST/epuppeteer.mjs .
 
 # Start Anklang engine
 test -x $X11TEST/../out/lib/AnklangSynthEngine || die "missing executable:" AnklangSynthEngine
@@ -46,7 +46,7 @@ EXITSTATUS=0
 $X11TEST/x11rec.sh \
   -o $ONAME $OPTS \
   $NODE_PATH/.bin/electron --disable-gpu --disable-dev-shm-usage --no-sandbox --enable-logging \
-  ./ereplay.cjs x11rec.sh $JSONFILE ||
+  ./epuppeteer.mjs x11rec.sh $JSONFILE ||
   EXITSTATUS=$?
 
 # preserve exist status
