@@ -1,0 +1,186 @@
+{
+    "title": "Recording 6/14/2024 at 3:28:20 AM",
+    "steps": [
+        {
+            "type": "setViewport",
+            "width": 1026,
+            "height": 1040,
+            "deviceScaleFactor": 1,
+            "isMobile": false,
+            "hasTouch": false,
+            "isLandscape": false
+        },
+        {
+            "type": "navigate",
+            "url": "http://127.0.0.1:1777/",
+            "assertedEvents": [
+                {
+                    "type": "navigation",
+                    "url": "http://127.0.0.1:1777/",
+                    "title": "Untitled – Anklang"
+                }
+            ]
+        },
+        {
+            "type": "click",
+            "target": "main",
+            "selectors": [
+                [
+                    "#g-filemenu"
+                ],
+                [
+                    "xpath///*[@id=\"g-filemenu\"]"
+                ],
+                [
+                    "pierce/#g-filemenu"
+                ]
+            ],
+            "offsetY": 20.449999809265137,
+            "offsetX": 17.449999809265137
+        },
+        {
+            "type": "click",
+            "target": "main",
+            "selectors": [
+                [
+                    "aria/New Project"
+                ],
+                [
+                    "#g-filemenu button:nth-of-type(1)"
+                ],
+                [
+                    "xpath///*[@id=\"g-filemenu\"]/b-contextmenu/button[1]"
+                ],
+                [
+                    "pierce/#g-filemenu button:nth-of-type(1)"
+                ]
+            ],
+            "offsetY": 24.14999771118164,
+            "offsetX": 82.89999961853027,
+            "assertedEvents": [
+                {
+                    "type": "navigation"
+                }
+            ]
+        },
+        {
+            "type": "click",
+            "target": "main",
+            "selectors": [
+                [
+                    "body"
+                ],
+                [
+                    "xpath//html/body"
+                ],
+                [
+                    "pierce/body"
+                ]
+            ],
+            "offsetY": 75,
+            "offsetX": 166,
+            "button": "secondary"
+        },
+        {
+            "type": "click",
+            "target": "main",
+            "selectors": [
+                [
+                    "aria/Rename Track"
+                ],
+                [
+                    "div:nth-of-type(2) > b-contextmenu > button:nth-of-type(2)"
+                ],
+                [
+                    "xpath//html/body/div[2]/b-contextmenu/button[2]"
+                ],
+                [
+                    "pierce/div:nth-of-type(2) > b-contextmenu > button:nth-of-type(2)"
+                ]
+            ],
+            "offsetY": 8.649993896484375,
+            "offsetX": 86.44999694824219
+        },
+        {
+            "type": "change",
+            "value": "Master2",
+            "selectors": [
+                [
+                    "b-tracklist input"
+                ],
+                [
+                    "xpath///*[@id=\"b-app\"]/c-grid/b-tracklist/div/div[2]/b-trackview/div/b-editable/input"
+                ],
+                [
+                    "pierce/b-tracklist input"
+                ],
+                [
+                    "text/Master"
+                ]
+            ],
+            "target": "main"
+        },
+        {
+            "type": "keyDown",
+            "target": "main",
+            "key": "Enter"
+        },
+        {
+            "type": "keyUp",
+            "key": "Enter",
+            "target": "main"
+        },
+        {
+            "type": "keyDown",
+            "target": "main",
+            "key": "F12"
+        },
+        {
+            "type": "keyUp",
+            "target": "main",
+            "key": "F12"
+        },
+        {
+            "type": "change",
+            "value": "(?s)\"tracks\":.*\"name\":\\s*\"(Master2)\"",
+            "selectors": [
+                [
+                    "aria/[role=\"dialog\"]",
+                    "aria/[role=\"textbox\"]"
+                ],
+                [
+                    "#g-grepspattern"
+                ],
+                [
+                    "xpath///*[@id=\"g-grepspattern\"]"
+                ],
+                [
+                    "pierce/#g-grepspattern"
+                ]
+            ],
+            "target": "main"
+        },
+        {
+            "type": "keyDown",
+            "target": "main",
+            "key": "Enter"
+        },
+        {
+            "type": "keyUp",
+            "key": "Enter",
+            "target": "main"
+        },
+        {
+            "type": "waitForElement",
+            "target": "main",
+            "selectors": [
+                "#g-grepresult",
+                "xpath///*[@id=\"g-grepresult\"]",
+                "pierce/#g-grepresult"
+            ],
+            "properties": {
+                "innerText": "Master2"
+            }
+        }
+    ]
+}
