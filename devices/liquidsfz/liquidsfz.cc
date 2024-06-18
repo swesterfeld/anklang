@@ -73,7 +73,7 @@ public:
   {
     if (state_.load() == STATE_IDLE)
       {
-        if (want_sfz_ == have_sfz_ && want_sample_rate_ == have_sample_rate_)
+        if (want_sfz_ == have_sfz_ && (want_sample_rate_ == have_sample_rate_ || want_sfz_ == ""))
           return true;
       }
     state_.store (STATE_LOAD);
@@ -173,6 +173,8 @@ class LiquidSFZ : public AudioProcessor {
   void
   render (uint n_frames) override
   {
+    // TODO: rework the logic so midi_event_input(), and in particular MidiMessage::PARAM_VALUE are processed unconditionally
+    // See also: https://github.com/tim-janik/anklang/issues/44#issuecomment-2176839260
     if (loader_.idle())
       {
         if (synth_need_reset_)
