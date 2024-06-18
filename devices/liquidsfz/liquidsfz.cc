@@ -73,7 +73,7 @@ public:
   {
     if (state_.load() == STATE_IDLE)
       {
-        if (want_sfz_ == have_sfz_ && want_sample_rate_ == have_sample_rate_)
+        if (want_sfz_ == have_sfz_ && (want_sample_rate_ == have_sample_rate_ || want_sfz_ == ""))
           return true;
       }
     state_.store (STATE_LOAD);
