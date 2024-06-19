@@ -631,7 +631,7 @@ main (int argc, char *argv[])
   // run main event loop and catch SIGUSR2
   const int exitcode = main_loop->run();
   assert_return (main_loop, -1); // ptr must be kept around
-  loginf ("main loop quit (code=%d)", exitcode);
+  logtxt ("main loop quit (code=%d)", exitcode);
 
   // cleanup
   wss->shutdown(); // close socket, allow no more calls
@@ -644,7 +644,7 @@ main (int argc, char *argv[])
   main_loop->iterate_pending();
   main_config_.engine = nullptr;
 
-  loginf ("exiting: %d", exitcode);
+  logtxt ("exiting: %d", exitcode);
   return exitcode;
 }
 
