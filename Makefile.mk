@@ -279,10 +279,10 @@ x11test x11test-v: $(x11test/files.json) $(lib/AnklangSynthEngine)
 	$Q mkdir -p $>/x11test/
 	$Q $(CP) $(x11test/files.json) $>/x11test/
 	$Q cd $>/x11test/ \
-	&& { test "$@" == x11test-v && H=-v || H= ; } \
+	&& { test "$@" == x11test-v && OPT=-v || OPT=-p ; } \
 	&& for json in *.json ; do \
 		echo "$$json" \
-		&& $(abspath x11test/replay.sh) $$H $$json || exit $$? \
+		&& $(abspath x11test/replay.sh) $$OPT $$json || exit $$? \
 	 ; done
 CLEANDIRS += $>/x11test/
 .PHONY: x11test x11test-v

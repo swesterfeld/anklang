@@ -8,10 +8,12 @@ X11TEST="${SCRIPTNAME%/*}"
 
 # parse CLI
 OPTS=-w
+NODEVS="-P null -M null"
 while [[ "${1:-}" = -* ]] ; do
   case "$1" in
     -v)		OPTS=-v ;;
     -w)		OPTS=-w ;;
+    -p)		NODEVS= ;;
     -h)		cat <<-_EOF
 	Usage: replay.sh [OPTIONS] <play.json>
 	Replay a DevTools recording in Electron via Puppetteer
@@ -19,6 +21,7 @@ while [[ "${1:-}" = -* ]] ; do
 	  -h		Display brief usage
 	  -v		Use virtual X11 server for headless recording
 	  -w		Use nested X11 window as server
+	  -p		Use realy PCM/MIDI devices
 _EOF
 		exit 0 ;;
     *)		die "unknown option: $1"
@@ -39,7 +42,7 @@ cp $X11TEST/epuppeteer.mjs .
 
 # Start Anklang engine
 test -x $X11TEST/../out/lib/AnklangSynthEngine || die "missing executable:" AnklangSynthEngine
-$X11TEST/../out/lib/AnklangSynthEngine &
+$X11TEST/../out/lib/AnklangSynthEngine $NODEVS &
 
 # Replay in ELectron and record X11 session
 EXITSTATUS=0
