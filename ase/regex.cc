@@ -1,7 +1,11 @@
 // This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 #include "regex.hh"
+#include "logging.hh"
 #include "internal.hh"
 #include <regex>
+
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 
 namespace Ase {
 
@@ -27,6 +31,70 @@ Re::search (const String &regex, const String &input, Flags flags)
   if (std::regex_search (input, m, rex))
     return m.position();
   return -1;
+}
+
+static pcre2_compile_context*
+pcre2compilecontext ()
+{
+  static pcre2_compile_context *ccontext = [] {
+    pcre2_compile_context *ccontext = pcre2_compile_context_create (nullptr);
+    pcre2_set_compile_extra_options (ccontext, PCRE2_EXTRA_ALT_BSUX);   // \u{abcdef} (ECMAScript 6)
+    pcre2_set_bsr (ccontext, PCRE2_BSR_UNICODE);
+    pcre2_set_newline (ccontext, PCRE2_NEWLINE_ANY);
+    return ccontext;
+    // pcre2_compile_context_free (ccontext);
+  } ();
+  return ccontext;
+}
+
+/// Find `regex` in `input` and return matching string.
+String
+Re::grep (const String &regex, const String &input, int group, Flags flags)
+{
+  pcre2_compile_context *const ccontext = pcre2compilecontext();
+  int errorcode = 0;
+  size_t erroroffset = -1;
+  // use PCRE2_NO_UTF_CHECK if regex is validated
+  const uint32_t COMPILE_OPTIONS =
+    0
+    | PCRE2_UTF                 // UTF-8 Unicode mode
+    | PCRE2_UCP                 // Unicode properties for \d \s \w
+    | (flags & Re::I ? PCRE2_CASELESS : 0)
+    | (flags & Re::M ? PCRE2_MULTILINE : 0)
+    | (flags & Re::N ? PCRE2_NO_AUTO_CAPTURE : 0)
+    | (flags & Re::S ? PCRE2_CASELESS : 0)
+    | (flags & Re::X ? PCRE2_EXTENDED : 0)      // allows #comments\n
+    | (flags & Re::XX ? PCRE2_EXTENDED_MORE : 0)
+    | (flags & Re::J ? PCRE2_DUPNAMES : 0)
+    | (flags & Re::U ? PCRE2_UNGREEDY : 0)
+    | PCRE2_ALT_BSUX            // allow \x22 \u4444
+    | PCRE2_NEVER_BACKSLASH_C;  // prevent matching point in the middle of UTF-8
+  pcre2_code *rx = pcre2_compile ((const uint8_t*) regex.c_str(), PCRE2_ZERO_TERMINATED, COMPILE_OPTIONS, &errorcode, &erroroffset, ccontext);
+  if (!rx) {
+    logerr ("Re", "failed to compile regex (%d): %s", errorcode, regex);
+    return "";
+  }
+  pcre2_match_data *md = pcre2_match_data_create_from_pattern (rx, NULL);
+  const size_t length = PCRE2_ZERO_TERMINATED;
+  const size_t startoffset = 0; // in code units
+  pcre2_match_context *mcontext = nullptr;
+  const uint32_t MATCH_OPTIONS =
+    0; // PCRE2_ANCHORED PCRE2_ENDANCHORED PCRE2_NOTEMPTY etc
+  const int ret = pcre2_match (rx, (const uint8_t*) input.c_str(), length, startoffset, MATCH_OPTIONS, md, mcontext);
+  String result;
+  if (ret >= 0) {
+    const size_t *ovector = pcre2_get_ovector_pointer (md);
+    const uint32_t ovecs = pcre2_get_ovector_count (md);
+    if (group < 0)
+      group = uint (-group) < ovecs ? uint (-group) : 0;
+    if (group < ovecs) {
+      const size_t start = ovector[group*2], end = ovector[group*2+1];
+      result.assign (&input[0] + start, &input[0] + end);
+    }
+  }
+  pcre2_match_data_free (md); md = nullptr;
+  pcre2_code_free (rx); rx = nullptr;
+  return result;
 }
 
 /// Find `regex` in `input` and return non-overlapping matches.

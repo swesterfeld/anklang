@@ -56,6 +56,22 @@ const Jsonapi = {
   },
 };
 
+let grep_dialog = null;
+function window_keydown (event)
+{
+  // Shift+Ctrl+I for devTools
+  if (event.keyCode == 73 && event.shiftKey && event.ctrlKey && window.Electron)
+    window.Electron.call ('toggle_dev_tools');
+  // F12 fro __DEV__ mode test results
+  if (event.keyCode == 123 /*F12*/ && !event.shiftKey && !event.ctrlKey && __DEV__)
+    (async () => {
+      if (!grep_dialog)
+	grep_dialog = await import ('/grepdialog.js');
+      if (grep_dialog)
+	grep_dialog.hotkey_toggle (event);
+    }) ();
+}
+
 // Bootup, called after onload
 async function bootup () {
   // install window.Electron
@@ -71,15 +87,12 @@ async function bootup () {
 	  // window.Electron.call ('exit', 123);
 	});
       // Shift+Ctrl+I for devTools
-      document.addEventListener ("keydown", (event) => {
-	if (event.shiftKey && event.ctrlKey && event.keyCode == 73)
-	  window.Electron.call ('toggle_dev_tools');
-      });
       if (window.Electron.config.files)
 	console.log ("LOAD:", window.Electron.config.files);
       if (window.Electron.config.files.length)
 	CONFIG.files.push (...window.Electron.config.files);
     }
+  document.addEventListener ("keydown", window_keydown);
   // Reload page on Websocket connection loss
   const url = window.location.href.replace ('http', 'ws');
   const reconnect = async () => {
