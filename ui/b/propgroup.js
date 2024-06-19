@@ -50,8 +50,6 @@ const GROUP_HTML = (t, prop_rows) => [
 ];
 const PROP_HTML = (t, prop) => {
   let p;
-  if ('C' == prop_case (prop))
-    debug ("CHOICE:", prop);
   switch (prop_case (prop)) {
     case 'B': p = html` <b-toggle ?disabled=${prop.readonly} .value=${prop.value_.num}
 			  label="" @valuechange=${e => prop.set_normalized (!!e.target.value)} ></b-toggle> `; break;
