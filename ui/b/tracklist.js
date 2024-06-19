@@ -121,7 +121,6 @@ class BTrackList extends LitComponent {
   }
   list_dblclick (event)
   {
-    debug (event);
     if (event.path[0] === this ||
 	event.path[0].classList.contains ('trackviews'))
       this.project.create_track();
