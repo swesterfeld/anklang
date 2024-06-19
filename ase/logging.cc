@@ -91,6 +91,8 @@ logmsg (const char c, const String &dept, const String &msg)
   for (auto fd : log_fds (c == 'E')) {
     if (fd == 1) fflush (stdout);
     if (fd == 2) fflush (stderr);
+    if (c == 'T' && fd <= 2)
+      continue;
     write (fd, s.data(), s.size());
     // fdatasync (fd);
   }

@@ -16,11 +16,22 @@ void                      log_setup (bool inf2stderr, bool log2file);
 
 // == Impl ==
 void logmsg (const char c, const String &dept, const String &msg);
+
+/// Log text into logfile only.
+template<class... A> void
+logtxt (const char *format, const A &...args)
+{
+  logmsg ('T', "", string_format (format, args...).c_str());
+}
+
+/// Log info to logfile (and stderr for some configs)
 template<class... A> void
 loginf (const char *format, const A &...args)
 {
   logmsg ('I', "", string_format (format, args...).c_str());
 }
+
+/// Log error to stderr and logfile.
 template<class... A> void
 logerr (const String &dept, const char *format, const A &...args)
 {
