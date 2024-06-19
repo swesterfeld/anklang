@@ -288,11 +288,12 @@ $>/ui/anklang.png: $>/ui/favicon.ico
 $>/.ui-build-stamp: $>/ui/favicon.ico $>/ui/anklang.png
 
 # == eslint ==
+x11test.js ::= $(wildcard x11test/*.*js)
 ui/eslint.files ::= $(wildcard ui/*.html ui/*.js ui/b/*.js)
 $>/.eslint.done: ui/eslintrc.js $(ui/eslint.files) ui/Makefile.mk node_modules/.npm.done	| $>/ui/
 	$(QECHO) RUN eslint
 	$Q node_modules/.bin/eslint -c ui/eslintrc.js -f unix --cache --cache-location $>/.eslintcache \
-		$(abspath $(ui/eslint.files) jsonipc/jsonipc.js) \
+		$(abspath $(ui/eslint.files) jsonipc/jsonipc.js $(x11test.js)) \
 	|& ./misc/colorize.sh
 	$Q touch $@
 $>/.ui-reload-stamp: $>/.eslint.done

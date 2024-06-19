@@ -53,7 +53,7 @@ elif [[ $XSERVER = Xephyr ]] ; then
   # 'X11 -displayfd 1 1>display faisl to work with Xnest and Xephyr
   test ! -e /tmp/.X11-unix/X$XDISPLAY || die "starting $XSERVER: DISPLAY exists already: :$XDISPLAY"
   $XSERVER -br -ac -noreset -screen "$RES"x$DEPTH :$XDISPLAY 2>/dev/null &
-  sleep 1
+  sleep 0.7
   test -e /tmp/.X11-unix/X$XDISPLAY || die "failed to start $XSERVER"
 fi
 

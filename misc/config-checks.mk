@@ -78,7 +78,7 @@ config-checks.require.pkgconfig ::= $(strip	\
 	gthread-2.0		>= 2.32.3	\
 	gobject-2.0		>= 2.32.3	\
 	dbus-1			>= 1.12.16	\
-	libpcre2-8		>= 10.39	\
+	libpcre2-8		>= 10.34	\
 )
 # boost libraries have no .pc files
 # Unused: fluidsynth		>= 2.0.5
