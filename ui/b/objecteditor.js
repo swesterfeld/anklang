@@ -94,7 +94,7 @@ const SWITCH_HTML = (t, prop) => html`
 const CHOICE_HTML = (t, prop) => html`
   <b-choiceinput class=${'b-objecteditor--' + prop.ident_}
     value=${prop.value_.val} @valuechange=${e => prop.apply_ (e.target.value)}
-    title=${prop.title_} .choices=${prop.value_.choices}
+    title=${prop.title_} .choices=${prop.value_.choices} .prop=${prop}
     ></b-choiceinput>`;
 
 // <SCRIPT/>

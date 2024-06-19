@@ -79,7 +79,6 @@ class BTextInput extends LitComponent {
       }
     }
     const value = this.prop ? this.prop.value_.val : "";
-    debug ("prop-val:", this.prop.value_.val, this.prop.value);
     if (value !== this.value) {
       this.value = value;
       this.request_update ('value');

@@ -72,7 +72,7 @@ export function get_uri (element)
   if (uri === undefined || uri === null || uri === '')
     uri = !element.getAttribute ? undefined : element.getAttribute ('uri');
   if (uri === undefined || uri === null || uri === '')
-    return undefined;
+    return get_uri (element.parentElement);
   return uri;
 }
 

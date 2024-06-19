@@ -219,6 +219,9 @@ Parameter::dconstrain (const Value &value) const
     const size_t selected = value.is_string() ? match_choice (choices, value.as_string()) : 0;
     return choices.size() ? selected : initial_.is_numeric() ? initial_.as_double() : 0;
   }
+  // text
+  if (is_text())
+    return value.as_double();
   // numeric
   double val = value.as_double();
   const auto [fmin, fmax, step] = range();

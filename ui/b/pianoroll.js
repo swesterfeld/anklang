@@ -84,7 +84,7 @@ const HTML = (t, d) => html`
     @wheel=${{handleEvent: e => t.wheel_event (e), passive: false}} >
 
     <v-flex class="-toolbutton col-start-1 row-start-1" style="height: 1.7em; align-items: end; padding-right: 4px;" ${ref (h => t.menu_btn = h)}
-      @click=${e => t.pianotoolmenu.popup (e)} @mousedown=${e => t.pianotoolmenu.popup (e)} >
+      id="g-pianoroll-toolbutton" @click=${e => t.pianotoolmenu.popup (e)} @mousedown=${e => t.pianotoolmenu.popup (e)} >
       <b-icon style="width: 1.2em; height: 1.2em" ${ref (h => t.menu_icon = h)}></b-icon>
       <b-contextmenu ${ref (h => t.pianotoolmenu = h)} id="g-pianotoolmenu" class="-pianotoolmenu" @activate=${e => t.usetool (get_uri (e.detail))} >
 	<button ic="mi-open_with"     uri="S" kbd="1" > Rectangular Selection  </button>

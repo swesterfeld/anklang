@@ -55,11 +55,9 @@ b-choiceinput {
     padding: 0;
     flex: 1 1 auto;
   }
-  .-nick {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 1em; flex: 1 1 auto;
+  .-current {
+    @apply flex-auto shrink grow basis-auto overflow-hidden text-ellipsis whitespace-nowrap px-2;
+    width: 1em;
   }
   .-arrow {
     flex: 0 0 auto; width: 1em;
@@ -70,7 +68,6 @@ b-choiceinput {
   }
   .b-choice-current {
     align-self: center;
-    padding-left: 0.3em;
     width: 100%;
     margin: 0;
     white-space: nowrap; overflow: hidden;
@@ -102,13 +99,20 @@ b-choiceinput {
     white-space: pre-line;
   }
 }
+.b-choiceinput-contextmenu button {
+  grid-template-columns: min-content 1fr min-content;
+  justify-items: start;
+  b-icon { @apply col-start-1 row-start-1; justify-content: start; }
+  span   { @apply col-start-2; }
+  kbd    { @apply col-start-3 row-start-1; }
+}
 `;
 
 
 // <HTML/>
 const HTML = (t, d) =>  html`
   <h-flex class="b-choice-current" ${ref (h => t.pophere = h)} tabindex="0" >
-    <span class="-nick">${t.nick()}</span>
+    <span class="-current">${t.current_span()}</span>
     <span class="-arrow" > ⬍ <!-- ▼ ▽ ▾ ▿ ⇕ ⬍ ⇳ --> </span>
   </h-flex>
 `;
@@ -116,11 +120,12 @@ const CONTEXTMENU_HTML = (t) =>  html`
   <b-contextmenu class="b-choiceinput-contextmenu" ${ref (h => t.cmenu = h)}
     @activate=${e => t.activate (get_uri (e.detail))} @close=${e => t.need_cmenu = false} >
     <b-menutitle style=${!t.title ? 'display:none' : ''}> ${t.title} </b-menutitle>
-    ${ t.mchoices().map ((c, index) => CONTEXTMENU_ITEM (t, c) )}
+    ${ t.mchoices.map ((c, index) => MENUITEM_HTML (t, c) )}
   </b-contextmenu>
 `;
-const CONTEXTMENU_ITEM = (t, c) => html`
-  <button uri=${c.ident} ic=${c.icon} >
+const MENUITEM_HTML = (t, c) => html`
+  <button class="m-0 grid cursor-pointer select-none auto-rows-auto items-stretch border border-solid text-left"
+	  uri=${c.ident} ic=${c.icon} >
     <span class="b-choice-label ${c.labelclass}" > ${ c.label } </span>
     <span class="b-choice-line1 ${c.line1class}" > ${ c.blurb } </span>
     <span class="b-choice-line2 ${c.line2class}" > ${ c.line2 } </span>
@@ -140,12 +145,13 @@ class BChoiceInput extends LitComponent {
     ];
   }
   static properties = {
+    prop:	{ type: Object, reflect: false },
     value:	{ type: String, },
     title:	{ type: String, },
     label:	{ type: String, },
-    small:	{ type: Boolean, },
-    prop:	{ type: Object, },
+    small:	{ type: Boolean, reflect: true },
     choices:	{ type: Array },
+    choices_:	{ state: true }, // internal
     need_cmenu: { state: true }, // internal
   };
   constructor() {
@@ -158,6 +164,7 @@ class BChoiceInput extends LitComponent {
     this.prop = null;
     this.label = '';
     this.choices = [];
+    this.choices_ = [];
     this.need_cmenu = false;
     this.cmenu = null;
     this.pophere = null;
@@ -168,6 +175,13 @@ class BChoiceInput extends LitComponent {
   }
   updated (changed_props)
   {
+    if (changed_props.has ('prop')) {
+      this.choices_ = [];
+      if (this.prop)
+	(async () => {
+	  this.choices_ = await this.prop.choices();
+	}) ();
+    }
     if (changed_props.has ('small')) {
       this.classList.remove (this.small ? 'b-choice-big' : 'b-choice-small');
       this.classList.add (!this.small ? 'b-choice-big' : 'b-choice-small');
@@ -176,18 +190,19 @@ class BChoiceInput extends LitComponent {
       this.value_ = this.value; // may cause re-render
     this.setAttribute ('data-tip', this.data_tip());
   }
-  mchoices()
+  get mchoices()
   {
     const mchoices = [];
-    for (let i = 0; i < this.choices.length; i++) {
-      const c = Object.assign ({}, this.choices[i]);
+    const choices = this.choices?.length ? this.choices : this.choices_;
+    for (let i = 0; i < choices.length; i++) {
+      const c = Object.assign ({}, choices[i]);
       mchoices.push (c);
     }
     return mchoices;
   }
   current()
   {
-    const mchoices = this.mchoices();
+    const mchoices = this.mchoices;
     for (let i = 0; i < mchoices.length; i++)
       if (mchoices[i].ident == this.value_)
 	return mchoices[i];
@@ -204,10 +219,13 @@ class BChoiceInput extends LitComponent {
     val += choice.label;
     return val + " " + tip;
   }
-  nick()
+  current_span()
   {
     const choice = this.current();
-    return choice.label || "";
+    if (this.small)
+      return choice.icon ? choice.icon : choice.label || "";
+    else
+      return choice.label ? choice.label : choice.icon || "";
   }
   activate (uri)
   {
@@ -226,6 +244,7 @@ class BChoiceInput extends LitComponent {
       this.need_cmenu = true; // does this.requestUpdate();
       this.performUpdate();
     }
+    if (this.cmenu.open) return;
     this.pophere.focus();
     this.cmenu.popup (event, { origin: this.pophere, focus_uri: this.value });
   }
@@ -236,9 +255,8 @@ class BChoiceInput extends LitComponent {
     // allow selection changes with UP/DOWN while menu is closed
     if (event.keyCode == Util.KeyCode.DOWN || event.keyCode == Util.KeyCode.UP)
       {
-	event.preventDefault();
-	event.stopPropagation();
-	const mchoices = this.mchoices();
+	Util.prevent_event (event);
+	const mchoices = this.mchoices;
 	const choice = this.current();
 	if (choice.ident)
 	  for (let i = 0; i < mchoices.length; i++)

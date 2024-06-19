@@ -67,18 +67,17 @@ import * as Dom from "../dom.js";
 // == STYLE ==
 JsExtract.css`
 b-contextmenu {
-  display: contents; /* avoids interfering when inside a flexbox with justify-content:space-between */
+  /* avoid interfering when inside a flexbox with justify-content:space-between */
+  display: contents;
 }
 dialog.b-contextmenu {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  @apply m-0 p-2;
+  @apply flex-col items-stretch justify-start overflow-y-auto overflow-x-hidden p-2;
   color: $b-menu-foreground;
-  background-color: $b-menu-background; border: 1px outset zmod($b-menu-background, Jz-=20%);
+  background-color: $b-menu-background;
+  border: 1px outset zmod($b-menu-background, Jz-=20%);
   box-shadow: $b-menu-box-shadow;
-  overflow: hidden auto;
-  &[open], &.animating { display: flex; }
+  display: flex;
+  &:not([open]) { display: none; }
 }
 dialog.b-contextmenu::backdrop {
   /* Menu backdrop must be transparent, for one a popup menu is different from a modal dialog,
@@ -190,7 +189,7 @@ class BContextMenu extends LitComponent {
     check: { type: Function, state: true },
     xscale: NUMBER_ATTRIBUTE,
     yscale: NUMBER_ATTRIBUTE,
-    reposition: PRIVATE_PROPERTY,
+    need_reposition: PRIVATE_PROPERTY,
   };
   constructor()
   {
@@ -205,7 +204,7 @@ class BContextMenu extends LitComponent {
     this.origin = null;
     this.data_contextmenu = null;
     this.checkuri = () => true;
-    this.reposition = false;
+    this.need_reposition = false;
     this.isdisabled = menuitem_isdisabled;
     this.keymap_ = [];
     this.keymap_active = false;
@@ -322,16 +321,21 @@ class BContextMenu extends LitComponent {
   }
   updated()
   {
-    if (this.reposition)
+    if (this.need_reposition)
       {
-	this.reposition = false;
-	const p = Util.popup_position (this.dialog, { origin: this.origin,
-						      x: this.page_x, y: this.page_y, xscale: this.xscale, yscale: this.yscale, });
-	this.dialog.style.left = p.x + "px";
-	this.dialog.style.top = p.y + "px";
+	this.need_reposition = false;
+	this.reposition_dialog();
 	// chrome does auto-focus for showModal(), make FF behave the same
 	Util.move_focus ('HOME');
       }
+  }
+  reposition_dialog()
+  {
+    const p = Util.popup_position (this.dialog, { origin: this.origin, x: this.page_x, y: this.page_y,
+						  xscale: this.xscale, yscale: this.yscale, });
+    this.dialog.style.left = p.x + "px";
+    this.dialog.style.top = p.y + "px";
+    this.dialog.style.margin = 0;
   }
   popup (event, popup_options = {})
   {
@@ -362,8 +366,9 @@ class BContextMenu extends LitComponent {
     const furi = popup_options.focus_uri ? 'uri="' + popup_options.focus_uri + '"' : 'uri';
     return (async () => {
       await this.updateComplete; // needed to access this.dialog
-      this.reposition = true;
       Dom.show_modal (this.dialog);
+      this.reposition_dialog();
+      this.need_reposition = true;
       this.blur();
       App.zmove(); // force changes to be picked up
       // check items (and this used to handle auto-focus)
@@ -397,7 +402,7 @@ class BContextMenu extends LitComponent {
     const target = event.target;
     const uri = get_uri (target);
     // ignore clicks on non-menuitem elements
-    if (target && !valid_uri (uri))
+    if (!valid_uri (uri))
       return;
     // prevent any further bubbeling
     Util.prevent_event (event);
@@ -407,11 +412,11 @@ class BContextMenu extends LitComponent {
     // turn bubbled click into menu activation
     const isactive = !target.check_isactive ? true : target.check_isactive (false);
     if (isactive instanceof Promise)
-      return (async () => (await isactive) && this.click (uri)) ();
+      return (async () => (await isactive) && this.click (event, uri)) ();
     if (isactive)
-      return this.click (uri);
+      return this.click (event, uri);
   }
-  click (uri)
+  click (event, uri)
   {
     // prevent recursion
     if (this.allowed_click)
@@ -422,13 +427,16 @@ class BContextMenu extends LitComponent {
     // emit non-bubbling activation click
     if (valid_uri (uri)) {
       this.menudata.menu_stamp = Util.frame_stamp();
-      const click_event = new CustomEvent ('click', { bubbles: false, composed: true, cancelable: true, detail: { uri } });
-      this.allowed_click = click_event;
-      const proceed = this.dispatchEvent (click_event);
-      this.allowed_click = null;
+      if (0) { // TODO: get rid of allowed_click legacy
+	const click_event = new CustomEvent ('click', { bubbles: false, composed: true, cancelable: true, detail: { uri } });
+	this.allowed_click = click_event;
+	const proceed = this.dispatchEvent (click_event);
+	this.allowed_click = null;
+      }
+      const proceed = true;
       if (proceed) {
 	if (this.activate)
-	  this.activate (uri, click_event);
+	  this.activate (uri, event);
 	else
 	  this.dispatchEvent (new CustomEvent ('activate', {
 	    detail: { uri }

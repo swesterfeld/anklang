@@ -12,7 +12,7 @@ import * as Util from "../util.js";
 // == STYLE ==
 JsExtract.css`
 b-playcontrols {
-  button, push-button	{ padding: 5px; }
+  button, push-button	{ padding: 5px; text-align: center; }
 }
 `;
 

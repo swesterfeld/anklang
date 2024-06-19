@@ -47,11 +47,6 @@
   justify-content: space-between;
   overflow: auto;
 
-  button, push-button {
-    @include b-singlebutton;
-    margin: 0 1em;
-    border-radius: 3px;
-  }
   .-footer {
     button, push-button {
       &:first-child { margin-left: 1px; }

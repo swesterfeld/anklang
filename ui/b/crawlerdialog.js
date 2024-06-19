@@ -214,7 +214,6 @@ class BCrawlerDialog extends LitComponent {
     if (this.promise) return;
     const crawler_assign = async displaypath => {
       const [dir,file] = await this.crawler.assign (displaypath, this.existing);
-      debug ("assign_utf8path:", filepath, '=>', dir, "/", file);
       if (this.pathentry.value !== file)
 	this.pathentry.value = file;
       await this.crawler?.$props?.$promise;
@@ -310,7 +309,6 @@ class BCrawlerDialog extends LitComponent {
   /// select_entry  - send 'select' event for `entry` or `pathentry.value`
   select_entry (entry)
   {
-    debug ("select_entry:", entry, "this.existing:", this.existing, "inflight:", this.update_inflight);
     if (this.update_inflight)
       return false;					// in async update
     // select existing entry
