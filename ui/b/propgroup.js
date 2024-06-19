@@ -36,7 +36,6 @@ b-propgroup {
 }
 .b-propgroup-row {
   > * { width: var(--b-prop-width); }
-  > b-propinput { height: var(--b-prop-height); }
   > span { margin-top: calc(2 * 0.125rem); }
 }`;
 
