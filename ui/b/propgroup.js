@@ -57,7 +57,7 @@ const PROP_HTML = (t, prop) => {
     case 'B': p = html` <b-toggle ?disabled=${prop.readonly} .value=${prop.value_.num}
 			  label="" @valuechange=${e => prop.set_normalized (!!e.target.value)} ></b-toggle> `; break;
     case 'C': p = html` <b-choiceinput small="1" indexed="1" ?disabled=${t.readonly} .prop="${prop}"
-			  label=${prop.label_} title=${prop.title_} .choices=${prop.value_.choices}
+			  label=${prop.label_} title=${prop.title_}
 			  value=${prop.value_.val} @valuechange=${e => prop.apply_ (e.target.value)} ></b-choiceinput> `; break;
     case 'K': p = html` <b-knob ?disabled=${prop.readonly} .prop="${prop}" ></b-knob> `; break;
     case 'T': p = html` <b-textinput ?disabled=${prop.readonly} .prop=${prop}
