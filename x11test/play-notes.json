@@ -43,17 +43,11 @@
             "target": "main",
             "selectors": [
                 [
-                    "h-flex.b-menubar > b-buttonbar:nth-of-type(1) > push-button:nth-of-type(1)"
-                ],
-                [
-                    "xpath///*[@id=\"b-app\"]/c-grid/h-flex[1]/b-buttonbar[1]/push-button[1]"
-                ],
-                [
-                    "pierce/h-flex.b-menubar > b-buttonbar:nth-of-type(1) > push-button:nth-of-type(1)"
+                  "aria/New Project"
                 ]
             ],
-            "offsetY": 52.19999980926514,
-            "offsetX": 103.19999980926514
+            "offsetY": 2.19999980926514,
+            "offsetX": 3.19999980926514
         },
         {
             "type": "click",
@@ -256,13 +250,7 @@
             "target": "main",
             "selectors": [
                 [
-                    "push-button:nth-of-type(4) b-icon"
-                ],
-                [
-                    "xpath///*[@id=\"b-app\"]/c-grid/h-flex[1]/h-flex/b-playcontrols/b-buttonbar/push-button[4]/b-icon"
-                ],
-                [
-                    "pierce/push-button:nth-of-type(4) i"
+                    "push-button b-icon[ic=\"fa-play\"]"
                 ]
             ],
             "offsetY": 19.399999618530273,
@@ -273,13 +261,7 @@
             "target": "main",
             "selectors": [
                 [
-                    "push-button:nth-of-type(3) > b-icon"
-                ],
-                [
-                    "xpath///*[@id=\"b-app\"]/c-grid/h-flex[1]/h-flex/b-playcontrols/b-buttonbar/push-button[3]/b-icon"
-                ],
-                [
-                    "pierce/push-button:nth-of-type(3) > b-icon"
+                    "push-button b-icon[ic=\"fa-stop\"]"
                 ]
             ],
             "offsetY": 16.399999618530273,
