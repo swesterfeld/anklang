@@ -32,7 +32,9 @@ import * as Dom from "../dom.js";
 
 // == STYLE ==
 JsExtract.css`
-b-icon { // not using shadow-root here
+b-icon.material-icons,
+b-icon.fa,
+b-icon {
   display: inline-flex;
   place-content: center center;
   flex-wrap: wrap; /* needed for align-content:center */
