@@ -57,7 +57,12 @@ fi
 
 # Sense interactive TTY support, prepare $RUN
 tty -s && INTERACTIVE=-i || INTERACTIVE=
-RUN="docker run $INTERACTIVE -t --rm -v $PWD:/cirun -w /cirun cirun:$CITAG"
+RUN="docker run $INTERACTIVE -t --rm -v $PWD:/cirun"
+#RUN="$RUN -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:ro -v $HOME/.Xauthority:/home/builder/.Xauthority:ro"	# X11 connect
+#RUN="$RUN --net host"	# needed to connect to AnklangSynthEngine *outside* docker
+#RUN="$RUN -e DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS -v /run/user/1000/bus:/run/user/1000/bus -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket"
+#RUN="$RUN --privileged --cap-add SYS_ADMIN --device /dev/fuse -v /var/run/docker.sock:/var/run/docker.sock"		# run as root with fuse, docker
+RUN="$RUN -w /cirun cirun:$CITAG"
 
 # Change ownership, needed if the caller of this script has $UID different from the Dockerfile USER
 test -z "$CHOWNID" || {
