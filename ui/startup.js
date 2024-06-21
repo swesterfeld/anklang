@@ -62,8 +62,8 @@ function window_keydown (event)
   // Shift+Ctrl+I for devTools
   if (event.keyCode == 73 && event.shiftKey && event.ctrlKey && window.Electron)
     window.Electron.call ('toggle_dev_tools');
-  // F12 fro __DEV__ mode test results
-  if (event.keyCode == 123 /*F12*/ && !event.shiftKey && !event.ctrlKey && __DEV__)
+  // Alt+F12 for project state grep dialog
+  if (event.keyCode == 123 /*F12*/ && event.altKey && !event.shiftKey && !event.ctrlKey)
     (async () => {
       if (!grep_dialog)
 	grep_dialog = await import ('/grepdialog.js');
