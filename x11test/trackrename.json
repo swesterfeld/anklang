@@ -133,12 +133,22 @@
         {
             "type": "keyDown",
             "target": "main",
+            "key": "Alt"
+        },
+        {
+            "type": "keyDown",
+            "target": "main",
             "key": "F12"
         },
         {
             "type": "keyUp",
-            "target": "main",
-            "key": "F12"
+            "key": "F12",
+            "target": "main"
+        },
+        {
+            "type": "keyUp",
+            "key": "Alt",
+            "target": "main"
         },
         {
             "type": "change",
