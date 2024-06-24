@@ -46,11 +46,11 @@ jobs:
     - name: 'Configure build presets'
       run: |
         echo -e ' prefix=/\n CC=clang \n CXX=clang++ \n CLANG_TIDY=clang-tidy ' > config-defaults.mk
+        (umask 0077 && cat <<< "${{ secrets.SSH_ID_GHDOCS4ANKLANG_ECDSA }}" > .git/.ssh_id_ghdocs4anklang)
         misc/cirun dir2vol .			;# copy current git to /cirun
     - name: 'Upload API Docs' # http://tim-janik.github.io/docs/anklang
       run: |
         misc/cirun make -j`nproc` all
-        (umask 0077 && cat <<< "${{ secrets.SSH_ID_GHDOCS4ANKLANG_ECDSA }}" > .git/.ssh_id_ghdocs4anklang)
         misc/cirun doc/poxy.sh -b -u
 
   ArchReplay:
