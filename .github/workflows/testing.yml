@@ -13,21 +13,16 @@ jobs:
 
   FocalAssets:
     runs-on: ubuntu-latest
-    env: { CITAG: "focal" }
+    container: { image: ghcr.io/tim-janik/anklang-ci:focal-latest }
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
     - run: git fetch -f --tags && git submodule update --init --recursive && git describe
-    - { uses: actions/cache@v4, with: { path: "/tmp/cicache", key: "cifocal-${{hashFiles ('misc/Dockerfile.focal')}}" } }
-    - run: |
-        misc/cirun build "/tmp/cicache"
     - name: 'Configure build presets'
       run: |
         echo -e ' prefix=/\n CC=clang \n CXX=clang++ \n CLANG_TIDY=clang-tidy ' > config-defaults.mk
-        misc/cirun dir2vol .			;# copy current git to /cirun
     - name: 'Build Dist Assets'
       run: |
-        misc/cirun make mkassets
-        misc/cirun vol2dir .			;# move /cirun out of docker volume
+        make mkassets
     - uses: actions/upload-artifact@v4
       with: { name: assets, path: assets/ }
     - uses: actions/upload-artifact@v4
@@ -36,46 +31,37 @@ jobs:
   UploadDocs:
     if: ${{ github.repository == 'tim-janik/anklang' && github.ref == 'refs/heads/trunk' }}
     runs-on: ubuntu-latest
-    env: { CITAG: "focal" }
+    container: { image: ghcr.io/tim-janik/anklang-ci:focal-latest }
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
     - run: git fetch -f --tags && git submodule update --init --recursive && git describe
-    - { uses: actions/cache@v4, with: { path: "/tmp/cicache", key: "cifocal-${{hashFiles ('misc/Dockerfile.focal')}}" } }
-    - run: |
-        misc/cirun build "/tmp/cicache"
     - name: 'Configure build presets'
       run: |
         echo -e ' prefix=/\n CC=clang \n CXX=clang++ \n CLANG_TIDY=clang-tidy ' > config-defaults.mk
-        (umask 0077 && cat <<< "${{ secrets.SSH_ID_GHDOCS4ANKLANG_ECDSA }}" > .git/.ssh_id_ghdocs4anklang)
-        misc/cirun dir2vol .			;# copy current git to /cirun
     - name: 'Upload API Docs' # http://tim-janik.github.io/docs/anklang
       run: |
-        misc/cirun make -j`nproc` all
-        misc/cirun doc/poxy.sh -b -u
+        make -j`nproc` all
+        (umask 0077 && cat <<< "${{ secrets.SSH_ID_GHDOCS4ANKLANG_ECDSA }}" > .git/.ssh_id_ghdocs4anklang)
+        doc/poxy.sh -b -u
 
   ArchReplay:
     runs-on: ubuntu-latest
-    env: { CITAG: "arch" }
+    container: { image: ghcr.io/tim-janik/anklang-ci:arch-latest }
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
     - run: git fetch -f --tags && git submodule update --init --recursive && git describe
-    - { uses: actions/cache@v4, with: { path: "/tmp/cicache", key: "ciarch-${{hashFiles ('misc/Dockerfile.arch')}}" } }
-    - run: |
-        misc/cirun build "/tmp/cicache"
     - name: 'Configure build presets'
       run: |
         echo 'prefix=/' > config-defaults.mk	;# reset any previous config-defaults.mk
-        misc/cirun dir2vol .			;# copy current git to /cirun
     - name: 'Build Anklang'
       run: |
-        misc/cirun make GCC_COLORS="" -j`nproc` all
+        make GCC_COLORS="" -j`nproc` all
     - name: 'Run Tests'
       run: |
-        misc/cirun make -j`nproc` check
+        make -j`nproc` check
     - name: 'Run X11 GUI Tests'
       run: |
-        misc/cirun make x11test-v
-        misc/cirun vol2dir .			;# move /cirun out of docker volume
+        make x11test-v
     # Artifact upload from x11test
     - uses: actions/upload-artifact@v4
       if: ${{ always() }}
@@ -84,24 +70,20 @@ jobs:
   FocalClangTidy:
     if: ${{ ! contains(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
-    env: { CITAG: "focal" }
+    container: { image: ghcr.io/tim-janik/anklang-ci:focal-latest }
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
     - run: git fetch -f --tags && git submodule update --init --recursive && git describe
-    - { uses: actions/cache@v4, with: { path: "/tmp/cicache", key: "cifocal-${{hashFiles ('misc/Dockerfile.focal')}}" } }
-    - run: |
-        misc/cirun build "/tmp/cicache"
     - name: 'Configure build presets'
       run: |
         echo -e ' prefix=/\n CC=clang \n CXX=clang++ \n CLANG_TIDY=clang-tidy ' > config-defaults.mk
-        misc/cirun dir2vol .			;# copy current git to /cirun
     - run: |
-        misc/cirun make -j`nproc` all
+        make -j`nproc` all
     - run: |
-        misc/cirun make -j`nproc` check
+        make -j`nproc` check
     - name: 'Make clang-tidy'
       run: |
-        misc/cirun make -j`nproc` clang-tidy
+        make -j`nproc` clang-tidy
     # Artifact upload from clang-tidy
     - uses: actions/upload-artifact@v4
       with: { name: clang-tidy, path: out/clang-tidy/ }
@@ -109,7 +91,7 @@ jobs:
       # Use non-0 exit status for a failing branch-check on PRs
       run: |
         test -z "${{ github.event.pull_request }}" || BRANCH_CHECK_EXIT=77
-        misc/cirun make branch-check BRANCH_CHECK_EXIT=$BRANCH_CHECK_EXIT
+        make branch-check BRANCH_CHECK_EXIT=$BRANCH_CHECK_EXIT
 
   Ping-IRC:
     if: ${{ always() }}
