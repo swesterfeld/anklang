@@ -13,7 +13,7 @@ jobs:
 
   FocalAssets:
     runs-on: ubuntu-latest
-    container: { image: ghcr.io/tim-janik/anklang-ci:focal-latest }
+    container: { image: 'ghcr.io/tim-janik/anklang-ci:focal-latest' }
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
     - run: git fetch -f --tags && git submodule update --init --recursive && git describe
@@ -31,7 +31,7 @@ jobs:
   UploadDocs:
     if: ${{ github.repository == 'tim-janik/anklang' && github.ref == 'refs/heads/trunk' }}
     runs-on: ubuntu-latest
-    container: { image: ghcr.io/tim-janik/anklang-ci:focal-latest }
+    container: { image: 'ghcr.io/tim-janik/anklang-ci:focal-latest' }
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
     - run: git fetch -f --tags && git submodule update --init --recursive && git describe
@@ -46,7 +46,7 @@ jobs:
 
   ArchReplay:
     runs-on: ubuntu-latest
-    container: { image: ghcr.io/tim-janik/anklang-ci:arch-latest }
+    container: { image: 'ghcr.io/tim-janik/anklang-ci:arch-latest' }
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
     - run: git fetch -f --tags && git submodule update --init --recursive && git describe
@@ -70,7 +70,7 @@ jobs:
   FocalClangTidy:
     if: ${{ ! contains(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
-    container: { image: ghcr.io/tim-janik/anklang-ci:focal-latest }
+    container: { image: 'ghcr.io/tim-janik/anklang-ci:focal-latest' }
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
     - run: git fetch -f --tags && git submodule update --init --recursive && git describe
