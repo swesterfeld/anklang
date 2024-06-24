@@ -15,9 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     container: { image: 'ghcr.io/tim-janik/anklang-ci:focal-latest' }
     steps:
-    - run: id && pwd && env && ls -al
-    - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
-    - run: git fetch -f --tags && git submodule update --init --recursive && git describe
+    - run: |
+        sudo chown -R `id -u`:`id -g` . ~	;# /github/home - actions/runner/issues/863
+        export HOME=$(env -i bash -c 'echo ~') && echo HOME=$HOME | sudo tee -a $GITHUB_ENV
+        ! [[ $RUNNER_TEMP =~ _ ]] || sudo chmod -R 0777 $RUNNER_TEMP	;# for GH action cache
+    - name: 'Git Checkout'
+      run: |
+        git --version && git clone -q --recurse-submodules https://github.com/$GITHUB_REPOSITORY .
+        git fetch origin $GITHUB_REF # e.g. refs/pull/nnn/merge
+        [[ $GITHUB_REF =~ ^refs/heads/ ]] && BRANCHORSHA=$GITHUB_REF_NAME || BRANCHORSHA=$GITHUB_SHA
+        git checkout -q $BRANCHORSHA && git describe --always
     - name: 'Configure build presets'
       run: |
         echo -e ' prefix=/\n CC=clang \n CXX=clang++ \n CLANG_TIDY=clang-tidy ' > config-defaults.mk
