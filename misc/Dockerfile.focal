@@ -106,4 +106,4 @@ RUN groupadd -g 127 docker && useradd -u 1001 -g 127 -m -d /github/home -s /bin/
 USER runner
 
 # docker build -t ghcr.io/tim-janik/anklang-ci:focal-latest -f misc/Dockerfile.focal misc
-# docker run -ti --rm -v $PWD:/hostwd -w /cirun ghcr.io/tim-janik/anklang-ci:focal-latest
+# docker run -ti --rm -v $PWD:/hostwd ghcr.io/tim-janik/anklang-ci:focal-latest
