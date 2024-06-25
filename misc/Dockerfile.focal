@@ -100,11 +100,10 @@ RUN \
   make && make install \
   && apt-get autoremove -y
 
-# Become non-root
-RUN groupadd --gid 1000 ubuntu \
-  && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash ubuntu \
-  && echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu
-USER ubuntu
+# Become non-root, use Github action VM user: uid=1001(runner) gid=127(docker)
+RUN groupadd -g 127 docker && useradd -u 1001 -g 127 -m -d /github/home -s /bin/bash runner \
+  && echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/runner
+USER runner
 
-# docker build -t cirun:focal -f misc/Dockerfile.focal misc
-# docker run -ti --rm -v $PWD:/cirun -w /cirun cirun:focal
+# docker build -t ghcr.io/tim-janik/anklang-ci:focal-latest -f misc/Dockerfile.focal misc
+# docker run -ti --rm -v $PWD:/hostwd -w /cirun ghcr.io/tim-janik/anklang-ci:focal-latest
