@@ -277,15 +277,19 @@ $>/ui/markdown-it.mjs: node_modules/.npm.done	| $>/ui/
 	&& rm -f $@.js
 $>/.ui-build-stamp: $>/ui/markdown-it.mjs
 
-# == $>/ui/favicon.ico ==
-$>/ui/favicon.ico: ui/assets/favicon.svg node_modules/.npm.done ui/Makefile.mk	| $>/ui/
+# == $>/ui/anklang.png ==
+$>/ui/anklang.png: ui/assets/favicon.svg ui/Makefile.mk	| $>/ui/
 	$(QGEN)
-	$Q mkdir -p $>/ui/tmp-icongen/
-	$Q node_modules/.bin/icon-gen -i $< -o $>/ui/tmp-icongen/ --favicon --favicon-png-sizes 128 --favicon-ico-sizes 128 # -r
-	$Q cd $>/ui/tmp-icongen/ && mv favicon-128.png ../anklang.png && mv favicon.ico ../favicon.ico.tmp
-	$Q rm -r $>/ui/tmp-icongen/ && mv $@.tmp $@
-$>/ui/anklang.png: $>/ui/favicon.ico
-$>/.ui-build-stamp: $>/ui/favicon.ico $>/ui/anklang.png
+	$Q mkdir -p $>/ui-tmpanklpng/
+	$Q mogrify -density 600 -background transparent -resize 128x128 -format png -path $>/ui-tmpanklpng/ $<
+	$Q mv $>/ui-tmpanklpng/favicon.png $@.tmp && rm -r $>/ui-tmpanklpng/ && mv $@.tmp $@
+$>/.ui-build-stamp: $>/ui/anklang.png
+
+# == $>/ui/favicon.ico ==
+$>/ui/favicon.ico: $>/ui/anklang.png
+	$(QGEN)
+	$Q ln -s $(<F) $@
+$>/.ui-build-stamp: $>/ui/favicon.ico
 
 # == eslint ==
 x11test.js ::= $(wildcard x11test/*.*js)
