@@ -106,8 +106,8 @@ jobs:
         make branch-check BRANCH_CHECK_EXIT=$BRANCH_CHECK_EXIT
 
   Ping-IRC:
-    if: ${{ always() }}
     needs: [FocalAssets, UploadDocs, ArchReplay, FocalClangTidy]
+    if: ${{ always() && !env.ACT }}
     runs-on: ubuntu-latest
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
