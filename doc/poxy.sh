@@ -197,7 +197,7 @@ $UPLOAD && {
   rm -rf poxy/iodocs/
   (
     # Support for CI uploads
-    test -z "`git config user.email`" && {
+    test -n "$GITHUB_ACTIONS" && {
       export GIT_AUTHOR_EMAIL="anklang-team@testbit.eu" GIT_AUTHOR_NAME="Anklang CI Action" # "github.com/tim-janik/anklang/actions/"
       export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL" GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
       GIT_SSH_COMMAND="ssh -o BatchMode=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
