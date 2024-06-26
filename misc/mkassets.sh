@@ -33,9 +33,8 @@ __EOF
 ( cd $BUILDDIR/
   # Note, ase/ special cases MODE=production INSN=sse as non march=native release builds
   make -w V=${V:-} default MODE=production INSN=sse
-  make -w V=${V:-} -j`nproc` \
-       all assets/pdf
-  make -w V=${V:-} check
+  make -w V=${V:-} all assets/pdf
+  make -w V=${V:-} check x11test-v
   misc/mkdeb.sh
   misc/mkAppImage.sh
 )
