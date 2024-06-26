@@ -141,6 +141,6 @@ CLEANDIRS += $>/appimagetools/
 # == mkassets ==
 # Let misc/mkassets.sh do the work, just pre-cache needed downloads
 mkassets: $>/appimagetools/appimage-runtime-zstd
-	$Q exec misc/mkassets.sh
+	+$Q exec misc/mkassets.sh
 .PHONY: mkassets
 CLEANDIRS += $>/mkdeb/
