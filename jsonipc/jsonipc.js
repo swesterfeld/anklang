@@ -1,4 +1,4 @@
-// Licensed CC0 Public Domain: http://creativecommons.org/publicdomain/zero/1.0
+// Dedicated to the Public Domain under the Unlicense: https://unlicense.org/UNLICENSE
 
 /// WebSocket handling coded needed for the Jsonipc wire marshalling
 export const Jsonipc = {

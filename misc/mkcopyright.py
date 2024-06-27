@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
+# Dedicated to the Public Domain under the Unlicense: https://unlicense.org/UNLICENSE
 
 import sys, os, re, subprocess, getopt
 from datetime import datetime
@@ -15,6 +15,8 @@ licenses = {
                   'CC0 Public Domain: http://creativecommons.org/publicdomain/zero/1\.0/',
                   'Licensed CC0 Public Domain: http://creativecommons.org/publicdomain/zero/1\.0' ],
   'MIT':        [ 'MIT [Ll]icensed?', ],
+  'Unlicense':  [ '([Dd]edicated to|[Ii]n) the Public Domain under the Unlicense([: ]*http.*)?',
+                  'Licensed Public Domain' ],
 }
 
 # Comment suffix to ignore
@@ -185,6 +187,7 @@ def print_help (arg0, exit = None):
   h  = "Scan FILES for licenses and list copyrights from Git(1) authors.\n"
   h += "OPTIONS:\n"
   h += "  -b            Display brief license list\n"
+  h += "  -c<inifile>   Read config file in INI format\n"
   h += "  -e            Exit with a non-zero status if any files are unlicensed\n"
   h += "  -h, --help    Show command help\n"
   h += "  -l            List licensed files only\n"
