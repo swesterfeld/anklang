@@ -1,3 +1,97 @@
+## Anklang 0.3.0
+
+**Full Changelog**: [https://github.com/tim-janik/anklang/compare/v0.2.0...v0.3.0](https://github.com/tim-janik/anklang/compare/v0.2.0...HEAD)
+
+### Hardware and System Requirements
+* Linux - the Anklang deb and AppImage are based on Ubuntu 20.04.
+* Packaged sound engine binaries support SSE-only or AVX+FMA optimizations.
+
+### Documentation
+* Latest API reference documentation is auto generated: https://tim-janik.github.io/docs/anklang/index.html
+
+### Fixed Bugs
+
+- Choices are not rendered properly in device view [\#59](https://github.com/tim-janik/anklang/issues/59)
+- Focus, shadow DOM, submenus, buttons and input elements [\#55](https://github.com/tim-janik/anklang/issues/55)
+- Unify and fixate srcdir and builddir [\#54](https://github.com/tim-janik/anklang/issues/54)
+- UI websocket death on invalid UTF-8 [\#49](https://github.com/tim-janik/anklang/issues/49)
+- Insertion order doesn't work, every device is inserted at end [\#46](https://github.com/tim-janik/anklang/issues/46)
+- Inserting Reverb after BlepSynth has no effect [\#24](https://github.com/tim-janik/anklang/issues/24)
+
+### Closed Issues
+
+- Build breaks: cp: ./ls-tree.lst: No such file or directory [\#18](https://github.com/tim-janik/anklang/issues/18)
+- Freeverb Default Settings [\#23](https://github.com/tim-janik/anklang/issues/23)
+- LV2: currently we need a X11 display since the Gtk Thread is unconditionally started [\#35](https://github.com/tim-janik/anklang/issues/35)
+- LV2: unique device name generation duplicated with CLAP [\#34](https://github.com/tim-janik/anklang/issues/34)
+- loop player [\#39](https://github.com/tim-janik/anklang/issues/39)
+- Negative frame offsets in MidiEvent [\#26](https://github.com/tim-janik/anklang/issues/26)
+- Shebangs in \*.sh files are wrong [\#17](https://github.com/tim-janik/anklang/issues/17)
+
+### Merged Pull Requests
+
+- Ase/combo.cc: fix combo insertion order for devices inserted at end [\#47](https://github.com/tim-janik/anklang/pull/47) ([swesterfeld](https://github.com/swesterfeld))
+- DEVICES: blepsynth/blepsynth.cc: introduce flexible ADSR model [\#6](https://github.com/tim-janik/anklang/pull/6) ([swesterfeld](https://github.com/swesterfeld))
+- DEVICES: blepsynth: remove design/test tools \(moved to dsp-research repo\) [\#30](https://github.com/tim-janik/anklang/pull/30) ([swesterfeld](https://github.com/swesterfeld))
+- Fix typo in ch-development.md [\#58](https://github.com/tim-janik/anklang/pull/58) ([ritschwumm](https://github.com/ritschwumm))
+- Freeverb merge dry/wet into mix parameter [\#45](https://github.com/tim-janik/anklang/pull/45) ([swesterfeld](https://github.com/swesterfeld))
+- Midi events uint offset [\#43](https://github.com/tim-janik/anklang/pull/43) ([swesterfeld](https://github.com/swesterfeld))
+
+### Synthesis Devices
+* Fixed race condition in LiquidSFZ device loader thread. [swesterfeld](https://github.com/swesterfeld)
+* Improved Freeverb device with sample accurate parameter changes, mix optimization, and smoothing for automation. [swesterfeld](https://github.com/swesterfeld)
+* Added support for String properties in AudioProcessor.
+* Fixed midi event frame offsets to be unsigned integers, resolving issue #26. [[swesterfeld](https://github.com/swesterfeld)
+* Integrated swesterfeld/liquidsfz submodule for SFZ support in ASE. [swesterfeld](https://github.com/swesterfeld)
+* Moved blepsynth design/test tools to the dsp-research repository. [swesterfeld](https://github.com/swesterfeld)
+* Improved sample accuracy in Blepsynth synth device, fixed bugs. [swesterfeld](https://github.com/swesterfeld)
+* Added Saturation device with parameter smoothing and performance optimizations. [swesterfeld](https://github.com/swesterfeld)
+* Introduced flexible ADSR model for volume envelope in Blepsynth device. [swesterfeld](https://github.com/swesterfeld)
+* Added Sallen-Key Filter to Blepsynth device, improved LadderVCF filter. [swesterfeld](https://github.com/swesterfeld)
+
+### ASE
+* New CLI options -M and -P to override audio and midi drivers.
+* Added debug/info/error logging to a log file.
+* Support gzip file compression for http transfers, pre-compressed all source maps.
+* Added Member<> template to expose C++ member field as API to JavaScript.
+* Default tempo set to 120 BPM, playback starts with transport tempo.
+* Fixed loading from non-anklang directories.
+
+### User Interface
+* Introduced a project state grep dialog accessible via Alt+F12.
+* Consolidated UI components in various places and removed redundant code.
+* Replacing error confirmation dialogs with notice popups.
+* Simplified and converted most UI components to LitElement components.
+* Updated UI components to use a new tree browser component.
+* Added support for file selection in device UIs.
+* Introduced JavaScript Signal polyfill to simplify for dependency tracking.
+* Fixed JavaScript focus handling, error formatting, and type checking.
+* Added Tailwind CSS for styling, removed normalize.scss.
+* Fixed piano roll drawing order, shifted cursor movement, and other UI fixes. [swesterfeld](https://github.com/swesterfeld)
+* Improved UTF-8 support for legacy filenames, including mapping to private use area.
+* Fixed mouse wheel handling in modern Chrome and Firefox browsers.
+* Switched file browser to use `<grid/>` component for faster rendering.
+
+### Testing
+* CI, docker, Dockerfile fixups and improvements.
+* Introduced a new test for track renaming in the X11 UI test suite.
+* Enhanced the x11test-v to run silently by default, with optional verbose output.
+* Added support for replay of multiple JSON files in X11 tests, upgraded electron and puppeteer dependencies.
+* Parallelized automated test suite runs.
+
+## Miscellaneous
+* Various code cleanups, package dependency and include fixes.
+* Switched to C++20, improved build system for better cross-platform support.
+* Fixed WebSocket errors and improved callback handling in the API server.
+* Switched to using git submodules for external dependencies.
+* All public domain sources are dedicated via the Unlicense.
+* Remove icon-gen, sharp dependencies, generate UI icons using mogrify.
+
+### Contributors
+* [@ritschwumm](https://github.com/ritschwumm) made his first contribution in https://github.com/tim-janik/anklang/pull/58
+* [@swesterfeld](https://github.com/swesterfeld) continued his excellent device work.
+
+
 ## Anklang 0.2.0
 
 ### Hardware and System Requirements
