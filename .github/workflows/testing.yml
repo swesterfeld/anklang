@@ -107,7 +107,6 @@ jobs:
 
   Ping-IRC:
     needs: [FocalAssets, UploadDocs, ArchReplay, FocalClangTidy]
-    if: ${{ always() && !env.ACT }}
     runs-on: ubuntu-latest
     steps:
     - { uses: actions/checkout@v4.1.1,	with: { fetch-depth: 0 } } # Fix actions/checkout#290
@@ -120,7 +119,7 @@ jobs:
         [[ ${{ needs.ArchReplay.result }}     =~ success|skipped ]]
         [[ ${{ needs.FocalClangTidy.result }} =~ success|skipped ]]
     - name: Ping IRC
-      if: always()
+      if: ${{ always() && !env.ACT }}
       run: |
         R='${{ github.repository }}' && R=${R#*/}
         B='${{ github.ref }}' && B=${B#refs/heads/}
